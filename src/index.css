@@ -2,95 +2,115 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Paws Play Repeat - Playful Pet Social Network Design System */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Warm, playful palette inspired by dog parks and nature */
+    --background: 45 30% 98%;
+    --foreground: 25 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 25 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 25 30% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Warm coral/orange - main action color */
+    --primary: 24 85% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Soft sage green - secondary elements */
+    --secondary: 150 25% 85%;
+    --secondary-foreground: 150 30% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Cream/beige muted backgrounds */
+    --muted: 40 30% 94%;
+    --muted-foreground: 25 15% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Teal accent for highlights */
+    --accent: 175 50% 45%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Success green for matches/confirmations */
+    --success: 145 60% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Warning amber */
+    --warning: 38 92% 50%;
+    --warning-foreground: 25 30% 15%;
 
-    --radius: 0.5rem;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --sidebar-background: 0 0% 98%;
+    --border: 35 20% 88%;
+    --input: 35 20% 88%;
+    --ring: 24 85% 60%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --radius: 1rem;
 
-    --sidebar-primary: 240 5.9% 10%;
+    /* Custom paw-themed shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(25 30% 15% / 0.08);
+    --shadow-medium: 0 8px 30px -8px hsl(25 30% 15% / 0.12);
+    --shadow-paw: 0 10px 40px -10px hsl(24 85% 60% / 0.25);
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    /* Tab bar */
+    --tab-bar-height: 5rem;
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 45 30% 98%;
+    --sidebar-foreground: 25 30% 15%;
+    --sidebar-primary: 24 85% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 25% 85%;
+    --sidebar-accent-foreground: 150 30% 25%;
+    --sidebar-border: 35 20% 88%;
+    --sidebar-ring: 24 85% 60%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 25 25% 10%;
+    --foreground: 40 20% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 25 20% 14%;
+    --card-foreground: 40 20% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 25 20% 14%;
+    --popover-foreground: 40 20% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 24 85% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 150 20% 20%;
+    --secondary-foreground: 150 25% 85%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 25 15% 18%;
+    --muted-foreground: 35 15% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 175 45% 40%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --success: 145 55% 40%;
+    --success-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --warning: 38 85% 45%;
+    --warning-foreground: 25 30% 15%;
+
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 25 15% 22%;
+    --input: 25 15% 22%;
+    --ring: 24 85% 55%;
+
+    --sidebar-background: 25 25% 10%;
+    --sidebar-foreground: 40 20% 95%;
+    --sidebar-primary: 24 85% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 150 20% 20%;
+    --sidebar-accent-foreground: 150 25% 85%;
+    --sidebar-border: 25 15% 22%;
+    --sidebar-ring: 24 85% 55%;
   }
 }
 
@@ -100,6 +120,133 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Nunito', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Safe area padding for mobile */
+  .safe-bottom {
+    padding-bottom: calc(var(--tab-bar-height) + var(--safe-area-bottom));
   }
 }
+
+@layer components {
+  /* Playful paw button effect */
+  .paw-button {
+    @apply relative overflow-hidden transition-all duration-300;
+  }
+
+  .paw-button::after {
+    content: '';
+    @apply absolute inset-0 bg-white/20 scale-0 rounded-full transition-transform duration-300;
+  }
+
+  .paw-button:active::after {
+    @apply scale-150;
+  }
+
+  /* Floating action button */
+  .fab {
+    @apply fixed z-50 rounded-full shadow-lg;
+    box-shadow: var(--shadow-paw);
+    bottom: calc(var(--tab-bar-height) + 1rem + var(--safe-area-bottom));
+    right: 1rem;
+  }
+
+  /* Glass effect for overlays */
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20;
+  }
+
+  .dark .glass {
+    @apply bg-black/60 border-white/10;
+  }
+
+  /* Card with playful hover */
+  .card-playful {
+    @apply transition-all duration-300 hover:scale-[1.02];
+    box-shadow: var(--shadow-soft);
+  }
+
+  .card-playful:hover {
+    box-shadow: var(--shadow-medium);
+  }
+
+  /* Thumb zone optimized button area */
+  .thumb-zone {
+    @apply min-h-[48px] min-w-[48px] flex items-center justify-center;
+  }
+
+  /* Mapbox container */
+  .mapboxgl-map {
+    font-family: inherit !important;
+  }
+
+  .mapboxgl-ctrl-bottom-left,
+  .mapboxgl-ctrl-bottom-right {
+    bottom: calc(var(--tab-bar-height) + 1rem) !important;
+  }
+
+  /* Filter pills */
+  .filter-pill {
+    @apply px-4 py-2 rounded-full text-sm font-medium transition-all duration-200;
+    @apply bg-muted text-muted-foreground;
+    @apply hover:bg-primary/10 hover:text-primary;
+  }
+
+  .filter-pill.active {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  /* Swipe card for Pack feature */
+  .swipe-card {
+    @apply absolute inset-0 rounded-3xl overflow-hidden;
+    box-shadow: var(--shadow-medium);
+  }
+
+  /* Activity feed item */
+  .feed-item {
+    @apply border-b border-border last:border-0;
+  }
+
+  /* Badge pulse animation */
+  .badge-pulse {
+    @apply relative;
+  }
+
+  .badge-pulse::before {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-primary animate-ping opacity-75;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  }
+
+  /* Bounce animation for interactions */
+  .bounce-tap {
+    @apply active:scale-95 transition-transform duration-150;
+  }
+}
+
+/* Import Nunito font */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
