@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlaydates } from '@/hooks/usePlaydates';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import datesBackground from '@/assets/dates-background.jpg';
 
 export default function Dates() {
   const { user } = useAuth();
@@ -14,8 +15,12 @@ export default function Dates() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="p-8 text-center max-w-sm">
+      <div 
+        className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${datesBackground})` }}
+      >
+        <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
+        <Card className="p-8 text-center max-w-sm relative z-10 bg-card/95 backdrop-blur">
           <CalendarDays className="w-16 h-16 mx-auto mb-4 text-primary" />
           <h2 className="text-xl font-bold mb-2">Schedule Playdates</h2>
           <p className="text-muted-foreground mb-4">Sign in to manage your dog's social calendar</p>
@@ -28,9 +33,13 @@ export default function Dates() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div 
+      className="min-h-screen bg-cover bg-center bg-no-repeat bg-fixed relative"
+      style={{ backgroundImage: `url(${datesBackground})` }}
+    >
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-[2px]" />
       {/* Header */}
-      <div className="bg-card/95 backdrop-blur border-b border-border p-4 flex items-center justify-between">
+      <div className="relative z-10 bg-card/90 backdrop-blur border-b border-border p-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <CalendarDays className="w-6 h-6 text-primary" />
           Playdates
@@ -41,7 +50,7 @@ export default function Dates() {
         </Button>
       </div>
 
-      <Tabs defaultValue="pending" className="p-4">
+      <Tabs defaultValue="pending" className="relative z-10 p-4">
         <TabsList className="grid w-full grid-cols-3 rounded-full h-12">
           <TabsTrigger value="pending" className="rounded-full">
             Pending
