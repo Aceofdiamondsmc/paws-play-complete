@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Compass, Search, Navigation, X, Droplets, Fence, PawPrint, TreePine, Star, ChevronRight } from 'lucide-react';
+import { Compass, Search, Navigation, X, Droplets, Fence, PawPrint, TreePine, Star, ChevronRight, Dog, Scissors, Stethoscope, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,15 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 
 // Get Mapbox token from environment
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+
+// Service category pills
+const serviceCategories = [
+  { id: 'walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-primary/10 text-primary' },
+  { id: 'sitters', label: 'Dog Sitters', icon: Home, color: 'bg-accent/10 text-accent' },
+  { id: 'vets', label: 'Vet Clinics', icon: Stethoscope, color: 'bg-green-100 text-green-700' },
+  { id: 'daycare', label: 'Doggy Daycare', icon: Dog, color: 'bg-yellow-100 text-yellow-700' },
+  { id: 'groomers', label: 'Groomers', icon: Scissors, color: 'bg-purple-100 text-purple-700' },
+];
 
 // Paw print SVG for custom marker
 const createPawMarkerElement = () => {
@@ -220,7 +229,7 @@ export default function Explore() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Compass className="w-6 h-6 text-primary" />
-            Explore Parks
+            Explore
           </h1>
           <Button
             variant="outline"
@@ -240,6 +249,22 @@ export default function Explore() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div>
+        
+        {/* Service Category Pills */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {serviceCategories.map(cat => {
+            const Icon = cat.icon;
+            return (
+              <button
+                key={cat.id}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full whitespace-nowrap font-medium transition-all ${cat.color} hover:opacity-80`}
+              >
+                <Icon className="w-4 h-4" />
+                {cat.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
