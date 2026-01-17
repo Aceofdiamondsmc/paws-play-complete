@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, X, MessageCircle, Calendar, Dog, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, X, Dog, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFriendships } from '@/hooks/useFriendships';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 import type { Dog as DogType, Profile } from '@/types';
 
 interface DogWithOwner extends DogType {
@@ -18,7 +18,7 @@ export default function Pack() {
   const { friends, pendingRequests, acceptRequest, declineRequest } = useFriendships();
   const [discoveryDogs, setDiscoveryDogs] = useState<DogWithOwner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState<'left' | 'right' | null>(null);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -53,10 +53,10 @@ export default function Pack() {
   const currentDog = discoveryDogs[currentIndex];
 
   const handleSwipe = (dir: 'left' | 'right') => {
-    setDirection(dir);
+    setSwipeDirection(dir);
     setTimeout(() => {
       setCurrentIndex(prev => prev + 1);
-      setDirection(null);
+      setSwipeDirection(null);
     }, 300);
   };
 
@@ -119,47 +119,39 @@ export default function Pack() {
         {currentDog ? (
           <>
             <div className="relative w-full max-w-sm aspect-[3/4]">
-              <AnimatePresence>
-                <motion.div
-                  key={currentDog.id}
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ 
-                    scale: 1, 
-                    opacity: 1,
-                    x: direction === 'left' ? -300 : direction === 'right' ? 300 : 0,
-                    rotate: direction === 'left' ? -15 : direction === 'right' ? 15 : 0
-                  }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="swipe-card bg-card"
-                >
-                  {currentDog.avatar_url ? (
-                    <img
-                      src={currentDog.avatar_url}
-                      alt={currentDog.name}
-                      className="w-full h-2/3 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-2/3 bg-muted flex items-center justify-center">
-                      <Dog className="w-24 h-24 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="p-4">
-                    <h2 className="text-2xl font-bold">{currentDog.name}</h2>
-                    <p className="text-muted-foreground">
-                      {currentDog.breed} • {currentDog.size}
-                    </p>
-                    {currentDog.bio && (
-                      <p className="mt-2 text-sm line-clamp-2">{currentDog.bio}</p>
-                    )}
-                    {currentDog.energy_level && (
-                      <span className="inline-block mt-2 px-3 py-1 bg-secondary rounded-full text-xs font-medium">
-                        {currentDog.energy_level} energy
-                      </span>
-                    )}
+              <div
+                className={cn(
+                  "absolute inset-0 rounded-3xl overflow-hidden bg-card shadow-lg transition-all duration-300",
+                  swipeDirection === 'left' && "-translate-x-full -rotate-12 opacity-0",
+                  swipeDirection === 'right' && "translate-x-full rotate-12 opacity-0"
+                )}
+              >
+                {currentDog.avatar_url ? (
+                  <img
+                    src={currentDog.avatar_url}
+                    alt={currentDog.name}
+                    className="w-full h-2/3 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-2/3 bg-muted flex items-center justify-center">
+                    <Dog className="w-24 h-24 text-muted-foreground" />
                   </div>
-                </motion.div>
-              </AnimatePresence>
+                )}
+                <div className="p-4">
+                  <h2 className="text-2xl font-bold">{currentDog.name}</h2>
+                  <p className="text-muted-foreground">
+                    {currentDog.breed} • {currentDog.size}
+                  </p>
+                  {currentDog.bio && (
+                    <p className="mt-2 text-sm line-clamp-2">{currentDog.bio}</p>
+                  )}
+                  {currentDog.energy_level && (
+                    <span className="inline-block mt-2 px-3 py-1 bg-secondary rounded-full text-xs font-medium">
+                      {currentDog.energy_level} energy
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Action Buttons - Thumb Zone */}
