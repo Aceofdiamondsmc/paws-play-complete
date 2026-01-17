@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useParks } from '@/hooks/useParks';
 import { cn } from '@/lib/utils';
+import { createPawMarker, createPopupHTML } from '@/components/parks/ParkMarkers';
+import { ParkInfoPanel } from '@/components/parks/ParkInfoPanel';
 import type { ParkFilter, FilterOption, Park } from '@/types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -25,50 +27,10 @@ const iconMap: Record<string, React.ElementType> = {
   Fence, Droplets, Dog, TreePine, Car, Dumbbell
 };
 
-// Create custom paw marker element
-const createPawMarker = (isSelected: boolean = false) => {
-  const el = document.createElement('div');
-  el.className = 'paw-marker';
-  el.innerHTML = `
-    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="11" fill="${isSelected ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}" stroke="white" stroke-width="2"/>
-      <path d="M12 14c-1.3 0-2.4 1-2.9 2.2-.2.5.1 1 .7 1h4.4c.6 0 .9-.5.7-1-.5-1.2-1.6-2.2-2.9-2.2z" fill="white"/>
-      <ellipse cx="9" cy="11" rx="1.3" ry="1.7" fill="white"/>
-      <ellipse cx="15" cy="11" rx="1.3" ry="1.7" fill="white"/>
-      <ellipse cx="10.5" cy="8.5" rx="1" ry="1.3" fill="white"/>
-      <ellipse cx="13.5" cy="8.5" rx="1" ry="1.3" fill="white"/>
-    </svg>
-  `;
-  el.style.cursor = 'pointer';
-  el.style.transition = 'transform 0.2s ease';
-  return el;
-};
-
-// Generate popup HTML with amenities
-const createPopupHTML = (park: Park) => {
-  const amenities: string[] = [];
-  if (park.is_fenced) amenities.push('<span class="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Fenced</span>');
-  if (park.has_water_fountain) amenities.push('<span class="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Water</span>');
-  if (park.is_dog_friendly) amenities.push('<span class="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">Dog Friendly</span>');
-
-  return `
-    <div class="p-3 min-w-[200px]">
-      <h3 class="font-bold text-base mb-1">${park.name}</h3>
-      <p class="text-xs text-gray-500 mb-2">${park.address || 'Dog Park'}</p>
-      ${park.rating ? `
-        <div class="flex items-center gap-1 mb-2">
-          <span class="text-yellow-500">★</span>
-          <span class="text-sm font-medium">${park.rating.toFixed(1)}</span>
-          <span class="text-xs text-gray-400">(${park.user_ratings_total || 0})</span>
-        </div>
-      ` : ''}
-      ${amenities.length > 0 ? `<div class="flex flex-wrap gap-1">${amenities.slice(0, 3).join('')}</div>` : ''}
-    </div>
-  `;
-};
 
 export default function Parks() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [selectedPark, setSelectedPark] = useState<Park | null>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -119,13 +81,19 @@ export default function Parks() {
     const parksWithCoords = parks.filter(park => park.latitude != null && park.longitude != null);
     
     parksWithCoords.forEach(park => {
-      const el = createPawMarker();
+      const isSelected = selectedPark?.id === park.id;
+      const el = createPawMarker(isSelected);
       
       el.addEventListener('mouseenter', () => {
-        el.style.transform = 'scale(1.15)';
+        if (!isSelected) el.style.transform = 'scale(1.15)';
       });
       el.addEventListener('mouseleave', () => {
-        el.style.transform = 'scale(1)';
+        if (!isSelected) el.style.transform = 'scale(1)';
+      });
+      
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setSelectedPark(park);
       });
 
       const popup = new mapboxgl.Popup({ 
@@ -158,7 +126,7 @@ export default function Parks() {
         });
       }
     }
-  }, [parks, mapLoaded, viewMode]);
+  }, [parks, mapLoaded, viewMode, selectedPark]);
 
   // Locate user function
   const locateUser = useCallback(() => {
@@ -314,10 +282,18 @@ export default function Parks() {
           {!loading && (
             <div className="absolute top-4 left-4 z-10">
               <Badge variant="secondary" className="bg-card/95 backdrop-blur shadow-md px-3 py-1.5">
-                <TreePine className="w-4 h-4 mr-1" />
+                <PawPrint className="w-4 h-4 mr-1" />
                 {parks.length} Parks
               </Badge>
             </div>
+          )}
+
+          {/* Selected Park Info Panel with AI Description */}
+          {selectedPark && (
+            <ParkInfoPanel 
+              park={selectedPark} 
+              onClose={() => setSelectedPark(null)} 
+            />
           )}
         </div>
       ) : (
