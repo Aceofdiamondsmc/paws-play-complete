@@ -1,7 +1,7 @@
+import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { MapPin, Compass, Users, CalendarDays, Heart, User, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
 
 const navItems = [
   { path: '/parks', icon: MapPin, label: 'Parks' },
@@ -17,7 +17,7 @@ export function BottomNav() {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border">
       <div className="flex items-center justify-around h-20 px-2 pb-safe">
         {navItems.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
@@ -27,20 +27,16 @@ export function BottomNav() {
               key={path}
               to={path}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-2xl transition-all duration-200 thumb-zone",
+                "flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-2xl transition-all duration-200 min-h-[48px] min-w-[48px]",
                 isActive 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
               <div className="relative">
-                <Icon className={cn("w-6 h-6", isActive && "animate-bounce-in")} />
+                <Icon className={cn("w-6 h-6 transition-transform", isActive && "scale-110")} />
                 {isActive && (
-                  <motion.div
-                    layoutId="nav-indicator"
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-full"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
                 )}
               </div>
               <span className={cn(
