@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Image as ImageIcon, MapPin, Star, X, Camera } from 'lucide-react';
+import { Plus, Image as ImageIcon, MapPin, Star, X, Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +13,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useParks } from '@/hooks/useParks';
+import { useImageUpload } from '@/hooks/useImageUpload';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 interface CreatePostFormProps {
   onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number) => Promise<void>;
@@ -57,6 +59,7 @@ function StarRatingInput({
 
 export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProps) {
   const { allParks } = useParks();
+  const { uploadImage, uploading } = useImageUpload();
   const [content, setContent] = useState('');
   const [isReview, setIsReview] = useState(false);
   const [selectedParkId, setSelectedParkId] = useState<string>('');
@@ -89,10 +92,25 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
     if (!content.trim()) return;
     if (isReview && (!selectedParkId || rating === 0)) return;
     
-    // For now, we pass the preview image URL (in real implementation, upload to storage first)
+    let uploadedImageUrl: string | undefined;
+    
+    // Upload image to Supabase Storage if one was selected
+    if (imageFile) {
+      const { url, error } = await uploadImage(imageFile);
+      if (error) {
+        toast({
+          title: "Upload failed",
+          description: "Could not upload image. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      uploadedImageUrl = url || undefined;
+    }
+    
     await onPost(
       content.trim(),
-      previewImage || undefined,
+      uploadedImageUrl,
       isReview,
       isReview ? selectedParkId : undefined,
       isReview ? rating : undefined
@@ -105,9 +123,13 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
     setRating(0);
     setPreviewImage(null);
     setImageFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const canPost = content.trim() && (!isReview || (selectedParkId && rating > 0));
+  const isSubmitting = isPosting || uploading;
 
   return (
     <Card className="p-4 bg-card border-2 border-primary/20 rounded-2xl shadow-sm">
@@ -238,11 +260,15 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
         </div>
         <Button
           onClick={handleSubmit}
-          disabled={!canPost || isPosting}
+          disabled={!canPost || isSubmitting}
           className="rounded-full bg-primary hover:bg-primary/90 px-6"
         >
-          <Plus className="w-4 h-4 mr-1" />
-          {isReview ? 'Post Review' : 'Post'}
+          {isSubmitting ? (
+            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+          ) : (
+            <Plus className="w-4 h-4 mr-1" />
+          )}
+          {uploading ? 'Uploading...' : isReview ? 'Post Review' : 'Post'}
         </Button>
       </div>
     </Card>
