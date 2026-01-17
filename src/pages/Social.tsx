@@ -27,7 +27,7 @@ const samplePosts = [
     commentsCount: 8,
     isLiked: false,
     timeAgo: '30m ago',
-    imageUrl: 'https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400&h=400&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=400&fit=crop',
   },
   {
     id: 'sample-2',
