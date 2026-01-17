@@ -11,6 +11,90 @@ interface DogWithOwner extends DogType {
   playStyles?: string[];
 }
 
+// Test dogs data for demo
+const testDogs: DogWithOwner[] = [
+  {
+    id: 'test-1',
+    name: 'Max',
+    breed: 'Golden Retriever',
+    size: 'Large',
+    energy: 'High',
+    energy_level: 'High',
+    bio: 'Loves to play fetch and swim! Always ready for an adventure at the park. Great with other dogs and kids.',
+    avatar_url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=400&fit=crop',
+    owner_id: 'test-owner-1',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    playStyles: ['Fetch Fanatic', 'Water Lover'],
+    owner: {
+      id: 'test-owner-1',
+      display_name: 'Sarah Johnson',
+      avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
+      is_public: true,
+    } as Profile
+  },
+  {
+    id: 'test-2',
+    name: 'Fisco',
+    breed: 'French Bulldog',
+    size: 'Small',
+    energy: 'Medium',
+    energy_level: 'Medium',
+    bio: 'A playful little guy who loves cuddles and short walks. Gets along great with everyone!',
+    avatar_url: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=400&fit=crop',
+    owner_id: 'test-owner-2',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    playStyles: ['Cuddler', 'Tug Champion'],
+    owner: {
+      id: 'test-owner-2',
+      display_name: 'Mike Chen',
+      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+      is_public: true,
+    } as Profile
+  },
+  {
+    id: 'test-3',
+    name: 'Bella',
+    breed: 'Border Collie',
+    size: 'Medium',
+    energy: 'High',
+    energy_level: 'High',
+    bio: 'Super smart and loves to run! Agility champion in training. Needs an active playmate.',
+    avatar_url: 'https://images.unsplash.com/photo-1503256207526-0d5d80fa2f47?w=400&h=400&fit=crop',
+    owner_id: 'test-owner-3',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    playStyles: ['Chase Expert', 'Fetch Fanatic'],
+    owner: {
+      id: 'test-owner-3',
+      display_name: 'Emily Davis',
+      avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
+      is_public: true,
+    } as Profile
+  },
+  {
+    id: 'test-4',
+    name: 'Sonny',
+    breed: 'Labrador Retriever',
+    size: 'Large',
+    energy: 'Low',
+    energy_level: 'Low',
+    bio: 'A gentle giant who loves lazy afternoons and belly rubs. Perfect for calm playdates.',
+    avatar_url: 'https://images.unsplash.com/photo-1529429617124-95b109e86bb8?w=400&h=400&fit=crop',
+    owner_id: 'test-owner-4',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    playStyles: ['Cuddler', 'Water Lover'],
+    owner: {
+      id: 'test-owner-4',
+      display_name: 'James Wilson',
+      avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
+      is_public: true,
+    } as Profile
+  }
+];
+
 export default function Pack() {
   const [discoveryDogs, setDiscoveryDogs] = useState<DogWithOwner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -42,6 +126,9 @@ export default function Pack() {
           owner: profileMap.get(d.owner_id),
           playStyles: playStyleOptions.slice(0, Math.floor(Math.random() * 3) + 1)
         })));
+      } else {
+        // Use test dogs when no dogs in database
+        setDiscoveryDogs(testDogs);
       }
       setLoading(false);
     };
