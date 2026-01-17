@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ShoppingBag } from 'lucide-react';
+import { Package } from 'lucide-react';
 
 export default function Shop() {
   const shopifyContainerRef = useRef<HTMLDivElement>(null);
@@ -143,7 +143,7 @@ export default function Shop() {
       {/* Header */}
       <div className="bg-card/95 backdrop-blur border-b border-border p-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ShoppingBag className="w-6 h-6 text-primary" />
+          <Package className="w-6 h-6 text-primary" />
           Shop
         </h1>
         <p className="text-sm text-muted-foreground mt-1">

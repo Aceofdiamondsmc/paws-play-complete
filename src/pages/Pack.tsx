@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, X, Dog, Sparkles } from 'lucide-react';
+import { PawPrint, X, Dog, Sparkles, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -80,7 +80,7 @@ export default function Pack() {
       {/* Header */}
       <div className="bg-card/95 backdrop-blur border-b border-border p-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Heart className="w-6 h-6 text-primary" />
+          <PawPrint className="w-6 h-6 text-primary" />
           Pack
         </h1>
       </div>

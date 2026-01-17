@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { MapPin, Compass, Users, CalendarDays, Heart, User, ShoppingBag } from 'lucide-react';
+import { MapPin, Compass, Users, CalendarDays, PawPrint, User, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -8,9 +8,9 @@ const navItems = [
   { path: '/explore', icon: Compass, label: 'Explore' },
   { path: '/social', icon: Users, label: 'Social' },
   { path: '/dates', icon: CalendarDays, label: 'Dates' },
-  { path: '/pack', icon: Heart, label: 'Pack' },
+  { path: '/pack', icon: PawPrint, label: 'Pack' },
   { path: '/me', icon: User, label: 'Me' },
-  { path: '/shop', icon: ShoppingBag, label: 'Shop' },
+  { path: '/shop', icon: Package, label: 'Shop' },
 ];
 
 export function BottomNav() {
