@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { MapPin, List, Filter, Star, Fence, Droplets, Dog, TreePine, Car, Dumbbell } from 'lucide-react';
+import { MapPin, List, Star, Fence, Droplets, Dog, TreePine, Car, Dumbbell, Navigation, PawPrint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useParks } from '@/hooks/useParks';
 import { cn } from '@/lib/utils';
-import type { ParkFilter, FilterOption } from '@/types';
+import type { ParkFilter, FilterOption, Park } from '@/types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
@@ -20,92 +21,229 @@ const filterOptions: FilterOption[] = [
   { id: 'grass', label: 'Grass Surface', icon: 'TreePine' },
 ];
 
-const iconMap: Record<string, any> = {
+const iconMap: Record<string, React.ElementType> = {
   Fence, Droplets, Dog, TreePine, Car, Dumbbell
+};
+
+// Create custom paw marker element
+const createPawMarker = (isSelected: boolean = false) => {
+  const el = document.createElement('div');
+  el.className = 'paw-marker';
+  el.innerHTML = `
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="11" fill="${isSelected ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}" stroke="white" stroke-width="2"/>
+      <path d="M12 14c-1.3 0-2.4 1-2.9 2.2-.2.5.1 1 .7 1h4.4c.6 0 .9-.5.7-1-.5-1.2-1.6-2.2-2.9-2.2z" fill="white"/>
+      <ellipse cx="9" cy="11" rx="1.3" ry="1.7" fill="white"/>
+      <ellipse cx="15" cy="11" rx="1.3" ry="1.7" fill="white"/>
+      <ellipse cx="10.5" cy="8.5" rx="1" ry="1.3" fill="white"/>
+      <ellipse cx="13.5" cy="8.5" rx="1" ry="1.3" fill="white"/>
+    </svg>
+  `;
+  el.style.cursor = 'pointer';
+  el.style.transition = 'transform 0.2s ease';
+  return el;
+};
+
+// Generate popup HTML with amenities
+const createPopupHTML = (park: Park) => {
+  const amenities: string[] = [];
+  if (park.is_fenced) amenities.push('<span class="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Fenced</span>');
+  if (park.has_water_fountain) amenities.push('<span class="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Water</span>');
+  if (park.is_dog_friendly) amenities.push('<span class="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">Dog Friendly</span>');
+
+  return `
+    <div class="p-3 min-w-[200px]">
+      <h3 class="font-bold text-base mb-1">${park.name}</h3>
+      <p class="text-xs text-gray-500 mb-2">${park.address || 'Dog Park'}</p>
+      ${park.rating ? `
+        <div class="flex items-center gap-1 mb-2">
+          <span class="text-yellow-500">★</span>
+          <span class="text-sm font-medium">${park.rating.toFixed(1)}</span>
+          <span class="text-xs text-gray-400">(${park.user_ratings_total || 0})</span>
+        </div>
+      ` : ''}
+      ${amenities.length > 0 ? `<div class="flex flex-wrap gap-1">${amenities.slice(0, 3).join('')}</div>` : ''}
+    </div>
+  `;
 };
 
 export default function Parks() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const { parks, loading, activeFilters, toggleFilter } = useParks();
 
+  // Initialize map
   useEffect(() => {
     if (!mapContainer.current || !MAPBOX_TOKEN || viewMode !== 'map') return;
+    if (map.current) return; // Already initialized
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/outdoors-v12',
-      center: [-122.4194, 37.7749],
-      zoom: 11,
+      center: [-98.5795, 39.8283], // Center of US
+      zoom: 4,
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    map.current.addControl(
-      new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: true,
-      }),
-      'top-right'
-    );
+
+    map.current.on('load', () => {
+      setMapLoaded(true);
+    });
 
     return () => {
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current = [];
+      userMarkerRef.current?.remove();
       map.current?.remove();
+      map.current = null;
+      setMapLoaded(false);
     };
   }, [viewMode]);
 
+  // Update markers when parks change
   useEffect(() => {
-    if (!map.current || viewMode !== 'map') return;
+    if (!map.current || !mapLoaded || viewMode !== 'map') return;
 
     // Clear existing markers
-    const markers = document.querySelectorAll('.mapboxgl-marker');
-    markers.forEach(m => m.remove());
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
 
     // Add park markers
-    parks.forEach(park => {
-      if (!park.latitude || !park.longitude) return;
+    const parksWithCoords = parks.filter(park => park.latitude != null && park.longitude != null);
+    
+    parksWithCoords.forEach(park => {
+      const el = createPawMarker();
+      
+      el.addEventListener('mouseenter', () => {
+        el.style.transform = 'scale(1.15)';
+      });
+      el.addEventListener('mouseleave', () => {
+        el.style.transform = 'scale(1)';
+      });
 
-      const el = document.createElement('div');
-      el.className = 'w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg cursor-pointer transform hover:scale-110 transition-transform';
-      el.innerHTML = '<svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>';
+      const popup = new mapboxgl.Popup({ 
+        offset: 25,
+        closeButton: true,
+        closeOnClick: false,
+        maxWidth: '280px'
+      }).setHTML(createPopupHTML(park));
 
-      new mapboxgl.Marker(el)
-        .setLngLat([park.longitude, park.latitude])
-        .setPopup(
-          new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <div class="p-2">
-              <h3 class="font-bold text-sm">${park.name}</h3>
-              <p class="text-xs text-gray-600">${park.address || 'Dog Park'}</p>
-              ${park.rating ? `<div class="flex items-center gap-1 mt-1"><span class="text-yellow-500">★</span><span class="text-xs">${park.rating.toFixed(1)}</span></div>` : ''}
-            </div>
-          `)
-        )
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([park.longitude!, park.latitude!])
+        .setPopup(popup)
         .addTo(map.current!);
+
+      markersRef.current.push(marker);
     });
 
-    // Fit to parks if available
-    if (parks.length > 0) {
+    // Fit bounds to show all filtered parks
+    if (parksWithCoords.length > 0) {
       const bounds = new mapboxgl.LngLatBounds();
-      parks.forEach(park => {
-        if (park.latitude && park.longitude) {
-          bounds.extend([park.longitude, park.latitude]);
-        }
+      parksWithCoords.forEach(park => {
+        bounds.extend([park.longitude!, park.latitude!]);
       });
+      
       if (!bounds.isEmpty()) {
-        map.current.fitBounds(bounds, { padding: 50, maxZoom: 14 });
+        map.current.fitBounds(bounds, { 
+          padding: { top: 50, bottom: 50, left: 50, right: 50 }, 
+          maxZoom: 13,
+          duration: 1000
+        });
       }
     }
-  }, [parks, viewMode]);
+  }, [parks, mapLoaded, viewMode]);
+
+  // Locate user function
+  const locateUser = useCallback(() => {
+    if (!navigator.geolocation || !map.current) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { longitude, latitude } = position.coords;
+        
+        // Remove existing user marker
+        userMarkerRef.current?.remove();
+
+        // Create user location marker
+        const userEl = document.createElement('div');
+        userEl.innerHTML = `
+          <div style="position: relative;">
+            <div style="
+              width: 20px;
+              height: 20px;
+              background: hsl(var(--primary));
+              border: 3px solid white;
+              border-radius: 50%;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            "></div>
+            <div style="
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 40px;
+              height: 40px;
+              background: hsl(var(--primary) / 0.25);
+              border-radius: 50%;
+              animation: pulse 2s infinite;
+            "></div>
+          </div>
+        `;
+
+        userMarkerRef.current = new mapboxgl.Marker({ element: userEl })
+          .setLngLat([longitude, latitude])
+          .addTo(map.current!);
+
+        map.current!.flyTo({
+          center: [longitude, latitude],
+          zoom: 13,
+          duration: 1500,
+        });
+        
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        alert('Unable to get your location. Please enable location services.');
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }, []);
 
   return (
     <div className="h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-card border-b border-border p-4 space-y-3">
+      <div className="bg-card border-b border-border p-4 space-y-3 z-10">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Dog Parks</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <PawPrint className="w-6 h-6 text-primary" />
+            Dog Parks
+          </h1>
           <div className="flex gap-2">
+            {viewMode === 'map' && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={locateUser}
+                disabled={isLocating}
+                className="rounded-full"
+              >
+                <Navigation className={cn("w-4 h-4", isLocating && "animate-pulse")} />
+              </Button>
+            )}
             <Button
               variant={viewMode === 'map' ? 'default' : 'outline'}
               size="sm"
@@ -137,8 +275,10 @@ export default function Parks() {
                 key={filter.id}
                 onClick={() => toggleFilter(filter.id)}
                 className={cn(
-                  "filter-pill flex items-center gap-1.5 whitespace-nowrap",
-                  isActive && "active"
+                  "flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border",
+                  isActive 
+                    ? "bg-primary text-primary-foreground border-primary shadow-md" 
+                    : "bg-card text-muted-foreground border-border hover:bg-muted"
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -147,11 +287,39 @@ export default function Parks() {
             );
           })}
         </div>
+
+        {/* Active filter count */}
+        {activeFilters.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              {parks.length} parks match your filters
+            </Badge>
+          </div>
+        )}
       </div>
 
       {/* Content */}
       {viewMode === 'map' ? (
-        <div ref={mapContainer} className="flex-1" />
+        <div className="flex-1 relative">
+          <div ref={mapContainer} className="absolute inset-0" />
+          
+          {/* Loading overlay */}
+          {loading && (
+            <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+            </div>
+          )}
+
+          {/* Park count badge */}
+          {!loading && (
+            <div className="absolute top-4 left-4 z-10">
+              <Badge variant="secondary" className="bg-card/95 backdrop-blur shadow-md px-3 py-1.5">
+                <TreePine className="w-4 h-4 mr-1" />
+                {parks.length} Parks
+              </Badge>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {loading ? (
@@ -161,7 +329,8 @@ export default function Parks() {
           ) : parks.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Dog className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No parks found matching your filters</p>
+              <p className="font-medium">No parks found matching your filters</p>
+              <p className="text-sm mt-1">Try removing some filters to see more parks</p>
             </div>
           ) : (
             parks.map(park => (
@@ -174,8 +343,8 @@ export default function Parks() {
                       className="w-24 h-24 object-cover rounded-xl"
                     />
                   ) : (
-                    <div className="w-24 h-24 bg-muted rounded-xl flex items-center justify-center">
-                      <MapPin className="w-8 h-8 text-muted-foreground" />
+                    <div className="w-24 h-24 bg-primary/10 rounded-xl flex items-center justify-center">
+                      <PawPrint className="w-8 h-8 text-primary" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -192,12 +361,24 @@ export default function Parks() {
                         </span>
                       </div>
                     )}
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex flex-wrap gap-1.5 mt-2">
                       {park.is_fenced && (
-                        <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">Fenced</span>
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                          <Fence className="w-3 h-3 mr-1" />
+                          Fenced
+                        </Badge>
                       )}
                       {park.has_water_fountain && (
-                        <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">Water</span>
+                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          <Droplets className="w-3 h-3 mr-1" />
+                          Water
+                        </Badge>
+                      )}
+                      {park.is_dog_friendly && (
+                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                          <Dog className="w-3 h-3 mr-1" />
+                          Dog Friendly
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -207,6 +388,23 @@ export default function Parks() {
           )}
         </div>
       )}
+
+      {/* Pulse animation styles */}
+      <style>{`
+        @keyframes pulse {
+          0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+        .mapboxgl-popup-content {
+          border-radius: 12px !important;
+          padding: 0 !important;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+        }
+        .mapboxgl-popup-close-button {
+          font-size: 18px;
+          padding: 4px 8px;
+        }
+      `}</style>
     </div>
   );
 }
