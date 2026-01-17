@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Share2, Plus, Image as ImageIcon, Globe, Users, MapPin, Star } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Plus, Globe, Users, MapPin, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/hooks/useAuth';
+import { useParks } from '@/hooks/useParks';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import pawsplayLogo from '@/assets/pawsplay-logo.png';
+import CreatePostForm from '@/components/social/CreatePostForm';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
@@ -108,16 +109,27 @@ function StarRating({ rating }: { rating: number }) {
 export default function Social() {
   const { user } = useAuth();
   const { posts, loading, createPost, likePost } = usePosts();
-  const [newPost, setNewPost] = useState('');
+  const { allParks } = useParks();
   const [isPosting, setIsPosting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
 
-  const handlePost = async () => {
-    if (!newPost.trim()) return;
+  const handlePost = async (
+    content: string, 
+    imageUrl?: string, 
+    isReview?: boolean, 
+    parkId?: string, 
+    rating?: number
+  ) => {
     setIsPosting(true);
-    await createPost(newPost.trim());
-    setNewPost('');
+    // For now just create basic post - you can extend createPost to handle reviews
+    await createPost(content, imageUrl);
     setIsPosting(false);
+  };
+
+  // Get park name by ID
+  const getParkName = (parkId: string) => {
+    const park = allParks.find(p => p.id === parkId);
+    return park?.name || 'Unknown Park';
   };
 
   const filters: { id: FilterTab; label: string; icon: React.ElementType }[] = [
@@ -182,29 +194,9 @@ export default function Social() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Create Post - only show if user is logged in */}
+        {/* Create Post Form - only show if user is logged in */}
         {user && (
-          <Card className="p-4 bg-card border-2 border-primary/20 rounded-2xl shadow-sm">
-            <Textarea
-              placeholder="Share something with the pack... 🐾"
-              value={newPost}
-              onChange={(e) => setNewPost(e.target.value)}
-              className="min-h-[80px] resize-none border-0 p-0 focus-visible:ring-0 bg-transparent text-foreground"
-            />
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
-                <ImageIcon className="w-5 h-5" />
-              </Button>
-              <Button
-                onClick={handlePost}
-                disabled={!newPost.trim() || isPosting}
-                className="rounded-full bg-primary hover:bg-primary/90"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Post
-              </Button>
-            </div>
-          </Card>
+          <CreatePostForm onPost={handlePost} isPosting={isPosting} />
         )}
 
         {/* Posts Feed */}
