@@ -1,0 +1,261 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+import type { Post, Profile } from '@/types';
+
+interface PostWithDetails extends Post {
+  author?: Profile;
+  likesCount: number;
+  commentsCount: number;
+  isLiked: boolean;
+}
+
+interface Comment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  body: string;
+  created_at: string | null;
+  author?: Profile;
+}
+
+export function usePosts() {
+  const { user } = useAuth();
+  const [posts, setPosts] = useState<PostWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPosts = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // Fetch public posts (and private posts from friends if logged in)
+      let query = supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!user) {
+        query = query.eq('visibility', 'public');
+      }
+
+      const { data: postsData, error } = await query;
+
+      if (error) throw error;
+
+      // Get unique author IDs
+      const authorIds = new Set<string>();
+      postsData?.forEach((p: Post) => authorIds.add(p.author_id));
+
+      // Fetch author profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', Array.from(authorIds));
+
+      const profileMap = new Map<string, Profile>();
+      profiles?.forEach((p: Profile) => profileMap.set(p.id, p));
+
+      // Get likes and comments count for each post
+      const enrichedPosts = await Promise.all(
+        (postsData || []).map(async (p: Post) => {
+          // Get likes count
+          const { count: likesCount } = await supabase
+            .from('post_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', p.id);
+
+          // Get comments count
+          const { count: commentsCount } = await supabase
+            .from('post_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', p.id);
+
+          // Check if current user liked this post
+          let isLiked = false;
+          if (user) {
+            const { data: likeData } = await supabase
+              .from('post_likes')
+              .select('id')
+              .eq('post_id', p.id)
+              .eq('user_id', user.id)
+              .single();
+            isLiked = !!likeData;
+          }
+
+          return {
+            ...p,
+            author: profileMap.get(p.author_id),
+            likesCount: likesCount || 0,
+            commentsCount: commentsCount || 0,
+            isLiked
+          };
+        })
+      );
+
+      setPosts(enrichedPosts);
+    } catch (e) {
+      console.error('Error fetching posts:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const createPost = async (content: string, imageUrl?: string, visibility: 'public' | 'private' = 'public') => {
+    if (!user) return { error: new Error('Not authenticated') };
+
+    const { error } = await supabase.from('posts').insert({
+      author_id: user.id,
+      content,
+      image_url: imageUrl,
+      visibility
+    });
+
+    if (!error) {
+      await fetchPosts();
+    }
+
+    return { error };
+  };
+
+  const likePost = async (postId: string) => {
+    if (!user) return { error: new Error('Not authenticated') };
+
+    const post = posts.find(p => p.id === postId);
+    if (!post) return { error: new Error('Post not found') };
+
+    if (post.isLiked) {
+      // Unlike
+      const { error } = await supabase
+        .from('post_likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', user.id);
+
+      if (!error) {
+        setPosts(prev =>
+          prev.map(p =>
+            p.id === postId
+              ? { ...p, isLiked: false, likesCount: p.likesCount - 1 }
+              : p
+          )
+        );
+      }
+
+      return { error };
+    } else {
+      // Like
+      const { error } = await supabase.from('post_likes').insert({
+        post_id: postId,
+        user_id: user.id
+      });
+
+      if (!error) {
+        setPosts(prev =>
+          prev.map(p =>
+            p.id === postId
+              ? { ...p, isLiked: true, likesCount: p.likesCount + 1 }
+              : p
+          )
+        );
+      }
+
+      return { error };
+    }
+  };
+
+  const deletePost = async (postId: string) => {
+    const { error } = await supabase.from('posts').delete().eq('id', postId);
+
+    if (!error) {
+      setPosts(prev => prev.filter(p => p.id !== postId));
+    }
+
+    return { error };
+  };
+
+  return {
+    posts,
+    loading,
+    createPost,
+    likePost,
+    deletePost,
+    refresh: fetchPosts
+  };
+}
+
+export function usePostComments(postId: string | null) {
+  const { user } = useAuth();
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchComments = useCallback(async () => {
+    if (!postId) return;
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('post_comments')
+        .select('*')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Get author profiles
+      const authorIds = new Set<string>();
+      data?.forEach((c: Comment) => authorIds.add(c.author_id));
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', Array.from(authorIds));
+
+      const profileMap = new Map<string, Profile>();
+      profiles?.forEach((p: Profile) => profileMap.set(p.id, p));
+
+      const enrichedComments = (data || []).map((c: Comment) => ({
+        ...c,
+        author: profileMap.get(c.author_id)
+      }));
+
+      setComments(enrichedComments);
+    } catch (e) {
+      console.error('Error fetching comments:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [postId]);
+
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
+
+  const addComment = async (body: string) => {
+    if (!user || !postId) return { error: new Error('Not ready') };
+
+    const { error } = await supabase.from('post_comments').insert({
+      post_id: postId,
+      author_id: user.id,
+      body
+    });
+
+    if (!error) {
+      await fetchComments();
+    }
+
+    return { error };
+  };
+
+  return {
+    comments,
+    loading,
+    addComment,
+    refresh: fetchComments
+  };
+}
