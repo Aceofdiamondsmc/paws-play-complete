@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronRight, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,6 +99,12 @@ export default function Pack() {
   const [discoveryDogs, setDiscoveryDogs] = useState<DogWithOwner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  
+  // Touch/swipe handling
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchDogs = async () => {
@@ -138,10 +144,51 @@ export default function Pack() {
 
   const currentDog = discoveryDogs[currentIndex];
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentIndex < discoveryDogs.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setSwipeDirection('left');
+      setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+        setSwipeDirection(null);
+      }, 200);
     }
+  }, [currentIndex, discoveryDogs.length]);
+
+  const handlePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setSwipeDirection('right');
+      setTimeout(() => {
+        setCurrentIndex(prev => prev - 1);
+        setSwipeDirection(null);
+      }, 200);
+    }
+  }, [currentIndex]);
+
+  // Touch event handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const swipeThreshold = 50;
+    const diff = touchStartX.current - touchEndX.current;
+    
+    if (Math.abs(diff) > swipeThreshold) {
+      if (diff > 0) {
+        // Swiped left - go to next
+        handleNext();
+      } else {
+        // Swiped right - go to previous
+        handlePrev();
+      }
+    }
+    
+    touchStartX.current = 0;
+    touchEndX.current = 0;
   };
 
   const getEnergyLevel = (energy?: string | null) => {
@@ -179,9 +226,32 @@ export default function Pack() {
   const energyInfo = getEnergyLevel(currentDog.energy_level || currentDog.energy);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#1a1f2e]">
+    <div 
+      ref={containerRef}
+      className="min-h-screen flex flex-col bg-[#1a1f2e]"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Dog counter indicator */}
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+        {discoveryDogs.map((_, idx) => (
+          <div 
+            key={idx}
+            className={cn(
+              "h-1.5 rounded-full transition-all duration-300",
+              idx === currentIndex ? "w-6 bg-white" : "w-1.5 bg-white/40"
+            )}
+          />
+        ))}
+      </div>
+
       {/* Green Header with Dog Photo */}
-      <div className="bg-gradient-to-b from-[#7CB69D] to-[#6BA889] pt-8 pb-24 text-center relative">
+      <div className={cn(
+        "bg-gradient-to-b from-[#7CB69D] to-[#6BA889] pt-8 pb-24 text-center relative transition-all duration-200",
+        swipeDirection === 'left' && "opacity-0 -translate-x-10",
+        swipeDirection === 'right' && "opacity-0 translate-x-10"
+      )}>
         <div className="relative inline-block">
           <Avatar className="w-36 h-36 border-4 border-white shadow-xl">
             <AvatarImage src={currentDog.avatar_url || undefined} className="object-cover" />
@@ -199,14 +269,30 @@ export default function Pack() {
       </div>
 
       {/* Main Content Card */}
-      <div className="flex-1 bg-[#1a1f2e] -mt-10 rounded-t-[2rem] relative overflow-y-auto pb-32">
+      <div className={cn(
+        "flex-1 bg-[#1a1f2e] -mt-10 rounded-t-[2rem] relative overflow-y-auto pb-32 transition-all duration-200",
+        swipeDirection === 'left' && "opacity-0 -translate-x-10",
+        swipeDirection === 'right' && "opacity-0 translate-x-10"
+      )}>
+        {/* Previous Button */}
+        {currentIndex > 0 && (
+          <button 
+            onClick={handlePrev}
+            className="absolute left-4 top-6 w-12 h-12 bg-[#2a3142] rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-[#3a4156] transition-colors"
+          >
+            <ChevronLeft className="w-6 h-6 text-gray-300" />
+          </button>
+        )}
+
         {/* Next Button */}
-        <button 
-          onClick={handleNext}
-          className="absolute right-4 top-6 w-12 h-12 bg-[#2a3142] rounded-full flex items-center justify-center shadow-lg z-10"
-        >
-          <ChevronRight className="w-6 h-6 text-gray-300" />
-        </button>
+        {currentIndex < discoveryDogs.length - 1 && (
+          <button 
+            onClick={handleNext}
+            className="absolute right-4 top-6 w-12 h-12 bg-[#2a3142] rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-[#3a4156] transition-colors"
+          >
+            <ChevronRight className="w-6 h-6 text-gray-300" />
+          </button>
+        )}
 
         <div className="p-6 pt-8 space-y-5">
           {/* Verified Badge */}
