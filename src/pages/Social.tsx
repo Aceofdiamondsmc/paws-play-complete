@@ -27,7 +27,7 @@ const samplePosts = [
     commentsCount: 8,
     isLiked: false,
     timeAgo: '30m ago',
-    imageUrl: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=400&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400&h=400&fit=crop',
   },
   {
     id: 'sample-2',
@@ -37,7 +37,7 @@ const samplePosts = [
     commentsCount: 12,
     isLiked: true,
     timeAgo: '2h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1591160690555-5debfba289f0?w=400&h=400&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=400&h=400&fit=crop',
   },
   {
     id: 'sample-3',
@@ -59,7 +59,7 @@ const samplePosts = [
     commentsCount: 14,
     isLiked: false,
     timeAgo: '6h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=400&fit=crop',
   },
   {
     id: 'sample-5',
@@ -70,7 +70,7 @@ const samplePosts = [
     commentsCount: 19,
     isLiked: true,
     timeAgo: '8h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?w=400&h=400&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&h=400&fit=crop',
   },
   {
     id: 'sample-6',
@@ -83,7 +83,7 @@ const samplePosts = [
     commentsCount: 7,
     isLiked: false,
     timeAgo: '10h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=400&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1477884213360-7e9d7dcc1e48?w=400&h=400&fit=crop',
   },
 ];
 
