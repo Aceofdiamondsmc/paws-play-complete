@@ -1,30 +1,23 @@
 import { useNavigate } from 'react-router-dom';
 import { Play, PawPrint } from 'lucide-react';
 import landingPugGlasses from '@/assets/landing-pug-glasses.jpg';
-
 export default function Landing() {
   const navigate = useNavigate();
-
-  return (
-    <div className="relative min-h-[100dvh] flex flex-col items-center overflow-y-auto overflow-x-hidden">
+  return <div className="relative min-h-[100dvh] flex flex-col items-center overflow-y-auto overflow-x-hidden">
       {/* Background Image - Full screen with object-fit cover for proper proportions */}
       <div className="absolute inset-0">
-        <img 
-          src={landingPugGlasses}
-          alt="Paws Play Repeat"
-          className="w-full h-full object-cover"
-          style={{ objectPosition: 'center 30%' }}
-        />
+        <img src={landingPugGlasses} alt="Paws Play Repeat" className="w-full h-full object-cover" style={{
+        objectPosition: 'center 30%'
+      }} />
       </div>
       
       {/* Gradient overlay for better text readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40" />
       
       {/* Main Content Container - Flexbox column centered */}
-      <div 
-        className="relative z-10 flex flex-col items-center w-full min-h-[100dvh]"
-        style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}
-      >
+      <div className="relative z-10 flex flex-col items-center w-full min-h-[100dvh]" style={{
+      paddingTop: 'max(env(safe-area-inset-top), 24px)'
+    }}>
         {/* Paw Print Icon */}
         <div className="mt-4 mb-6">
           <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -33,14 +26,10 @@ export default function Landing() {
         </div>
         
         {/* Colorful Title */}
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3 text-center" style={{ fontFamily: 'Nunito, sans-serif' }}>
-          <span className="text-[#FF6B6B]">Paws</span>
-          <span className="text-[#4ECDC4]">Play</span>
-          <span className="text-[#95D44A]">Repeat</span>
-        </h1>
+        
         
         {/* Tagline */}
-        <p className="text-white/90 text-base font-medium mb-8">
+        <p className="text-white/90 text-base font-medium mb-8 text-center">
           Friendly neighbors for furry friends
         </p>
         
@@ -48,20 +37,16 @@ export default function Landing() {
         <div className="flex-1" />
         
         {/* Let's Play Button - Smaller size */}
-        <button
-          onClick={() => navigate('/parks')}
-          className="flex items-center justify-center gap-2 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-base px-8 py-3 rounded-full shadow-xl transition-all duration-200 active:scale-95 mb-32"
-        >
+        <button onClick={() => navigate('/parks')} className="flex items-center justify-center gap-2 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-base px-8 py-3 rounded-full shadow-xl transition-all duration-200 active:scale-95 mb-32">
           <Play className="w-4 h-4 fill-current" />
           Let's Play
         </button>
       </div>
 
       {/* Footer - Fixed at bottom with safe area */}
-      <footer 
-        className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm py-4 px-4"
-        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}
-      >
+      <footer className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm py-4 px-4" style={{
+      paddingBottom: 'max(env(safe-area-inset-bottom), 8px)'
+    }}>
         <div className="flex flex-wrap justify-center gap-4 mb-2">
           <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
             Privacy Policy
@@ -77,6 +62,5 @@ export default function Landing() {
           © 2026 Paws Play Repeat. All rights reserved.
         </p>
       </footer>
-    </div>
-  );
+    </div>;
 }
