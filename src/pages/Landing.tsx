@@ -6,22 +6,20 @@ export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-[100dvh] max-h-[105dvh] flex flex-col overflow-x-hidden">
-      {/* Background Image - Full screen with proper positioning for mobile */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ 
-          backgroundImage: `url(${landingPugGlasses})`,
-          backgroundPosition: 'center 40%'
-        }}
+    <div className="relative min-h-[100dvh] max-h-[105dvh] flex flex-col items-center overflow-x-hidden">
+      {/* Background Image - Full screen with object-fit cover for proper proportions */}
+      <img 
+        src={landingPugGlasses}
+        alt="Paws Play Repeat"
+        className="absolute inset-0 w-full h-full object-cover object-center"
       />
       
       {/* Gradient overlay for better text readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30" />
       
-      {/* Main Content Container - Single column mobile optimized */}
+      {/* Main Content Container - Flexbox column centered */}
       <div 
-        className="relative z-10 flex flex-col flex-1"
+        className="relative z-10 flex flex-col items-center flex-1 w-full"
         style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}
       >
         {/* Top spacer - pushes content into view */}
