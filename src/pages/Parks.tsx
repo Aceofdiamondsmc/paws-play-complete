@@ -9,6 +9,7 @@ import { useParks } from '@/hooks/useParks';
 import { cn } from '@/lib/utils';
 import { createPawMarker, createPopupHTML } from '@/components/parks/ParkMarkers';
 import { ParkInfoPanel } from '@/components/parks/ParkInfoPanel';
+import { toast } from '@/hooks/use-toast';
 import type { ParkFilter, FilterOption, Park } from '@/types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -37,6 +38,40 @@ export default function Parks() {
   const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const { parks, loading, activeFilters, toggleFilter } = useParks();
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+
+  // Request location permission on mount
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Location unavailable",
+        description: "Your browser doesn't support geolocation.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { longitude, latitude } = position.coords;
+        setUserLocation([longitude, latitude]);
+        toast({
+          title: "Location found! 📍",
+          description: "Map will center on your location.",
+        });
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          toast({
+            title: "Location access needed 📍",
+            description: "Please allow location access to see nearby parks.",
+            variant: "destructive",
+          });
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
 
   // Initialize map
   useEffect(() => {
@@ -48,8 +83,8 @@ export default function Parks() {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/paws-play-repeat/cmkd8den2000201slhb1k29ty',
-      center: [-98.5795, 39.8283], // Center of US
-      zoom: 4,
+      center: userLocation || [-98.5795, 39.8283], // User location or center of US
+      zoom: userLocation ? 12 : 4,
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');

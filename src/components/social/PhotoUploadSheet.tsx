@@ -33,6 +33,46 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
+  const checkCameraPermission = async (): Promise<boolean> => {
+    try {
+      // Try to access camera to trigger native permission dialog
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Stop all tracks immediately - we just needed to check permission
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          toast({
+            title: "Camera access needed 📸",
+            description: "Please allow camera access in your browser settings to take photos.",
+            variant: "destructive",
+          });
+        } else if (error.name === 'NotFoundError') {
+          toast({
+            title: "No camera found",
+            description: "Your device doesn't seem to have a camera available.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Camera unavailable",
+            description: "Could not access your camera. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
+      return false;
+    }
+  };
+
+  const handleCameraClick = async () => {
+    const hasPermission = await checkCameraPermission();
+    if (hasPermission) {
+      cameraInputRef.current?.click();
+    }
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -212,7 +252,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
               <Button
                 variant="outline"
                 className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl"
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={handleCameraClick}
               >
                 <Camera className="w-8 h-8 text-primary" />
                 <span className="text-sm font-medium text-foreground">Take Photo</span>
