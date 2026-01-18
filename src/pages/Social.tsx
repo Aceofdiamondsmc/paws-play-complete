@@ -155,32 +155,40 @@ export default function Social() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
       {/* Floating Action Button - Bottom Right */}
-      <Button
-        size="icon"
-        aria-label={user ? "Create a post" : "Sign in to create a post"}
-        className={cn(
-          "fixed bottom-24 right-4 z-[100] rounded-full w-14 h-14 shadow-xl border-0",
-          user ? "bg-primary hover:bg-primary/90" : "bg-muted hover:bg-muted/90"
+      <div className="fixed bottom-24 right-4 z-[100] flex flex-col items-center gap-2">
+        {/* Sign in tooltip for non-logged in users */}
+        {!user && (
+          <button
+            onClick={() => navigate('/me')}
+            className="bg-card text-foreground text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg border border-border animate-fade-in whitespace-nowrap"
+          >
+            Sign in to post
+          </button>
         )}
-        onClick={() => {
-          if (user) {
-            setIsUploadSheetOpen(true);
-            return;
-          }
-          toast("Sign in to post", {
-            description: "Go to your profile to log in, then come back to Social.",
-          });
-          navigate('/me');
-        }}
-      >
-        <Camera
+        <Button
+          size="icon"
+          aria-label={user ? "Create a post" : "Sign in to create a post"}
           className={cn(
-            "w-7 h-7",
-            user ? "text-primary-foreground" : "text-muted-foreground"
+            "rounded-full w-14 h-14 shadow-xl border-0",
+            user ? "bg-primary hover:bg-primary/90" : "bg-muted hover:bg-muted/90"
           )}
-          strokeWidth={2}
-        />
-      </Button>
+          onClick={() => {
+            if (user) {
+              setIsUploadSheetOpen(true);
+              return;
+            }
+            navigate('/me');
+          }}
+        >
+          <Camera
+            className={cn(
+              "w-7 h-7",
+              user ? "text-primary-foreground" : "text-muted-foreground"
+            )}
+            strokeWidth={2}
+          />
+        </Button>
+      </div>
       {/* Header with warm cream/orange gradient */}
       <div className="sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20">
         <div className="px-4 pt-4 pb-2">
