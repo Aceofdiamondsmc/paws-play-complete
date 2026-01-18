@@ -630,97 +630,24 @@ export type Database = {
           },
         ]
       }
-      post_image_comments: {
-        Row: {
-          author_id: string
-          body: string
-          created_at: string
-          id: string
-          post_image_id: string
-        }
-        Insert: {
-          author_id: string
-          body: string
-          created_at?: string
-          id?: string
-          post_image_id: string
-        }
-        Update: {
-          author_id?: string
-          body?: string
-          created_at?: string
-          id?: string
-          post_image_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_image_comments_post_image_id_fkey"
-            columns: ["post_image_id"]
-            isOneToOne: false
-            referencedRelation: "post_images"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      post_image_likes: {
-        Row: {
-          created_at: string
-          id: string
-          post_image_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          post_image_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          post_image_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_image_likes_post_image_id_fkey"
-            columns: ["post_image_id"]
-            isOneToOne: false
-            referencedRelation: "post_images"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       post_images: {
         Row: {
-          caption: string | null
           created_at: string | null
           id: string
           image_path: string
           post_id: string | null
-          updated_at: string
-          user_id: string | null
-          visibility: string
         }
         Insert: {
-          caption?: string | null
           created_at?: string | null
           id?: string
           image_path: string
           post_id?: string | null
-          updated_at?: string
-          user_id?: string | null
-          visibility?: string
         }
         Update: {
-          caption?: string | null
           created_at?: string | null
           id?: string
           image_path?: string
           post_id?: string | null
-          updated_at?: string
-          user_id?: string | null
-          visibility?: string
         }
         Relationships: [
           {

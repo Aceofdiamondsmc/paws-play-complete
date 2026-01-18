@@ -1,17 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import type { PostImage, Profile } from '@/types';
+import type { Post, Profile } from '@/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
-interface PostWithDetails {
-  id: string;
-  user_id: string;
-  image_path: string;
-  caption: string | null;
-  visibility: string;
-  created_at: string | null;
-  updated_at: string;
+interface PostWithDetails extends Post {
   author?: Profile;
   likesCount: number;
   commentsCount: number;
@@ -20,7 +13,7 @@ interface PostWithDetails {
 
 interface Comment {
   id: string;
-  post_image_id: string;
+  post_id: string;
   author_id: string;
   body: string;
   created_at: string | null;
@@ -44,9 +37,9 @@ export function usePosts() {
     try {
       setLoading(true);
 
-      // Fetch from post_images table
+      // Fetch public posts (and private posts from friends if logged in)
       let query = supabase
-        .from('post_images')
+        .from('posts')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
@@ -59,59 +52,49 @@ export function usePosts() {
 
       if (error) throw error;
 
-      // Get unique user IDs (author IDs)
+      // Get unique author IDs
       const authorIds = new Set<string>();
-      postsData?.forEach((p: any) => {
-        if (p.user_id) authorIds.add(p.user_id);
-      });
+      postsData?.forEach((p: Post) => authorIds.add(p.author_id));
 
       // Fetch author profiles
-      let profileMap = new Map<string, Profile>();
-      if (authorIds.size > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('id', Array.from(authorIds));
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', Array.from(authorIds));
 
-        profiles?.forEach((p: Profile) => profileMap.set(p.id, p));
-      }
+      const profileMap = new Map<string, Profile>();
+      profiles?.forEach((p: Profile) => profileMap.set(p.id, p));
 
       // Get likes and comments count for each post
       const enrichedPosts = await Promise.all(
-        (postsData || []).map(async (p: any) => {
-          // Get likes count from post_image_likes
+        (postsData || []).map(async (p: Post) => {
+          // Get likes count
           const { count: likesCount } = await supabase
-            .from('post_image_likes')
+            .from('post_likes')
             .select('*', { count: 'exact', head: true })
-            .eq('post_image_id', p.id);
+            .eq('post_id', p.id);
 
-          // Get comments count from post_image_comments
+          // Get comments count
           const { count: commentsCount } = await supabase
-            .from('post_image_comments')
+            .from('post_comments')
             .select('*', { count: 'exact', head: true })
-            .eq('post_image_id', p.id);
+            .eq('post_id', p.id);
 
           // Check if current user liked this post
           let isLiked = false;
           if (user) {
             const { data: likeData } = await supabase
-              .from('post_image_likes')
+              .from('post_likes')
               .select('id')
-              .eq('post_image_id', p.id)
+              .eq('post_id', p.id)
               .eq('user_id', user.id)
               .single();
             isLiked = !!likeData;
           }
 
           return {
-            id: p.id,
-            user_id: p.user_id,
-            image_path: p.image_path,
-            caption: p.caption,
-            visibility: p.visibility,
-            created_at: p.created_at,
-            updated_at: p.updated_at,
-            author: p.user_id ? profileMap.get(p.user_id) : undefined,
+            ...p,
+            author: profileMap.get(p.author_id),
             likesCount: likesCount || 0,
             commentsCount: commentsCount || 0,
             isLiked
@@ -135,27 +118,17 @@ export function usePosts() {
   // Set up real-time subscriptions separately
   useEffect(() => {
     // Helper to fetch a new post with author info
-    const fetchNewPost = async (post: any) => {
+    const fetchNewPost = async (post: Post) => {
       try {
-        let author: Profile | undefined;
-        if (post.user_id) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', post.user_id)
-            .single();
-          author = profile || undefined;
-        }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', post.author_id)
+          .single();
 
         const newPost: PostWithDetails = {
-          id: post.id,
-          user_id: post.user_id,
-          image_path: post.image_path,
-          caption: post.caption,
-          visibility: post.visibility,
-          created_at: post.created_at,
-          updated_at: post.updated_at,
-          author,
+          ...post,
+          author: profile || undefined,
           likesCount: 0,
           commentsCount: 0,
           isLiked: false
@@ -183,17 +156,17 @@ export function usePosts() {
       .channel('social-feed-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'post_images' },
+        { event: '*', schema: 'public', table: 'posts' },
         (payload) => {
-          console.log('Post images change detected:', payload.eventType);
+          console.log('Posts change detected:', payload.eventType);
           if (payload.eventType === 'INSERT') {
-            fetchNewPost(payload.new);
+            fetchNewPost(payload.new as Post);
           } else if (payload.eventType === 'DELETE') {
-            setPosts(prev => prev.filter(p => p.id !== (payload.old as any).id));
+            setPosts(prev => prev.filter(p => p.id !== (payload.old as Post).id));
           } else if (payload.eventType === 'UPDATE') {
             setPosts(prev => prev.map(p => 
-              p.id === (payload.new as any).id 
-                ? { ...p, ...(payload.new as any) }
+              p.id === (payload.new as Post).id 
+                ? { ...p, ...(payload.new as Post) }
                 : p
             ));
           }
@@ -201,17 +174,17 @@ export function usePosts() {
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'post_image_likes' },
+        { event: '*', schema: 'public', table: 'post_likes' },
         (payload) => {
           console.log('Likes change detected:', payload.eventType);
-          const postImageId = payload.eventType === 'DELETE' 
-            ? (payload.old as { post_image_id: string }).post_image_id 
-            : (payload.new as { post_image_id: string; user_id: string }).post_image_id;
+          const postId = payload.eventType === 'DELETE' 
+            ? (payload.old as { post_id: string }).post_id 
+            : (payload.new as { post_id: string; user_id: string }).post_id;
           
           if (payload.eventType === 'INSERT') {
-            const newLike = payload.new as { post_image_id: string; user_id: string };
+            const newLike = payload.new as { post_id: string; user_id: string };
             setPosts(prev => prev.map(p => 
-              p.id === postImageId 
+              p.id === postId 
                 ? { 
                     ...p, 
                     likesCount: p.likesCount + 1,
@@ -220,9 +193,9 @@ export function usePosts() {
                 : p
             ));
           } else if (payload.eventType === 'DELETE') {
-            const oldLike = payload.old as { post_image_id: string; user_id: string };
+            const oldLike = payload.old as { post_id: string; user_id: string };
             setPosts(prev => prev.map(p => 
-              p.id === postImageId 
+              p.id === postId 
                 ? { 
                     ...p, 
                     likesCount: Math.max(0, p.likesCount - 1),
@@ -235,20 +208,20 @@ export function usePosts() {
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'post_image_comments' },
+        { event: '*', schema: 'public', table: 'post_comments' },
         (payload) => {
           console.log('Comments change detected:', payload.eventType);
-          const postImageId = payload.eventType === 'DELETE' 
-            ? (payload.old as { post_image_id: string }).post_image_id 
-            : (payload.new as { post_image_id: string }).post_image_id;
+          const postId = payload.eventType === 'DELETE' 
+            ? (payload.old as { post_id: string }).post_id 
+            : (payload.new as { post_id: string }).post_id;
           
           if (payload.eventType === 'INSERT') {
             setPosts(prev => prev.map(p => 
-              p.id === postImageId ? { ...p, commentsCount: p.commentsCount + 1 } : p
+              p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p
             ));
           } else if (payload.eventType === 'DELETE') {
             setPosts(prev => prev.map(p => 
-              p.id === postImageId ? { ...p, commentsCount: Math.max(0, p.commentsCount - 1) } : p
+              p.id === postId ? { ...p, commentsCount: Math.max(0, p.commentsCount - 1) } : p
             ));
           }
         }
@@ -269,13 +242,13 @@ export function usePosts() {
     };
   }, []); // Empty deps - subscription stays stable
 
-  const createPost = async (caption: string, imageUrl?: string, visibility: 'public' | 'private' = 'public') => {
+  const createPost = async (content: string, imageUrl?: string, visibility: 'public' | 'private' = 'public') => {
     if (!user) return { error: new Error('Not authenticated') };
 
-    const { error } = await supabase.from('post_images').insert({
-      user_id: user.id,
-      image_path: imageUrl || '',
-      caption,
+    const { error } = await supabase.from('posts').insert({
+      author_id: user.id,
+      content,
+      image_url: imageUrl,
       visibility
     });
 
@@ -295,9 +268,9 @@ export function usePosts() {
     if (post.isLiked) {
       // Unlike
       const { error } = await supabase
-        .from('post_image_likes')
+        .from('post_likes')
         .delete()
-        .eq('post_image_id', postId)
+        .eq('post_id', postId)
         .eq('user_id', user.id);
 
       if (!error) {
@@ -313,8 +286,8 @@ export function usePosts() {
       return { error };
     } else {
       // Like
-      const { error } = await supabase.from('post_image_likes').insert({
-        post_image_id: postId,
+      const { error } = await supabase.from('post_likes').insert({
+        post_id: postId,
         user_id: user.id
       });
 
@@ -333,7 +306,7 @@ export function usePosts() {
   };
 
   const deletePost = async (postId: string) => {
-    const { error } = await supabase.from('post_images').delete().eq('id', postId);
+    const { error } = await supabase.from('posts').delete().eq('id', postId);
 
     if (!error) {
       setPosts(prev => prev.filter(p => p.id !== postId));
@@ -375,33 +348,27 @@ export function usePostComments(postId: string | null) {
       setLoading(true);
 
       const { data, error } = await supabase
-        .from('post_image_comments')
+        .from('post_comments')
         .select('*')
-        .eq('post_image_id', postId)
+        .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
       // Get author profiles
       const authorIds = new Set<string>();
-      data?.forEach((c: any) => authorIds.add(c.author_id));
+      data?.forEach((c: Comment) => authorIds.add(c.author_id));
 
-      let profileMap = new Map<string, Profile>();
-      if (authorIds.size > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('id', Array.from(authorIds));
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', Array.from(authorIds));
 
-        profiles?.forEach((p: Profile) => profileMap.set(p.id, p));
-      }
+      const profileMap = new Map<string, Profile>();
+      profiles?.forEach((p: Profile) => profileMap.set(p.id, p));
 
-      const enrichedComments = (data || []).map((c: any) => ({
-        id: c.id,
-        post_image_id: c.post_image_id,
-        author_id: c.author_id,
-        body: c.body,
-        created_at: c.created_at,
+      const enrichedComments = (data || []).map((c: Comment) => ({
+        ...c,
         author: profileMap.get(c.author_id)
       }));
 
@@ -420,8 +387,8 @@ export function usePostComments(postId: string | null) {
   const addComment = async (body: string) => {
     if (!user || !postId) return { error: new Error('Not ready') };
 
-    const { error } = await supabase.from('post_image_comments').insert({
-      post_image_id: postId,
+    const { error } = await supabase.from('post_comments').insert({
+      post_id: postId,
       author_id: user.id,
       body
     });
