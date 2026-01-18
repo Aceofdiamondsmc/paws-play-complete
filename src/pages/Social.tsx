@@ -163,10 +163,10 @@ export default function Social() {
           {user && (
             <Button 
               size="icon" 
-              className="rounded-full w-12 h-12 bg-[hsl(165,40%,45%)] hover:bg-[hsl(165,40%,40%)] shadow-lg"
+              className="rounded-full w-12 h-12 bg-white hover:bg-gray-50 shadow-lg border border-gray-200 z-50"
               onClick={() => setIsUploadSheetOpen(true)}
             >
-              <Plus className="w-6 h-6" />
+              <Plus className="w-6 h-6 text-[#228B22]" />
             </Button>
           )}
         </div>
