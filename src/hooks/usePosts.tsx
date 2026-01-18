@@ -56,14 +56,14 @@ export function usePosts() {
       const authorIds = new Set<string>();
       postsData?.forEach((p: Post) => authorIds.add(p.author_id));
 
-      // Fetch author profiles
+      // Fetch author profiles from profiles_safe view (publicly readable)
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('*')
         .in('id', Array.from(authorIds));
 
       const profileMap = new Map<string, Profile>();
-      profiles?.forEach((p: Profile) => profileMap.set(p.id, p));
+      profiles?.forEach((p: any) => profileMap.set(p.id, p as Profile));
 
       // Get likes and comments count for each post
       const enrichedPosts = await Promise.all(
@@ -121,7 +121,7 @@ export function usePosts() {
     const fetchNewPost = async (post: Post) => {
       try {
         const { data: profile } = await supabase
-          .from('profiles')
+          .from('profiles_safe')
           .select('*')
           .eq('id', post.author_id)
           .single();
@@ -355,12 +355,12 @@ export function usePostComments(postId: string | null) {
 
       if (error) throw error;
 
-      // Get author profiles
+      // Get author profiles from profiles_safe view (publicly readable)
       const authorIds = new Set<string>();
       data?.forEach((c: Comment) => authorIds.add(c.author_id));
 
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_safe')
         .select('*')
         .in('id', Array.from(authorIds));
 
