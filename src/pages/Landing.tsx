@@ -1,46 +1,61 @@
 import { useNavigate } from 'react-router-dom';
-import { Play } from 'lucide-react';
+import { Play, PawPrint } from 'lucide-react';
 import landingPugGlasses from '@/assets/landing-pug-glasses.jpg';
 
 export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-[100dvh] max-h-[105dvh] flex flex-col items-center overflow-x-hidden">
+    <div className="relative min-h-[100dvh] flex flex-col items-center overflow-y-auto overflow-x-hidden">
       {/* Background Image - Full screen with object-fit cover for proper proportions */}
-      <img 
-        src={landingPugGlasses}
-        alt="Paws Play Repeat"
-        className="absolute inset-0 w-full h-full object-cover object-center"
-      />
+      <div className="absolute inset-0">
+        <img 
+          src={landingPugGlasses}
+          alt="Paws Play Repeat"
+          className="w-full h-full object-cover"
+          style={{ objectPosition: 'center 30%' }}
+        />
+      </div>
       
       {/* Gradient overlay for better text readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40" />
       
       {/* Main Content Container - Flexbox column centered */}
       <div 
-        className="relative z-10 flex flex-col items-center flex-1 w-full"
-        style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}
+        className="relative z-10 flex flex-col items-center w-full min-h-[100dvh]"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}
       >
-        {/* Top spacer - pushes content into view */}
+        {/* Paw Print Icon */}
+        <div className="mt-4 mb-6">
+          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+            <PawPrint className="w-6 h-6 text-white" />
+          </div>
+        </div>
+        
+        {/* Colorful Title */}
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>
+          <span className="text-[#FF6B6B]">Paws</span>
+          <span className="text-[#4ECDC4]">Play</span>
+          <span className="text-[#95D44A]">Repeat</span>
+        </h1>
+        
+        {/* Tagline */}
+        <p className="text-white/90 text-base font-medium mb-8">
+          Friendly neighbors for furry friends
+        </p>
+        
+        {/* Spacer to push button down */}
         <div className="flex-1" />
         
-        {/* Bottom spacer for thumb zone positioning */}
-        <div className="flex-[2]" />
+        {/* Let's Play Button - Smaller size */}
+        <button
+          onClick={() => navigate('/parks')}
+          className="flex items-center justify-center gap-2 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-base px-8 py-3 rounded-full shadow-xl transition-all duration-200 active:scale-95 mb-32"
+        >
+          <Play className="w-4 h-4 fill-current" />
+          Let's Play
+        </button>
       </div>
-
-      {/* Floating Let's Play Button - Positioned in thumb zone */}
-      <button
-        onClick={() => navigate('/parks')}
-        className="fixed z-50 left-1/2 -translate-x-1/2 flex items-center justify-center gap-3 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-lg px-12 py-4 rounded-full shadow-2xl transition-all duration-200 active:scale-95"
-        style={{ 
-          bottom: 'max(calc(env(safe-area-inset-bottom) + 100px), 120px)',
-          minWidth: '200px'
-        }}
-      >
-        <Play className="w-5 h-5 fill-current" />
-        Let's Play
-      </button>
 
       {/* Footer - Fixed at bottom with safe area */}
       <footer 
