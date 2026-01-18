@@ -178,8 +178,8 @@ export default function Shop() {
   return <div className="min-h-screen">
       {/* Header */}
       <div className="bg-card/95 backdrop-blur border-b border-border p-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">"
-Paws  Play Shop "<Package className="w-6 h-6 text-primary" />
+        <h1 className="text-2xl font-bold flex items-center gap-2">   Paws Play Shop
+        <Package className="w-6 h-6 text-primary" />
           Shop
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Premium products for your furry friends</p>
