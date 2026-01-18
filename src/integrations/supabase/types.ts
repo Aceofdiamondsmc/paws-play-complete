@@ -740,6 +740,8 @@ export type Database = {
           id: number
           image_url: string | null
           is_featured: boolean
+          latitude: number | null
+          longitude: number | null
           name: string
           price: string
           rating: number
@@ -752,6 +754,8 @@ export type Database = {
           id?: number
           image_url?: string | null
           is_featured?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name: string
           price: string
           rating: number
@@ -764,6 +768,8 @@ export type Database = {
           id?: number
           image_url?: string | null
           is_featured?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           price?: string
           rating?: number
