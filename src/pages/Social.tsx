@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,7 +22,7 @@ const samplePosts = [
   {
     id: 'sample-1',
     author: { display_name: 'Sarah & Max', avatar_url: null },
-    content: "Max had the best time at Riverside Dog Park today! Made three new furry friends and perfected his fetch game. The new agility course is pawsome! 🐕",
+    caption: "Max had the best time at Riverside Dog Park today! Made three new furry friends and perfected his fetch game. The new agility course is pawsome! 🐕",
     parkName: 'Riverside Dog Park',
     rating: 5,
     isReview: true,
@@ -30,22 +30,22 @@ const samplePosts = [
     commentsCount: 8,
     isLiked: false,
     timeAgo: '30m ago',
-    imageUrl: bostonTerrierPost,
+    image_path: bostonTerrierPost,
   },
   {
     id: 'sample-2',
     author: { display_name: 'Michael & Luna', avatar_url: null },
-    content: "Luna discovered her love for swimming today! Who knew my little pup would turn into a water dog? 💦🐾",
+    caption: "Luna discovered her love for swimming today! Who knew my little pup would turn into a water dog? 💦🐾",
     likesCount: 42,
     commentsCount: 12,
     isLiked: true,
     timeAgo: '2h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=400&h=400&fit=crop',
+    image_path: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=400&h=400&fit=crop',
   },
   {
     id: 'sample-3',
     author: { display_name: 'Emily & Buddy', avatar_url: null },
-    content: "Oakwood Dog Park needs better shade areas. The equipment is great but it gets too hot in the afternoon. Still, Buddy had fun!",
+    caption: "Oakwood Dog Park needs better shade areas. The equipment is great but it gets too hot in the afternoon. Still, Buddy had fun!",
     parkName: 'Oakwood Dog Park',
     rating: 3,
     isReview: true,
@@ -57,28 +57,28 @@ const samplePosts = [
   {
     id: 'sample-4',
     author: { display_name: 'Jake & Charlie', avatar_url: null },
-    content: "Charlie made so many friends today! Look at that smile! Golden Retrievers really are the friendliest pups. 🌟",
+    caption: "Charlie made so many friends today! Look at that smile! Golden Retrievers really are the friendliest pups. 🌟",
     likesCount: 58,
     commentsCount: 14,
     isLiked: false,
     timeAgo: '6h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=400&fit=crop',
+    image_path: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=400&fit=crop',
   },
   {
     id: 'sample-5',
     author: { display_name: 'Rachel & Bella', avatar_url: null },
-    content: "Bella and her new bestie playing at the park! Nothing beats puppy playtime energy! 🐶❤️",
+    caption: "Bella and her new bestie playing at the park! Nothing beats puppy playtime energy! 🐶❤️",
     parkName: 'Sunny Meadows Park',
     likesCount: 67,
     commentsCount: 19,
     isLiked: true,
     timeAgo: '8h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&h=400&fit=crop',
+    image_path: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&h=400&fit=crop',
   },
   {
     id: 'sample-6',
     author: { display_name: 'Amanda & Zeus', avatar_url: null },
-    content: "First time at Maplewood Dog Park and we loved it! Great fenced area for small dogs. Zeus felt right at home! 🏆",
+    caption: "First time at Maplewood Dog Park and we loved it! Great fenced area for small dogs. Zeus felt right at home! 🏆",
     parkName: 'Maplewood Dog Park',
     rating: 5,
     isReview: true,
@@ -86,7 +86,7 @@ const samplePosts = [
     commentsCount: 7,
     isLiked: false,
     timeAgo: '10h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1477884213360-7e9d7dcc1e48?w=400&h=400&fit=crop',
+    image_path: 'https://images.unsplash.com/photo-1477884213360-7e9d7dcc1e48?w=400&h=400&fit=crop',
   },
 ];
 
@@ -126,7 +126,6 @@ export default function Social() {
     rating?: number
   ) => {
     setIsPosting(true);
-    // For now just create basic post - you can extend createPost to handle reviews
     await createPost(content, imageUrl);
     setIsPosting(false);
   };
@@ -148,19 +147,19 @@ export default function Social() {
 
   // Filter sample posts based on active filter
   const filteredPosts = activeFilter === 'reviews' 
-    ? displayPosts.filter((p: any) => p.isReview || p.content?.toLowerCase().includes('park'))
+    ? displayPosts.filter((p: any) => p.isReview || p.caption?.toLowerCase().includes('park'))
     : displayPosts;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
-      {/* Floating Action Button - Bottom Right */}
+      {/* Floating Action Button - Bottom Right - More prominent */}
       {user && (
         <Button 
           size="icon" 
-          className="fixed bottom-24 right-4 z-[100] rounded-full w-14 h-14 bg-[#228B22] hover:bg-[#1e7a1e] shadow-xl border-0"
+          className="fixed bottom-24 right-4 z-[100] rounded-full w-16 h-16 bg-primary hover:bg-primary/90 shadow-2xl border-4 border-primary-foreground"
           onClick={() => setIsUploadSheetOpen(true)}
         >
-          <Camera className="w-7 h-7 text-white" strokeWidth={2} />
+          <Plus className="w-8 h-8 text-primary-foreground" strokeWidth={3} />
         </Button>
       )}
 
@@ -242,7 +241,7 @@ export default function Social() {
                     </div>
                     
                     {/* Park Review Badge */}
-                    {(post.isReview || post.content?.toLowerCase().includes('park')) && (
+                    {(post.isReview || post.caption?.toLowerCase().includes('park')) && (
                       <Badge 
                         variant="outline" 
                         className="border-primary text-primary bg-primary/5 font-semibold shrink-0"
@@ -253,9 +252,9 @@ export default function Social() {
                     )}
                   </div>
                   
-                  {/* Content */}
+                  {/* Content - now uses caption */}
                   <p className="mt-3 text-foreground whitespace-pre-wrap leading-relaxed">
-                    {post.content}
+                    {post.caption || post.content}
                   </p>
                   
                   {/* Park location & rating */}
@@ -269,21 +268,11 @@ export default function Social() {
                     </div>
                   )}
                   
-                  {/* Image(s) */}
-                  {post.imageUrl && (
+                  {/* Image - now uses image_path */}
+                  {post.image_path && (
                     <div className="mt-3">
                       <img
-                        src={post.imageUrl}
-                        alt=""
-                        className="rounded-xl w-full max-h-80 object-cover border border-border"
-                      />
-                    </div>
-                  )}
-                  
-                  {post.image_url && (
-                    <div className="mt-3">
-                      <img
-                        src={post.image_url}
+                        src={post.image_path}
                         alt=""
                         className="rounded-xl w-full max-h-80 object-cover border border-border"
                       />
