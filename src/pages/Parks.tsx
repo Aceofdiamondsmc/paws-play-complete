@@ -55,7 +55,9 @@ export default function Parks() {
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
+    // Fix blank map on load by forcing recalculation of container size
     map.current.on('load', () => {
+      map.current?.resize();
       setMapLoaded(true);
     });
 
