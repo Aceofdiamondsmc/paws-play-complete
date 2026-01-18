@@ -94,43 +94,52 @@ export type Database = {
       }
       dogs: {
         Row: {
+          age_years: number | null
           avatar_url: string | null
           bio: string | null
           breed: string | null
           created_at: string | null
           energy: string | null
           energy_level: string | null
+          health_info: string | null
           id: string
           name: string
           owner_id: string
           size: string | null
           updated_at: string | null
+          weight_lbs: number | null
         }
         Insert: {
+          age_years?: number | null
           avatar_url?: string | null
           bio?: string | null
           breed?: string | null
           created_at?: string | null
           energy?: string | null
           energy_level?: string | null
+          health_info?: string | null
           id?: string
           name: string
           owner_id: string
           size?: string | null
           updated_at?: string | null
+          weight_lbs?: number | null
         }
         Update: {
+          age_years?: number | null
           avatar_url?: string | null
           bio?: string | null
           breed?: string | null
           created_at?: string | null
           energy?: string | null
           energy_level?: string | null
+          health_info?: string | null
           id?: string
           name?: string
           owner_id?: string
           size?: string | null
           updated_at?: string | null
+          weight_lbs?: number | null
         }
         Relationships: []
       }
