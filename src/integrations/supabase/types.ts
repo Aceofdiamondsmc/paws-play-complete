@@ -171,6 +171,13 @@ export type Database = {
             foreignKeyName: "friendships_addressee_id_fkey"
             columns: ["addressee_id"]
             isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
@@ -179,6 +186,13 @@ export type Database = {
             columns: ["requester_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
@@ -349,6 +363,13 @@ export type Database = {
             columns: ["added_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parks_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
@@ -921,6 +942,51 @@ export type Database = {
           f_table_schema?: unknown
           srid?: number | null
           type?: string | null
+        }
+        Relationships: []
+      }
+      profiles_safe: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          created_at: string | null
+          display_name: string | null
+          full_name: string | null
+          id: string | null
+          is_public: boolean | null
+          onboarding_completed: boolean | null
+          state: string | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_public?: boolean | null
+          onboarding_completed?: boolean | null
+          state?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_public?: boolean | null
+          onboarding_completed?: boolean | null
+          state?: string | null
+          updated_at?: string | null
+          username?: string | null
         }
         Relationships: []
       }
