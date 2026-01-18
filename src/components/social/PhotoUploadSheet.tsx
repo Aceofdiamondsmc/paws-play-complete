@@ -144,9 +144,9 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
       setUploading(true);
       setUploadProgress(10);
 
-      let imageUrl: string | null = null;
+      let imagePath: string = '';
 
-      // Upload image to Supabase Storage if one was selected
+      // Upload image to Supabase Storage (post_images bucket) if one was selected
       if (imageFile) {
         setUploadProgress(20);
         
@@ -155,7 +155,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
         const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('social_posts')
+          .from('post_images')
           .upload(filePath, imageFile, {
             cacheControl: '3600',
             upsert: false,
@@ -169,18 +169,18 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-          .from('social_posts')
+          .from('post_images')
           .getPublicUrl(filePath);
 
-        imageUrl = publicUrl;
+        imagePath = publicUrl;
         setUploadProgress(80);
       }
 
-      // Create post in database
-      const { error: postError } = await supabase.from('posts').insert({
-        author_id: user.id,
-        content: caption.trim() || '📸',
-        image_url: imageUrl,
+      // Insert into post_images table
+      const { error: postError } = await supabase.from('post_images').insert({
+        user_id: user.id,
+        image_path: imagePath,
+        caption: caption.trim() || null,
         visibility: 'public',
       });
 
@@ -312,7 +312,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
             disabled={uploading || (!imageFile && !caption.trim())}
             className={cn(
               "w-full rounded-full font-bold py-6",
-              "bg-[hsl(165,40%,45%)] hover:bg-[hsl(165,40%,40%)]"
+              "bg-primary hover:bg-primary/90"
             )}
           >
             {uploading ? (

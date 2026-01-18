@@ -80,12 +80,24 @@ export interface PlaydateRequest {
   updated_at: string | null;
 }
 
+// Legacy Post type (deprecated - use PostImage instead)
 export interface Post {
   id: string;
   author_id: string;
   content: string;
   image_url: string | null;
   visibility: 'public' | 'private';
+  created_at: string | null;
+  updated_at: string;
+}
+
+// New PostImage type - single source of truth for social feed
+export interface PostImage {
+  id: string;
+  user_id: string;
+  image_path: string;
+  caption: string | null;
+  visibility: string;
   created_at: string | null;
   updated_at: string;
 }
