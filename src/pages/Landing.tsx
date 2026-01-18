@@ -6,45 +6,61 @@ export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-[110vh] flex flex-col">
-      {/* Background Image - Full screen pug with glasses */}
+    <div className="relative min-h-[100dvh] max-h-[105dvh] flex flex-col overflow-x-hidden">
+      {/* Background Image - Full screen with proper positioning for mobile */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${landingPugGlasses})` }}
+        style={{ 
+          backgroundImage: `url(${landingPugGlasses})`,
+          backgroundPosition: 'center 40%'
+        }}
       />
       
-      {/* Content */}
-      <div className="relative z-10 flex flex-col min-h-screen">
-        {/* Spacer to push content down */}
-        <div className="flex-1 min-h-[40vh]" />
-
-        {/* Empty space for visual breathing room */}
+      {/* Gradient overlay for better text readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30" />
+      
+      {/* Main Content Container - Single column mobile optimized */}
+      <div 
+        className="relative z-10 flex flex-col flex-1"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}
+      >
+        {/* Top spacer - pushes content into view */}
         <div className="flex-1" />
+        
+        {/* Bottom spacer for thumb zone positioning */}
+        <div className="flex-[2]" />
       </div>
 
-      {/* Floating Let's Play Button - Fixed position */}
+      {/* Floating Let's Play Button - Positioned in thumb zone */}
       <button
         onClick={() => navigate('/parks')}
-        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-[#F5D547] hover:bg-[#E5C537] text-black font-bold text-lg sm:text-xl px-10 sm:px-14 py-4 sm:py-5 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95"
+        className="fixed z-50 left-1/2 -translate-x-1/2 flex items-center justify-center gap-3 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-lg px-12 py-4 rounded-full shadow-2xl transition-all duration-200 active:scale-95"
+        style={{ 
+          bottom: 'max(calc(env(safe-area-inset-bottom) + 100px), 120px)',
+          minWidth: '200px'
+        }}
       >
-        <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
+        <Play className="w-5 h-5 fill-current" />
         Let's Play
       </button>
 
-      {/* Footer */}
-      <footer className="relative z-10 bg-white py-6 px-4 mt-auto">
-        <div className="flex flex-wrap justify-center gap-4 sm:gap-8 mb-3">
-          <a href="#" className="text-foreground/80 hover:text-foreground text-sm font-medium transition-colors">
+      {/* Footer - Fixed at bottom with safe area */}
+      <footer 
+        className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm py-4 px-4"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}
+      >
+        <div className="flex flex-wrap justify-center gap-4 mb-2">
+          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
             Privacy Policy
           </a>
-          <a href="#" className="text-foreground/80 hover:text-foreground text-sm font-medium transition-colors">
+          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
             Terms of Service
           </a>
-          <a href="#" className="text-foreground/80 hover:text-foreground text-sm font-medium transition-colors">
+          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
             Support
           </a>
         </div>
-        <p className="text-center text-muted-foreground text-sm">
+        <p className="text-center text-muted-foreground text-xs">
           © 2026 Paws Play Repeat. All rights reserved.
         </p>
       </footer>
