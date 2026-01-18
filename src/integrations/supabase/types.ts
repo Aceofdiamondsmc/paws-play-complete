@@ -887,42 +887,78 @@ export type Database = {
           created_at: string
           description: string | null
           distance: string | null
+          enriched_description: string | null
+          enrichment_status: string | null
+          flag_reason: string | null
+          google_place_id: string | null
           id: number
           image_url: string | null
           is_featured: boolean
+          is_flagged: boolean | null
+          is_verified: boolean | null
           latitude: number | null
           longitude: number | null
           name: string
+          original_description: string | null
           price: string
           rating: number
+          suggested_category: string | null
+          updated_at: string | null
+          verified_address: string | null
+          verified_latitude: number | null
+          verified_longitude: number | null
         }
         Insert: {
           category: string
           created_at?: string
           description?: string | null
           distance?: string | null
+          enriched_description?: string | null
+          enrichment_status?: string | null
+          flag_reason?: string | null
+          google_place_id?: string | null
           id?: number
           image_url?: string | null
           is_featured?: boolean
+          is_flagged?: boolean | null
+          is_verified?: boolean | null
           latitude?: number | null
           longitude?: number | null
           name: string
+          original_description?: string | null
           price: string
           rating: number
+          suggested_category?: string | null
+          updated_at?: string | null
+          verified_address?: string | null
+          verified_latitude?: number | null
+          verified_longitude?: number | null
         }
         Update: {
           category?: string
           created_at?: string
           description?: string | null
           distance?: string | null
+          enriched_description?: string | null
+          enrichment_status?: string | null
+          flag_reason?: string | null
+          google_place_id?: string | null
           id?: number
           image_url?: string | null
           is_featured?: boolean
+          is_flagged?: boolean | null
+          is_verified?: boolean | null
           latitude?: number | null
           longitude?: number | null
           name?: string
+          original_description?: string | null
           price?: string
           rating?: number
+          suggested_category?: string | null
+          updated_at?: string | null
+          verified_address?: string | null
+          verified_latitude?: number | null
+          verified_longitude?: number | null
         }
         Relationships: []
       }
@@ -1142,28 +1178,61 @@ export type Database = {
       }
       services_explore: {
         Row: {
+          category: string | null
+          description: string | null
           distance: string | null
+          enriched_description: string | null
+          enrichment_status: string | null
           id: number | null
           image_url: string | null
           is_featured: boolean | null
+          is_flagged: boolean | null
+          is_verified: boolean | null
+          latitude: number | null
+          longitude: number | null
           name: string | null
+          price: string | null
           rating: number | null
+          verified_latitude: number | null
+          verified_longitude: number | null
         }
         Insert: {
+          category?: string | null
+          description?: string | null
           distance?: string | null
+          enriched_description?: string | null
+          enrichment_status?: string | null
           id?: number | null
           image_url?: string | null
           is_featured?: boolean | null
+          is_flagged?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string | null
+          price?: string | null
           rating?: number | null
+          verified_latitude?: number | null
+          verified_longitude?: number | null
         }
         Update: {
+          category?: string | null
+          description?: string | null
           distance?: string | null
+          enriched_description?: string | null
+          enrichment_status?: string | null
           id?: number | null
           image_url?: string | null
           is_featured?: boolean | null
+          is_flagged?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string | null
+          price?: string | null
           rating?: number | null
+          verified_latitude?: number | null
+          verified_longitude?: number | null
         }
         Relationships: []
       }
