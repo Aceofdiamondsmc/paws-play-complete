@@ -29,6 +29,24 @@ export type Database = {
         }
         Relationships: []
       }
+      cleanup_logs: {
+        Row: {
+          detected_at: string
+          id: number
+          orphaned_file_name: string
+        }
+        Insert: {
+          detected_at?: string
+          id?: number
+          orphaned_file_name: string
+        }
+        Update: {
+          detected_at?: string
+          id?: number
+          orphaned_file_name?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string | null

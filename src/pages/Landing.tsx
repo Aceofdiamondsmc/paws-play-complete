@@ -1,69 +1,59 @@
 import { useNavigate } from 'react-router-dom';
-import { Play } from 'lucide-react';
-import landingPugGlasses from '@/assets/landing-pug-glasses.jpg';
+import landingPug from '@/assets/landing-pug-sweater.jpeg';
+import pawsplayLogo from '@/assets/pawsplay-logo.png';
 
 export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-[100dvh] max-h-[105dvh] flex flex-col overflow-x-hidden">
-      {/* Background Image - Full screen with proper positioning for mobile */}
+    <div 
+      className="relative min-h-[100dvh] flex flex-col overflow-hidden"
+      onClick={() => navigate('/parks')}
+    >
+      {/* Background Image - Full screen */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ 
-          backgroundImage: `url(${landingPugGlasses})`,
-          backgroundPosition: 'center 40%'
+          backgroundImage: `url(${landingPug})`,
+          backgroundPosition: 'center 45%'
         }}
       />
       
-      {/* Gradient overlay for better text readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30" />
-      
-      {/* Main Content Container - Single column mobile optimized */}
+      {/* Content Container */}
       <div 
-        className="relative z-10 flex flex-col flex-1"
-        style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}
+        className="relative z-10 flex flex-col items-center flex-1 px-4"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 40px)' }}
       >
-        {/* Top spacer - pushes content into view */}
+        {/* Paw Logo */}
+        <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
+          <img 
+            src={pawsplayLogo} 
+            alt="Paws Play Repeat" 
+            className="w-7 h-7 object-contain opacity-90"
+          />
+        </div>
+        
+        {/* Title - Paws Play Repeat */}
+        <h1 className="text-4xl font-bold tracking-wide" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+          <span className="text-[#E85A5A]" style={{ fontStyle: 'italic', fontWeight: 700 }}>Paws</span>
+          <span className="text-[#4EAEE8]" style={{ fontStyle: 'italic', fontWeight: 700 }}>Play</span>
+          <span className="text-[#6FCF6A]" style={{ fontStyle: 'italic', fontWeight: 700 }}>Repeat</span>
+        </h1>
+        
+        {/* Spacer to push tagline down */}
         <div className="flex-1" />
         
-        {/* Bottom spacer for thumb zone positioning */}
-        <div className="flex-[2]" />
-      </div>
-
-      {/* Floating Let's Play Button - Positioned in thumb zone */}
-      <button
-        onClick={() => navigate('/parks')}
-        className="fixed z-50 left-1/2 -translate-x-1/2 flex items-center justify-center gap-3 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-lg px-12 py-4 rounded-full shadow-2xl transition-all duration-200 active:scale-95"
-        style={{ 
-          bottom: 'max(calc(env(safe-area-inset-bottom) + 100px), 120px)',
-          minWidth: '200px'
-        }}
-      >
-        <Play className="w-5 h-5 fill-current" />
-        Let's Play
-      </button>
-
-      {/* Footer - Fixed at bottom with safe area */}
-      <footer 
-        className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm py-4 px-4"
-        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}
-      >
-        <div className="flex flex-wrap justify-center gap-4 mb-2">
-          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
-            Privacy Policy
-          </a>
-          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
-            Terms of Service
-          </a>
-          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
-            Support
-          </a>
-        </div>
-        <p className="text-center text-muted-foreground text-xs">
-          © 2026 Paws Play Repeat. All rights reserved.
+        {/* Tagline */}
+        <p 
+          className="text-white/90 text-lg tracking-wide mb-12"
+          style={{ 
+            fontFamily: 'Georgia, serif',
+            marginBottom: 'max(env(safe-area-inset-bottom) + 48px, 60px)'
+          }}
+        >
+          Friendly neighbors for furry friends
         </p>
-      </footer>
+      </div>
     </div>
   );
 }
