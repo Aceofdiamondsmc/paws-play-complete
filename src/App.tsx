@@ -3,9 +3,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
+import Landing from "./pages/Landing";
 import Parks from "./pages/Parks";
 import Explore from "./pages/Explore";
 import Social from "./pages/Social";
@@ -25,8 +26,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route element={<AppLayout />}>
-              <Route path="/" element={<Navigate to="/parks" replace />} />
               <Route path="/parks" element={<Parks />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/social" element={<Social />} />
