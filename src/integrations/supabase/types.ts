@@ -612,6 +612,35 @@ export type Database = {
           },
         ]
       }
+      post_images: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_path: string
+          post_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_path: string
+          post_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_path?: string
+          post_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_images_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_likes: {
         Row: {
           created_at: string | null
@@ -1176,6 +1205,10 @@ export type Database = {
             }
             Returns: string
           }
+      delete_storage_object: {
+        Args: { object_path: string }
+        Returns: undefined
+      }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {

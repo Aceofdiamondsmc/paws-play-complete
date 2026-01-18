@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 import bostonTerrierPost from '@/assets/boston-terrier-post.png';
 import CreatePostForm from '@/components/social/CreatePostForm';
+import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
@@ -109,10 +110,11 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function Social() {
   const { user } = useAuth();
-  const { posts, loading, createPost, likePost } = usePosts();
+  const { posts, loading, createPost, likePost, refresh } = usePosts();
   const { allParks } = useParks();
   const [isPosting, setIsPosting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
 
   const handlePost = async (
     content: string, 
@@ -160,6 +162,7 @@ export default function Social() {
             <Button 
               size="icon" 
               className="rounded-full w-12 h-12 bg-[hsl(165,40%,45%)] hover:bg-[hsl(165,40%,40%)] shadow-lg"
+              onClick={() => setIsUploadSheetOpen(true)}
             >
               <Plus className="w-6 h-6" />
             </Button>
@@ -323,6 +326,13 @@ export default function Social() {
           </div>
         )}
       </div>
+
+      {/* Photo Upload Sheet */}
+      <PhotoUploadSheet
+        open={isUploadSheetOpen}
+        onOpenChange={setIsUploadSheetOpen}
+        onPostCreated={refresh}
+      />
     </div>
   );
 }

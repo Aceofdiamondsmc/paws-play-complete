@@ -1,0 +1,299 @@
+import { useState, useRef } from 'react';
+import { Camera, Image as ImageIcon, X, Loader2, Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
+interface PhotoUploadSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onPostCreated: () => void;
+}
+
+export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: PhotoUploadSheetProps) {
+  const { user } = useAuth();
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [caption, setCaption] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image under 10MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setPreviewImage(null);
+    setImageFile(null);
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
+  };
+
+  const resetForm = () => {
+    setPreviewImage(null);
+    setImageFile(null);
+    setCaption('');
+    setUploadProgress(0);
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
+  };
+
+  const handleSubmit = async () => {
+    if (!user) {
+      toast({
+        title: "Not logged in",
+        description: "Please log in to create a post.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!imageFile && !caption.trim()) {
+      toast({
+        title: "Nothing to post",
+        description: "Please add an image or caption.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadProgress(10);
+
+      let imageUrl: string | null = null;
+
+      // Upload image to Supabase Storage if one was selected
+      if (imageFile) {
+        setUploadProgress(20);
+        
+        const fileExt = imageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('social_posts')
+          .upload(filePath, imageFile, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        setUploadProgress(60);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('social_posts')
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrl;
+        setUploadProgress(80);
+      }
+
+      // Create post in database
+      const { error: postError } = await supabase.from('posts').insert({
+        author_id: user.id,
+        content: caption.trim() || '📸',
+        image_url: imageUrl,
+        visibility: 'public',
+      });
+
+      setUploadProgress(100);
+
+      if (postError) {
+        throw postError;
+      }
+
+      toast({
+        title: "Posted! 🐾",
+        description: "Your post is now live.",
+      });
+
+      resetForm();
+      onOpenChange(false);
+      onPostCreated();
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "Could not create post. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="max-h-[90vh]">
+        <DrawerHeader className="border-b border-border pb-4">
+          <DrawerTitle className="text-xl font-bold text-foreground">Create Post</DrawerTitle>
+          <DrawerDescription className="text-muted-foreground">
+            Share a photo with the pack
+          </DrawerDescription>
+        </DrawerHeader>
+
+        <div className="p-4 space-y-4 overflow-y-auto">
+          {/* Image Preview or Selection Buttons */}
+          {previewImage ? (
+            <div className="relative">
+              <img
+                src={previewImage}
+                alt="Preview"
+                className="rounded-xl w-full max-h-64 object-cover border-2 border-primary/20"
+              />
+              <button
+                onClick={removeImage}
+                disabled={uploading}
+                className="absolute top-2 right-2 w-8 h-8 bg-destructive/90 hover:bg-destructive rounded-full flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4 text-destructive-foreground" />
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {/* Camera Input */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl"
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                <Camera className="w-8 h-8 text-primary" />
+                <span className="text-sm font-medium text-foreground">Take Photo</span>
+              </Button>
+
+              {/* Gallery Input */}
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl"
+                onClick={() => galleryInputRef.current?.click()}
+              >
+                <ImageIcon className="w-8 h-8 text-primary" />
+                <span className="text-sm font-medium text-foreground">From Gallery</span>
+              </Button>
+            </div>
+          )}
+
+          {/* Caption Input */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Caption (optional)</label>
+            <Textarea
+              placeholder="What's your pup up to? 🐾"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              disabled={uploading}
+              className="min-h-[80px] resize-none border-primary/20 focus:border-primary rounded-xl"
+            />
+          </div>
+
+          {/* Upload Progress */}
+          {uploading && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Uploading...</span>
+              </div>
+              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300 ease-out rounded-full"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DrawerFooter className="border-t border-border pt-4">
+          <Button
+            onClick={handleSubmit}
+            disabled={uploading || (!imageFile && !caption.trim())}
+            className={cn(
+              "w-full rounded-full font-bold py-6",
+              "bg-[hsl(165,40%,45%)] hover:bg-[hsl(165,40%,40%)]"
+            )}
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Posting...
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5 mr-2" />
+                Share with Pack
+              </>
+            )}
+          </Button>
+          <DrawerClose asChild>
+            <Button variant="ghost" disabled={uploading} className="rounded-full">
+              Cancel
+            </Button>
+          </DrawerClose>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+  );
+}
