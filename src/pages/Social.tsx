@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Share2, Plus, Globe, Users, MapPin, Star } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -153,20 +153,20 @@ export default function Social() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
-      {/* Fixed '+' Button - Top Right */}
+      {/* Floating Action Button - Bottom Right */}
       {user && (
         <Button 
           size="icon" 
-          className="fixed top-4 right-4 z-50 rounded-full w-12 h-12 bg-white hover:bg-gray-50 shadow-md border border-gray-200"
+          className="fixed bottom-24 right-4 z-[100] rounded-full w-14 h-14 bg-[#228B22] hover:bg-[#1e7a1e] shadow-xl border-0"
           onClick={() => setIsUploadSheetOpen(true)}
         >
-          <Plus className="w-6 h-6 text-[#228B22]" strokeWidth={2.5} />
+          <Camera className="w-7 h-7 text-white" strokeWidth={2} />
         </Button>
       )}
 
       {/* Header with warm cream/orange gradient */}
       <div className="sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20">
-        <div className="px-4 pt-4 pb-2 pr-16">
+        <div className="px-4 pt-4 pb-2">
           <h1 className="text-2xl font-extrabold text-primary italic">Pack Community</h1>
           <p className="text-sm text-primary/70">Share your pup's adventures</p>
         </div>
