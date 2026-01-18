@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useParks } from '@/hooks/useParks';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
-import pawsplayLogo from '@/assets/pawsplay-logo.png';
+
 import bostonTerrierPost from '@/assets/boston-terrier-post.png';
 import CreatePostForm from '@/components/social/CreatePostForm';
 
@@ -151,12 +151,7 @@ export default function Social() {
     <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24">
       {/* Header with warm cream/orange gradient */}
       <div className="sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20">
-        {/* Logo */}
-        <div className="flex justify-center pt-4 pb-2">
-          <img src={pawsplayLogo} alt="Paws Play" className="h-10 w-auto" />
-        </div>
-        
-        <div className="px-4 pb-2 flex items-center justify-between">
+        <div className="px-4 pt-4 pb-2 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-extrabold text-primary italic">Pack Community</h1>
             <p className="text-sm text-primary/70">Share your pup's adventures</p>
