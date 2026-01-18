@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { MapPin, List, Star, Fence, Droplets, Dog, TreePine, Car, Dumbbell, Navigation, PawPrint } from 'lucide-react';
+import { MapPin, List, Star, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,9 +34,8 @@ export default function Parks() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
   const { parks, loading, activeFilters, toggleFilter } = useParks();
 
   // Initialize map
@@ -55,16 +54,35 @@ export default function Parks() {
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
+    // Add GeolocateControl
+    const geolocateControl = new mapboxgl.GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: true
+      },
+      trackUserLocation: true,
+      showUserLocation: true,
+      showAccuracyCircle: true
+    });
+    
+    geolocateControlRef.current = geolocateControl;
+    map.current.addControl(geolocateControl, 'top-right');
+
     // Fix blank map on load by forcing recalculation of container size
     map.current.on('load', () => {
       map.current?.resize();
       setMapLoaded(true);
+      
+      // Programmatically trigger geolocate to ask for location permission
+      // and fly to user's current position
+      setTimeout(() => {
+        geolocateControl.trigger();
+      }, 500);
     });
 
     return () => {
       markersRef.current.forEach(marker => marker.remove());
       markersRef.current = [];
-      userMarkerRef.current?.remove();
+      geolocateControlRef.current = null;
       map.current?.remove();
       map.current = null;
       setMapLoaded(false);
@@ -130,68 +148,7 @@ export default function Parks() {
     }
   }, [parks, mapLoaded, viewMode, selectedPark]);
 
-  // Locate user function
-  const locateUser = useCallback(() => {
-    if (!navigator.geolocation || !map.current) {
-      alert('Geolocation is not supported by your browser');
-      return;
-    }
-
-    setIsLocating(true);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { longitude, latitude } = position.coords;
-        
-        // Remove existing user marker
-        userMarkerRef.current?.remove();
-
-        // Create user location marker
-        const userEl = document.createElement('div');
-        userEl.innerHTML = `
-          <div style="position: relative;">
-            <div style="
-              width: 20px;
-              height: 20px;
-              background: hsl(var(--primary));
-              border: 3px solid white;
-              border-radius: 50%;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            "></div>
-            <div style="
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              width: 40px;
-              height: 40px;
-              background: hsl(var(--primary) / 0.25);
-              border-radius: 50%;
-              animation: pulse 2s infinite;
-            "></div>
-          </div>
-        `;
-
-        userMarkerRef.current = new mapboxgl.Marker({ element: userEl })
-          .setLngLat([longitude, latitude])
-          .addTo(map.current!);
-
-        map.current!.flyTo({
-          center: [longitude, latitude],
-          zoom: 13,
-          duration: 1500,
-        });
-        
-        setIsLocating(false);
-      },
-      (error) => {
-        console.error('Error getting location:', error);
-        alert('Unable to get your location. Please enable location services.');
-        setIsLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
-  }, []);
+  // Removed manual locateUser - now using mapbox GeolocateControl
 
   return (
     <div className="h-screen flex flex-col">
@@ -203,17 +160,6 @@ export default function Parks() {
             Dog Parks
           </h1>
           <div className="flex gap-2">
-            {viewMode === 'map' && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={locateUser}
-                disabled={isLocating}
-                className="rounded-full"
-              >
-                <Navigation className={cn("w-4 h-4", isLocating && "animate-pulse")} />
-              </Button>
-            )}
             <Button
               variant={viewMode === 'map' ? 'default' : 'outline'}
               size="sm"
