@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,8 +9,8 @@ import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/hooks/useAuth';
 import { useParks } from '@/hooks/useParks';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-
 import bostonTerrierPost from '@/assets/boston-terrier-post.png';
 import CreatePostForm from '@/components/social/CreatePostForm';
 import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
@@ -110,6 +111,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export default function Social() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { posts, loading, createPost, likePost, refresh, newPostIds } = usePosts();
   const { allParks } = useParks();
@@ -117,7 +119,6 @@ export default function Social() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
-
   const handlePost = async (
     content: string, 
     imageUrl?: string, 
@@ -154,16 +155,32 @@ export default function Social() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
       {/* Floating Action Button - Bottom Right */}
-      {user && (
-        <Button 
-          size="icon" 
-          className="fixed bottom-24 right-4 z-[100] rounded-full w-14 h-14 bg-[#228B22] hover:bg-[#1e7a1e] shadow-xl border-0"
-          onClick={() => setIsUploadSheetOpen(true)}
-        >
-          <Camera className="w-7 h-7 text-white" strokeWidth={2} />
-        </Button>
-      )}
-
+      <Button
+        size="icon"
+        aria-label={user ? "Create a post" : "Sign in to create a post"}
+        className={cn(
+          "fixed bottom-24 right-4 z-[100] rounded-full w-14 h-14 shadow-xl border-0",
+          user ? "bg-primary hover:bg-primary/90" : "bg-muted hover:bg-muted/90"
+        )}
+        onClick={() => {
+          if (user) {
+            setIsUploadSheetOpen(true);
+            return;
+          }
+          toast("Sign in to post", {
+            description: "Go to your profile to log in, then come back to Social.",
+          });
+          navigate('/me');
+        }}
+      >
+        <Camera
+          className={cn(
+            "w-7 h-7",
+            user ? "text-primary-foreground" : "text-muted-foreground"
+          )}
+          strokeWidth={2}
+        />
+      </Button>
       {/* Header with warm cream/orange gradient */}
       <div className="sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20">
         <div className="px-4 pt-4 pb-2">
