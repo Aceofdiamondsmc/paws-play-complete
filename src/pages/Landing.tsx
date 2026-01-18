@@ -16,14 +16,8 @@ export default function Landing() {
       
       {/* Content */}
       <div className="relative z-10 flex flex-col min-h-screen">
-        {/* Logo Section */}
-        <div className="flex-1 flex flex-col items-center pt-12">
-          <img 
-            src={pawsplayLogo} 
-            alt="Paws Play Repeat" 
-            className="w-72 h-auto object-contain"
-          />
-        </div>
+        {/* Spacer */}
+        <div className="flex-1" />
 
         {/* Tagline & Floating Button Section */}
         <div className="flex-1 flex flex-col items-center justify-center px-6">
