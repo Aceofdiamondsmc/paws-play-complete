@@ -1,94 +1,69 @@
 import { useNavigate } from 'react-router-dom';
-import landingPug from '@/assets/landing-pug-sweater.jpeg';
+import { Play } from 'lucide-react';
+import landingPugGlasses from '@/assets/landing-pug-glasses.jpg';
 
 export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div 
-      className="relative min-h-[100dvh] flex flex-col overflow-hidden cursor-pointer"
-      onClick={() => navigate('/parks')}
-    >
-      {/* Background Image - Full screen */}
+    <div className="relative min-h-[100dvh] max-h-[105dvh] flex flex-col overflow-x-hidden">
+      {/* Background Image - Full screen with proper positioning for mobile */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ 
-          backgroundImage: `url(${landingPug})`,
-          backgroundPosition: 'center 45%'
+          backgroundImage: `url(${landingPugGlasses})`,
+          backgroundPosition: 'center 40%'
         }}
       />
       
-      {/* Content Container */}
+      {/* Gradient overlay for better text readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30" />
+      
+      {/* Main Content Container - Single column mobile optimized */}
       <div 
-        className="relative z-10 flex flex-col items-center flex-1 px-4"
-        style={{ paddingTop: 'max(env(safe-area-inset-top), 40px)' }}
+        className="relative z-10 flex flex-col flex-1"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}
       >
-        {/* Simple Paw Print Icon */}
-        <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center mb-6">
-          <svg 
-            width="28" 
-            height="28" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            className="opacity-80"
-          >
-            {/* Main pad */}
-            <ellipse cx="12" cy="14" rx="5" ry="4.5" fill="white"/>
-            {/* Top left toe */}
-            <ellipse cx="6" cy="7" rx="2.2" ry="2.8" fill="white"/>
-            {/* Top right toe */}
-            <ellipse cx="18" cy="7" rx="2.2" ry="2.8" fill="white"/>
-            {/* Bottom left toe */}
-            <ellipse cx="7.5" cy="11" rx="1.8" ry="2.2" fill="white"/>
-            {/* Bottom right toe */}
-            <ellipse cx="16.5" cy="11" rx="1.8" ry="2.2" fill="white"/>
-          </svg>
-        </div>
-        
-        {/* Arched Title - PawsPlayRepeat */}
-        <svg 
-          viewBox="0 0 300 80" 
-          className="w-[85vw] max-w-[340px] h-auto"
-          style={{ overflow: 'visible' }}
-        >
-          <defs>
-            <path
-              id="textArc"
-              d="M 20,70 Q 150,0 280,70"
-              fill="transparent"
-            />
-          </defs>
-          <text
-            fill="none"
-            style={{ 
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              fontWeight: 700,
-              fontStyle: 'italic',
-              fontSize: '38px'
-            }}
-          >
-            <textPath href="#textArc" startOffset="50%" textAnchor="middle">
-              <tspan fill="#E85A5A">Paws</tspan>
-              <tspan fill="#4EAEE8">Play</tspan>
-              <tspan fill="#6FCF6A">Repeat</tspan>
-            </textPath>
-          </text>
-        </svg>
-        
-        {/* Spacer to push tagline down */}
+        {/* Top spacer - pushes content into view */}
         <div className="flex-1" />
         
-        {/* Tagline */}
-        <p 
-          className="text-white/90 text-lg tracking-wide text-center"
-          style={{ 
-            fontFamily: 'Georgia, serif',
-            marginBottom: 'max(env(safe-area-inset-bottom) + 48px, 60px)'
-          }}
-        >
-          Friendly neighbors for furry friends
-        </p>
+        {/* Bottom spacer for thumb zone positioning */}
+        <div className="flex-[2]" />
       </div>
+
+      {/* Floating Let's Play Button - Positioned in thumb zone */}
+      <button
+        onClick={() => navigate('/parks')}
+        className="fixed z-50 left-1/2 -translate-x-1/2 flex items-center justify-center gap-3 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-lg px-12 py-4 rounded-full shadow-2xl transition-all duration-200 active:scale-95"
+        style={{ 
+          bottom: 'max(calc(env(safe-area-inset-bottom) + 100px), 120px)',
+          minWidth: '200px'
+        }}
+      >
+        <Play className="w-5 h-5 fill-current" />
+        Let's Play
+      </button>
+
+      {/* Footer - Fixed at bottom with safe area */}
+      <footer 
+        className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm py-4 px-4"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}
+      >
+        <div className="flex flex-wrap justify-center gap-4 mb-2">
+          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
+            Privacy Policy
+          </a>
+          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
+            Terms of Service
+          </a>
+          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
+            Support
+          </a>
+        </div>
+        <p className="text-center text-muted-foreground text-xs">
+          © 2026 Paws Play Repeat. All rights reserved.
+        </p>
+      </footer>
     </div>
   );
 }
