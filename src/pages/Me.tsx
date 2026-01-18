@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Dog, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2 } from 'lucide-react';
+import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
+import { useFriendships } from '@/hooks/useFriendships';
+import { useMessages } from '@/hooks/useMessages';
+import { useVaccinations } from '@/hooks/useVaccinations';
+import { PackMemberForm } from '@/components/profile/PackMemberForm';
+import { VaccinationForm } from '@/components/profile/VaccinationForm';
+import { MessageList } from '@/components/profile/MessageList';
+import { ChatView } from '@/components/profile/ChatView';
+import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { toast } from 'sonner';
 
 // Pet-themed placeholder images
@@ -19,10 +27,21 @@ const DOG_AVATARS = [
 
 export default function Me() {
   const { user, profile, dogs, signIn, signUp, signInWithGoogle, signOut, loading } = useAuth();
+  const { friends } = useFriendships();
+  const { conversations, totalUnread } = useMessages();
+  
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Modal states
+  const [showPackMemberForm, setShowPackMemberForm] = useState(false);
+  const [editingDog, setEditingDog] = useState<typeof dogs[0] | undefined>(undefined);
+  const [showVaccinationForm, setShowVaccinationForm] = useState(false);
+  const [vaccinationDog, setVaccinationDog] = useState<{ id: string; name: string } | null>(null);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,11 +78,44 @@ export default function Me() {
     }
   };
 
+  const handleEditDog = (dog: typeof dogs[0]) => {
+    setEditingDog(dog);
+    setShowPackMemberForm(true);
+  };
+
+  const handleAddPackMember = () => {
+    setEditingDog(undefined);
+    setShowPackMemberForm(true);
+  };
+
+  const handleVaccinations = (dog: { id: string; name: string }) => {
+    setVaccinationDog(dog);
+    setShowVaccinationForm(true);
+  };
+
+  const handleSelectConversation = (conversationId: string) => {
+    setSelectedConversation(conversationId);
+  };
+
+  // Get the selected conversation's other user info
+  const selectedConvoData = conversations.find(c => c.id === selectedConversation);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
+    );
+  }
+
+  // Show chat view if conversation selected
+  if (selectedConversation) {
+    return (
+      <ChatView
+        conversationId={selectedConversation}
+        otherUser={selectedConvoData?.otherUser}
+        onBack={() => setSelectedConversation(null)}
+      />
     );
   }
 
@@ -183,23 +235,37 @@ export default function Me() {
       <div className="bg-primary text-primary-foreground p-6 pb-16">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold">Profile</h1>
-          <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/20">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-primary-foreground hover:bg-white/20"
+            onClick={() => setShowEditProfile(true)}
+          >
             <Settings className="w-5 h-5" />
           </Button>
         </div>
         <div className="flex items-center gap-4">
-          <Avatar className="w-20 h-20 ring-4 ring-white/30">
-            <AvatarImage src={profile?.avatar_url || DOG_AVATARS[0]} />
-            <AvatarFallback className="bg-white text-primary text-2xl">
-              {profile?.display_name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="w-20 h-20 ring-4 ring-white/30">
+              <AvatarImage src={profile?.avatar_url || DOG_AVATARS[0]} />
+              <AvatarFallback className="bg-white text-primary text-2xl">
+                {profile?.display_name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <button 
+              onClick={() => setShowEditProfile(true)}
+              className="absolute -bottom-1 -right-1 w-7 h-7 bg-white text-primary rounded-full flex items-center justify-center shadow-lg"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+          </div>
           <div>
             <h2 className="text-xl font-bold">{profile?.display_name || 'Pet Parent'}</h2>
             <p className="text-primary-foreground/80 text-sm">{user.email}</p>
             {profile?.city && profile?.state && (
-              <p className="text-primary-foreground/60 text-sm mt-1">
-                📍 {profile.city}, {profile.state}
+              <p className="text-primary-foreground/60 text-sm mt-1 flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {profile.city}, {profile.state}
               </p>
             )}
           </div>
@@ -207,16 +273,44 @@ export default function Me() {
       </div>
 
       <div className="p-4 -mt-10 space-y-4">
-        {/* My Dogs Section */}
+        {/* Profile Stats */}
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="p-4 text-center">
+            <div className="flex items-center justify-center gap-1 text-primary mb-1">
+              <Users className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-bold text-primary">{friends.length}</p>
+            <p className="text-xs text-muted-foreground">Friends</p>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="flex items-center justify-center gap-1 text-primary mb-1">
+              <PawPrint className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-bold text-primary">{dogs.length}</p>
+            <p className="text-xs text-muted-foreground">Pack Members</p>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="flex items-center justify-center gap-1 text-primary mb-1">
+              <Calendar className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-bold text-primary">0</p>
+            <p className="text-xs text-muted-foreground">Playdates</p>
+          </Card>
+        </div>
+
+        {/* Messages Section */}
+        <MessageList onSelectConversation={handleSelectConversation} />
+
+        {/* My Pack Section */}
         <Card className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold flex items-center gap-2">
               <PawPrint className="w-5 h-5 text-primary" />
-              My Dogs
+              My Pack
             </h3>
-            <Button size="sm" variant="outline" className="rounded-full">
+            <Button size="sm" variant="outline" className="rounded-full" onClick={handleAddPackMember}>
               <Plus className="w-4 h-4 mr-1" />
-              Add Dog
+              Add Pack Member
             </Button>
           </div>
           {dogs.length === 0 ? (
@@ -226,46 +320,24 @@ export default function Me() {
                 alt="Cute dog"
                 className="w-24 h-24 mx-auto mb-3 rounded-full object-cover opacity-60"
               />
-              <p className="text-sm">Add your first pup to get started!</p>
+              <p className="text-sm">Add your first pup to the pack!</p>
             </div>
           ) : (
             <div className="space-y-3">
               {dogs.map((dog, index) => (
-                <div key={dog.id} className="flex items-center gap-3 p-3 bg-muted rounded-xl">
-                  <Avatar className="w-16 h-16">
-                    <AvatarImage src={dog.avatar_url || DOG_AVATARS[index % DOG_AVATARS.length]} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-                      {dog.name[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold">{dog.name}</h4>
-                      {/* Vaccine Verified Badge */}
-                      <Badge variant="secondary" className="gap-1 text-xs bg-green-100 text-green-700 border-green-200">
-                        <ShieldCheck className="w-3 h-3" />
-                        Vaccine Verified
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {dog.breed} • {dog.size}
-                    </p>
-                    {dog.energy_level && (
-                      <span className="text-xs text-muted-foreground">
-                        {dog.energy_level} energy
-                      </span>
-                    )}
-                  </div>
-                  <Button size="icon" variant="ghost" className="rounded-full">
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                <PackMemberCard 
+                  key={dog.id} 
+                  dog={dog} 
+                  index={index}
+                  onEdit={() => handleEditDog(dog)}
+                  onVaccinations={() => handleVaccinations({ id: dog.id, name: dog.name })}
+                />
               ))}
             </div>
           )}
         </Card>
 
-        {/* Vaccine Status Card */}
+        {/* Health & Vaccines Card */}
         <Card className="p-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
@@ -273,29 +345,29 @@ export default function Me() {
             </div>
             <div>
               <h3 className="font-bold">Health & Vaccines</h3>
-              <p className="text-sm text-muted-foreground">Keep your pup's records up to date</p>
+              <p className="text-sm text-muted-foreground">Keep your pups' records up to date</p>
             </div>
           </div>
-          <Button variant="outline" className="w-full rounded-full">
-            Update Vaccine Records
-          </Button>
+          {dogs.length > 0 ? (
+            <div className="space-y-2">
+              {dogs.map(dog => (
+                <Button 
+                  key={dog.id}
+                  variant="outline" 
+                  className="w-full justify-between rounded-full"
+                  onClick={() => handleVaccinations({ id: dog.id, name: dog.name })}
+                >
+                  <span>{dog.name}'s Vaccines</span>
+                  <ShieldCheck className="w-4 h-4 text-green-500" />
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-2">
+              Add a pack member to manage their vaccines
+            </p>
+          )}
         </Card>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="p-4 text-center">
-            <p className="text-2xl font-bold text-primary">0</p>
-            <p className="text-xs text-muted-foreground">Parks Visited</p>
-          </Card>
-          <Card className="p-4 text-center">
-            <p className="text-2xl font-bold text-primary">0</p>
-            <p className="text-xs text-muted-foreground">Friends</p>
-          </Card>
-          <Card className="p-4 text-center">
-            <p className="text-2xl font-bold text-primary">0</p>
-            <p className="text-xs text-muted-foreground">Playdates</p>
-          </Card>
-        </div>
 
         {/* Sign Out */}
         <Button 
@@ -305,6 +377,94 @@ export default function Me() {
         >
           <LogOut className="w-4 h-4 mr-2" />
           Sign Out
+        </Button>
+      </div>
+
+      {/* Modals */}
+      <PackMemberForm 
+        open={showPackMemberForm} 
+        onClose={() => {
+          setShowPackMemberForm(false);
+          setEditingDog(undefined);
+        }}
+        editingDog={editingDog}
+      />
+
+      {vaccinationDog && (
+        <VaccinationForm
+          open={showVaccinationForm}
+          onClose={() => {
+            setShowVaccinationForm(false);
+            setVaccinationDog(null);
+          }}
+          dogId={vaccinationDog.id}
+          dogName={vaccinationDog.name}
+        />
+      )}
+
+      <EditProfileForm
+        open={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        profile={profile}
+      />
+    </div>
+  );
+}
+
+// Pack Member Card Component
+function PackMemberCard({ 
+  dog, 
+  index, 
+  onEdit, 
+  onVaccinations 
+}: { 
+  dog: { 
+    id: string; 
+    name: string; 
+    breed?: string | null; 
+    size?: string | null; 
+    energy_level?: string | null;
+    avatar_url?: string | null;
+  }; 
+  index: number;
+  onEdit: () => void;
+  onVaccinations: () => void;
+}) {
+  const { isUpToDate } = useVaccinations(dog.id);
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-muted rounded-xl">
+      <Avatar className="w-16 h-16">
+        <AvatarImage src={dog.avatar_url || DOG_AVATARS[index % DOG_AVATARS.length]} />
+        <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+          {dog.name[0]}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h4 className="font-semibold">{dog.name}</h4>
+          {isUpToDate && (
+            <Badge variant="secondary" className="gap-1 text-xs bg-green-100 text-green-700 border-green-200">
+              <ShieldCheck className="w-3 h-3" />
+              Verified
+            </Badge>
+          )}
+        </div>
+        <p className="text-sm text-muted-foreground truncate">
+          {dog.breed || 'Mixed breed'} • {dog.size || 'Medium'}
+        </p>
+        {dog.energy_level && (
+          <span className="text-xs text-muted-foreground">
+            {dog.energy_level} energy
+          </span>
+        )}
+      </div>
+      <div className="flex gap-1">
+        <Button size="icon" variant="ghost" className="rounded-full" onClick={onVaccinations}>
+          <ShieldCheck className="w-4 h-4 text-green-500" />
+        </Button>
+        <Button size="icon" variant="ghost" className="rounded-full" onClick={onEdit}>
+          <Edit2 className="w-4 h-4" />
         </Button>
       </div>
     </div>
