@@ -111,7 +111,7 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function Social() {
   const { user } = useAuth();
-  const { posts, loading, createPost, likePost, refresh } = usePosts();
+  const { posts, loading, createPost, likePost, refresh, newPostIds } = usePosts();
   const { allParks } = useParks();
   const [isPosting, setIsPosting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
@@ -209,7 +209,10 @@ export default function Social() {
           filteredPosts.map((post: any) => (
             <Card 
               key={post.id} 
-              className="p-4 bg-card border-2 border-primary/20 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+              className={cn(
+                "p-4 bg-card border-2 border-primary/20 rounded-2xl shadow-sm hover:shadow-md transition-all",
+                newPostIds.has(post.id) && "animate-fade-in ring-2 ring-primary/30"
+              )}
             >
               <div className="flex gap-3">
                 {/* Avatar */}
