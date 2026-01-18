@@ -1,24 +1,27 @@
+import { useState } from 'react';
 import { Compass, Search, Dog, Scissors, Stethoscope, Home, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useServices } from '@/hooks/useServices';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const serviceCategories = [
-  { id: 'walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-primary/10 text-primary' },
-  { id: 'sitters', label: 'Dog Sitters', icon: Home, color: 'bg-accent/10 text-accent' },
-  { id: 'vets', label: 'Vet Clinics', icon: Stethoscope, color: 'bg-success/10 text-success' },
-  { id: 'daycare', label: 'Doggy Daycare', icon: Dog, color: 'bg-warning/10 text-warning' },
-  { id: 'groomers', label: 'Groomers', icon: Scissors, color: 'bg-secondary text-secondary-foreground' },
-];
-
-const sampleServices = [
-  { id: '1', name: 'Happy Paws Dog Walking', category: 'walkers', rating: 4.8, distance: '0.5 mi', price: '$25/walk' },
-  { id: '2', name: 'Cozy Pet Sitting', category: 'sitters', rating: 4.9, distance: '1.2 mi', price: '$50/night' },
-  { id: '3', name: 'Downtown Vet Clinic', category: 'vets', rating: 4.7, distance: '0.8 mi', price: 'Varies' },
-  { id: '4', name: 'Pawfect Grooming', category: 'groomers', rating: 4.6, distance: '1.5 mi', price: '$45+' },
+  { id: 'Dog Walker', label: 'Dog Walkers', icon: Dog, color: 'bg-primary/10 text-primary' },
+  { id: 'Dog Sitter', label: 'Dog Sitters', icon: Home, color: 'bg-accent/10 text-accent' },
+  { id: 'Vet Clinic', label: 'Vet Clinics', icon: Stethoscope, color: 'bg-success/10 text-success' },
+  { id: 'Doggy Daycare', label: 'Doggy Daycare', icon: Dog, color: 'bg-warning/10 text-warning' },
+  { id: 'Groomer', label: 'Groomers', icon: Scissors, color: 'bg-secondary text-secondary-foreground' },
 ];
 
 export default function Explore() {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { data: services, isLoading } = useServices(selectedCategory);
+
+  const handleCategoryClick = (categoryId: string) => {
+    setSelectedCategory(prev => prev === categoryId ? null : categoryId);
+  };
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -41,10 +44,16 @@ export default function Explore() {
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {serviceCategories.map(cat => {
             const Icon = cat.icon;
+            const isSelected = selectedCategory === cat.id;
             return (
               <button
                 key={cat.id}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full whitespace-nowrap font-medium transition-all ${cat.color} hover:opacity-80`}
+                onClick={() => handleCategoryClick(cat.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full whitespace-nowrap font-medium transition-all ${
+                  isSelected 
+                    ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2' 
+                    : `${cat.color} hover:opacity-80`
+                }`}
               >
                 <Icon className="w-4 h-4" />
                 {cat.label}
@@ -53,34 +62,73 @@ export default function Explore() {
           })}
         </div>
 
-        {/* Featured Services */}
+        {/* Services List */}
         <div>
-          <h2 className="font-bold text-lg mb-3">Nearby Services</h2>
+          <h2 className="font-bold text-lg mb-3">
+            {selectedCategory ? `${selectedCategory}s` : 'Nearby Services'}
+          </h2>
           <div className="space-y-3">
-            {sampleServices.map(service => (
-              <Card key={service.id} className="p-4 card-playful">
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 bg-muted rounded-xl flex items-center justify-center">
-                    <Dog className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold">{service.name}</h3>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                      <span className="text-warning">★ {service.rating}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {service.distance}
-                      </span>
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="p-4">
+                  <div className="flex items-start gap-4">
+                    <Skeleton className="w-16 h-16 rounded-xl" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-4 w-1/4" />
                     </div>
-                    <p className="text-sm font-medium text-primary mt-1">{service.price}</p>
                   </div>
-                  <Button size="sm" className="rounded-full">
-                    View
-                  </Button>
-                </div>
+                </Card>
+              ))
+            ) : services && services.length > 0 ? (
+              services.map(service => (
+                <Card key={service.id} className="p-4 card-playful">
+                  <div className="flex items-start gap-4">
+                    {service.image_url ? (
+                      <img 
+                        src={service.image_url} 
+                        alt={service.name}
+                        className="w-16 h-16 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-muted rounded-xl flex items-center justify-center">
+                        <Dog className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold">{service.name}</h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                        <span className="text-warning">★ {service.rating}</span>
+                        {service.distance && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {service.distance}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <p className="text-sm font-medium text-primary mt-1">{service.price}</p>
+                    </div>
+                    <Button size="sm" className="rounded-full">
+                      View
+                    </Button>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <Card className="p-6 text-center bg-muted/50">
+                <Dog className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                <h3 className="font-bold">No services found</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedCategory 
+                    ? `No ${selectedCategory}s available yet. Check back soon!`
+                    : 'No services available in your area yet.'}
+                </p>
               </Card>
-            ))}
+            )}
           </div>
         </div>
 
