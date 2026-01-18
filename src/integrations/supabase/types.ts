@@ -1176,66 +1176,6 @@ export type Database = {
         }
         Relationships: []
       }
-      services_explore: {
-        Row: {
-          category: string | null
-          description: string | null
-          distance: string | null
-          enriched_description: string | null
-          enrichment_status: string | null
-          id: number | null
-          image_url: string | null
-          is_featured: boolean | null
-          is_flagged: boolean | null
-          is_verified: boolean | null
-          latitude: number | null
-          longitude: number | null
-          name: string | null
-          price: string | null
-          rating: number | null
-          verified_latitude: number | null
-          verified_longitude: number | null
-        }
-        Insert: {
-          category?: string | null
-          description?: string | null
-          distance?: string | null
-          enriched_description?: string | null
-          enrichment_status?: string | null
-          id?: number | null
-          image_url?: string | null
-          is_featured?: boolean | null
-          is_flagged?: boolean | null
-          is_verified?: boolean | null
-          latitude?: number | null
-          longitude?: number | null
-          name?: string | null
-          price?: string | null
-          rating?: number | null
-          verified_latitude?: number | null
-          verified_longitude?: number | null
-        }
-        Update: {
-          category?: string | null
-          description?: string | null
-          distance?: string | null
-          enriched_description?: string | null
-          enrichment_status?: string | null
-          id?: number | null
-          image_url?: string | null
-          is_featured?: boolean | null
-          is_flagged?: boolean | null
-          is_verified?: boolean | null
-          latitude?: number | null
-          longitude?: number | null
-          name?: string | null
-          price?: string | null
-          rating?: number | null
-          verified_latitude?: number | null
-          verified_longitude?: number | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       _postgis_deprecate: {
