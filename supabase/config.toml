@@ -1,1 +1,7 @@
 project_id = "xasbgkggwnkvrceziaix"
+
+[functions.generate-park-description]
+verify_jwt = false
+
+[functions.vet-service]
+verify_jwt = false

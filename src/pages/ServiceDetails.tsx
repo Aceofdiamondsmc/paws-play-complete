@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Star, Phone, Globe, Clock, DollarSign } from 'lucide-react';
+import { ArrowLeft, MapPin, Star, Phone, Globe, Clock, DollarSign, BadgeCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,9 +64,17 @@ export default function ServiceDetails() {
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        {service.is_featured && (
-          <Badge className="absolute top-4 right-4 bg-primary">Featured</Badge>
-        )}
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          {service.is_verified && (
+            <Badge className="bg-success text-success-foreground">
+              <BadgeCheck className="w-3 h-3 mr-1" />
+              Verified
+            </Badge>
+          )}
+          {service.is_featured && (
+            <Badge className="bg-primary">Featured</Badge>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -74,8 +82,21 @@ export default function ServiceDetails() {
         <Card className="p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold">{service.name}</h1>
-              <Badge variant="secondary" className="mt-2">{service.category}</Badge>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">{service.name}</h1>
+                {service.is_verified && (
+                  <BadgeCheck className="w-6 h-6 text-success" />
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="secondary">{service.category}</Badge>
+                {service.is_verified && (
+                  <span className="text-xs text-success flex items-center gap-1">
+                    <BadgeCheck className="w-3 h-3" />
+                    Google Verified
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-1 text-warning">
               <Star className="w-5 h-5 fill-current" />
@@ -109,27 +130,44 @@ export default function ServiceDetails() {
         </div>
 
         {/* Description */}
-        {service.description && (
+        {(service.enriched_description || service.description) && (
           <Card className="p-4">
             <h2 className="font-bold mb-2">About</h2>
-            <p className="text-muted-foreground">{service.description}</p>
+            <p className="text-muted-foreground">
+              {service.enriched_description || service.description}
+            </p>
           </Card>
         )}
 
-        {/* Map Preview */}
-        {service.latitude && service.longitude && (
-          <Card className="p-4">
-            <h2 className="font-bold mb-2">Location</h2>
-            <div className="h-40 bg-muted rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  {service.latitude.toFixed(4)}, {service.longitude.toFixed(4)}
-                </p>
+        {/* Map Preview - Use verified coordinates when available */}
+        {(() => {
+          const lat = service.is_verified && service.verified_latitude ? service.verified_latitude : service.latitude;
+          const lng = service.is_verified && service.verified_longitude ? service.verified_longitude : service.longitude;
+          
+          if (!lat || !lng) return null;
+          
+          return (
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="font-bold">Location</h2>
+                {service.is_verified && (
+                  <span className="text-xs text-success flex items-center gap-1">
+                    <BadgeCheck className="w-3 h-3" />
+                    Verified Address
+                  </span>
+                )}
               </div>
-            </div>
-          </Card>
-        )}
+              <div className="h-40 bg-muted rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <MapPin className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {lat.toFixed(4)}, {lng.toFixed(4)}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          );
+        })()}
 
         {/* Action Buttons */}
         <div className="flex gap-3">

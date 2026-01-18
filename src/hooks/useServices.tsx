@@ -9,10 +9,16 @@ export interface Service {
   price: string;
   distance: string | null;
   description: string | null;
+  enriched_description: string | null;
   image_url: string | null;
   is_featured: boolean;
+  is_verified: boolean;
+  is_flagged: boolean;
   latitude: number | null;
   longitude: number | null;
+  verified_latitude: number | null;
+  verified_longitude: number | null;
+  enrichment_status: 'pending' | 'processing' | 'completed' | 'failed';
 }
 
 // Fallback images by category from Unsplash
