@@ -27,21 +27,21 @@ export function BottomNav() {
               key={path}
               to={path}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-2xl transition-all duration-200 min-h-[48px] min-w-[48px]",
+                "flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-2xl transition-all duration-300 ease-in-out min-h-[48px] min-w-[48px]",
                 isActive 
-                  ? "text-primary" 
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-green-500" 
+                  : "text-yellow-500 hover:text-green-500 active:text-green-600"
               )}
             >
               <div className="relative">
-                <Icon className={cn("w-6 h-6 transition-transform", isActive && "scale-110")} />
+                <Icon className={cn("w-6 h-6 transition-all duration-300 ease-in-out", isActive && "scale-110")} />
                 {isActive && (
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full" />
                 )}
               </div>
               <span className={cn(
-                "text-xs font-medium transition-all",
-                isActive ? "opacity-100" : "opacity-70"
+                "text-xs font-medium transition-all duration-300 ease-in-out",
+                isActive ? "opacity-100" : "opacity-80"
               )}>
                 {label}
               </span>
