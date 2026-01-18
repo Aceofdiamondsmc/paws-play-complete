@@ -30,7 +30,7 @@ export function BottomNav() {
                 "flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-2xl transition-all duration-300 ease-in-out min-h-[48px] min-w-[48px]",
                 isActive 
                   ? "text-green-500" 
-                  : "text-yellow-500 hover:text-green-500 active:text-green-600"
+                  : "text-yellow-300 hover:text-green-500 active:text-green-600"
               )}
             >
               <div className="relative">
