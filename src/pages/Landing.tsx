@@ -33,7 +33,7 @@ export default function Landing() {
         </div>
         
         {/* Colorful Title */}
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3" style={{ fontFamily: 'Nunito, sans-serif' }}>
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3 text-center" style={{ fontFamily: 'Nunito, sans-serif' }}>
           <span className="text-[#FF6B6B]">Paws</span>
           <span className="text-[#4ECDC4]">Play</span>
           <span className="text-[#95D44A]">Repeat</span>
