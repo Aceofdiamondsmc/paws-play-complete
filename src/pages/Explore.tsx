@@ -61,6 +61,11 @@ export default function Explore() {
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
+    // Fix blank map on load by forcing recalculation of container size
+    map.current.on('load', () => {
+      map.current?.resize();
+    });
+
     return () => {
       if (map.current) {
         map.current.remove();
