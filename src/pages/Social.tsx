@@ -245,7 +245,7 @@ export default function Social() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <span className="font-bold text-foreground text-base">
-                        {post.author?.display_name || 'Anonymous'}
+                        {post.author?.display_name || post.author?.username || post.author?.full_name || 'Anonymous'}
                       </span>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>
