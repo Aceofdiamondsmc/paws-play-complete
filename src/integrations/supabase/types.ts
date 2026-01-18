@@ -945,6 +945,33 @@ export type Database = {
         }
         Relationships: []
       }
+      services_explore: {
+        Row: {
+          distance: string | null
+          id: number | null
+          image_url: string | null
+          is_featured: boolean | null
+          name: string | null
+          rating: number | null
+        }
+        Insert: {
+          distance?: string | null
+          id?: number | null
+          image_url?: string | null
+          is_featured?: boolean | null
+          name?: string | null
+          rating?: number | null
+        }
+        Update: {
+          distance?: string | null
+          id?: number | null
+          image_url?: string | null
+          is_featured?: boolean | null
+          name?: string | null
+          rating?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _postgis_deprecate: {
