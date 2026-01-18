@@ -9,6 +9,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import Landing from "./pages/Landing";
 import Parks from "./pages/Parks";
 import Explore from "./pages/Explore";
+import ServiceDetails from "./pages/ServiceDetails";
 import Social from "./pages/Social";
 import Dates from "./pages/Dates";
 import Pack from "./pages/Pack";
@@ -30,6 +31,7 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/parks" element={<Parks />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/explore/:id" element={<ServiceDetails />} />
               <Route path="/social" element={<Social />} />
               <Route path="/dates" element={<Dates />} />
               <Route path="/pack" element={<Pack />} />
