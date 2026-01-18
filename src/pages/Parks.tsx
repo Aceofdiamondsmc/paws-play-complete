@@ -48,7 +48,7 @@ export default function Parks() {
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/outdoors-v12',
+      style: 'mapbox://styles/paws-play-repeat/cmkd8den2000201slhb1k29ty',
       center: [-98.5795, 39.8283], // Center of US
       zoom: 4,
     });
