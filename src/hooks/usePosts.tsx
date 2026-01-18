@@ -24,6 +24,7 @@ export function usePosts() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<PostWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newPostIds, setNewPostIds] = useState<Set<string>>(new Set());
   const channelRef = useRef<RealtimeChannel | null>(null);
   const userIdRef = useRef<string | null>(null);
 
@@ -133,7 +134,18 @@ export function usePosts() {
           isLiked: false
         };
 
+        // Mark as new for animation
+        setNewPostIds(prev => new Set(prev).add(post.id));
         setPosts(prev => [newPost, ...prev]);
+        
+        // Remove from new posts after animation completes
+        setTimeout(() => {
+          setNewPostIds(prev => {
+            const next = new Set(prev);
+            next.delete(post.id);
+            return next;
+          });
+        }, 600);
       } catch (e) {
         console.error('Error fetching new post:', e);
       }
@@ -303,9 +315,20 @@ export function usePosts() {
     return { error };
   };
 
+  // Clear a post from the new posts set (for manual control)
+  const clearNewPost = useCallback((postId: string) => {
+    setNewPostIds(prev => {
+      const next = new Set(prev);
+      next.delete(postId);
+      return next;
+    });
+  }, []);
+
   return {
     posts,
     loading,
+    newPostIds,
+    clearNewPost,
     createPost,
     likePost,
     deletePost,
