@@ -7,11 +7,11 @@ import { useServices } from '@/hooks/useServices';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const serviceCategories = [
-  { id: 'Dog Walker', label: 'Dog Walkers', icon: Dog, color: 'bg-primary/10 text-primary' },
-  { id: 'Dog Sitter', label: 'Dog Sitters', icon: Home, color: 'bg-accent/10 text-accent' },
-  { id: 'Vet Clinic', label: 'Vet Clinics', icon: Stethoscope, color: 'bg-success/10 text-success' },
-  { id: 'Doggy Daycare', label: 'Doggy Daycare', icon: Dog, color: 'bg-warning/10 text-warning' },
-  { id: 'Groomer', label: 'Groomers', icon: Scissors, color: 'bg-secondary text-secondary-foreground' },
+  { id: 'Dog Walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-primary/10 text-primary' },
+  { id: 'Daycare', label: 'Daycare', icon: Home, color: 'bg-accent/10 text-accent' },
+  { id: 'Vet Clinics', label: 'Vet Clinics', icon: Stethoscope, color: 'bg-success/10 text-success' },
+  { id: 'Trainers', label: 'Trainers', icon: Dog, color: 'bg-warning/10 text-warning' },
+  { id: 'Groomers', label: 'Groomers', icon: Scissors, color: 'bg-secondary text-secondary-foreground' },
 ];
 
 export default function Explore() {
