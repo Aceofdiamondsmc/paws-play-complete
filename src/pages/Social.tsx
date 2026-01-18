@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import bostonTerrierPost from '@/assets/boston-terrier-post.png';
 import CreatePostForm from '@/components/social/CreatePostForm';
 import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
+import CommentsDrawer from '@/components/social/CommentsDrawer';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
@@ -115,6 +116,7 @@ export default function Social() {
   const [isPosting, setIsPosting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
+  const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
 
   const handlePost = async (
     content: string, 
@@ -300,7 +302,10 @@ export default function Social() {
                       <span>{post.likesCount || 0}</span>
                     </button>
                     
-                    <button className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                    <button 
+                      onClick={() => !post.id.startsWith('sample') && setCommentsPostId(post.id)}
+                      className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                    >
                       <MessageCircle className="w-5 h-5" />
                       <span>{post.commentsCount || 0}</span>
                     </button>
@@ -332,6 +337,13 @@ export default function Social() {
         open={isUploadSheetOpen}
         onOpenChange={setIsUploadSheetOpen}
         onPostCreated={refresh}
+      />
+
+      {/* Comments Drawer */}
+      <CommentsDrawer
+        postId={commentsPostId}
+        open={!!commentsPostId}
+        onOpenChange={(open) => !open && setCommentsPostId(null)}
       />
     </div>
   );
