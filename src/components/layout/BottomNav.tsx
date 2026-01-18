@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { MapPin, Compass, MessageCircle, CalendarDays, PawPrint, User, ShoppingCart } from 'lucide-react';
+import { Trees, Compass, MessageCircle, CalendarDays, PawPrint, User, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { path: '/parks', icon: MapPin, label: 'Parks' },
+  { path: '/parks', icon: Trees, label: 'Parks' },
   { path: '/explore', icon: Compass, label: 'Explore' },
   { path: '/social', icon: MessageCircle, label: 'Social' },
   { path: '/dates', icon: CalendarDays, label: 'Dates' },
