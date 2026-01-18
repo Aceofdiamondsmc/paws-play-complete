@@ -54,7 +54,7 @@ export default function Explore() {
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style: 'mapbox://styles/paws-play-repeat/cmkd8den2000201slhb1k29ty',
       center: [-122.4194, 37.7749], // San Francisco default
       zoom: 12,
     });
