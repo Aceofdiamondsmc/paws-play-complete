@@ -152,23 +152,23 @@ export default function Social() {
     : displayPosts;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
+      {/* Fixed '+' Button - Top Right */}
+      {user && (
+        <Button 
+          size="icon" 
+          className="fixed top-4 right-4 z-50 rounded-full w-12 h-12 bg-white hover:bg-gray-50 shadow-md border border-gray-200"
+          onClick={() => setIsUploadSheetOpen(true)}
+        >
+          <Plus className="w-6 h-6 text-[#228B22]" strokeWidth={2.5} />
+        </Button>
+      )}
+
       {/* Header with warm cream/orange gradient */}
       <div className="sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20">
-        <div className="px-4 pt-4 pb-2 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-extrabold text-primary italic">Pack Community</h1>
-            <p className="text-sm text-primary/70">Share your pup's adventures</p>
-          </div>
-          {user && (
-            <Button 
-              size="icon" 
-              className="rounded-full w-12 h-12 bg-white hover:bg-gray-50 shadow-lg border border-gray-200 z-50"
-              onClick={() => setIsUploadSheetOpen(true)}
-            >
-              <Plus className="w-6 h-6 text-[#228B22]" />
-            </Button>
-          )}
+        <div className="px-4 pt-4 pb-2 pr-16">
+          <h1 className="text-2xl font-extrabold text-primary italic">Pack Community</h1>
+          <p className="text-sm text-primary/70">Share your pup's adventures</p>
         </div>
         
         {/* Filter Tabs */}
