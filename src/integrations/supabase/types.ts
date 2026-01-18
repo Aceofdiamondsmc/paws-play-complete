@@ -890,6 +890,7 @@ export type Database = {
           enriched_description: string | null
           enrichment_status: string | null
           flag_reason: string | null
+          geo: unknown
           google_place_id: string | null
           id: number
           image_url: string | null
@@ -916,6 +917,7 @@ export type Database = {
           enriched_description?: string | null
           enrichment_status?: string | null
           flag_reason?: string | null
+          geo?: unknown
           google_place_id?: string | null
           id?: number
           image_url?: string | null
@@ -942,6 +944,7 @@ export type Database = {
           enriched_description?: string | null
           enrichment_status?: string | null
           flag_reason?: string | null
+          geo?: unknown
           google_place_id?: string | null
           id?: number
           image_url?: string | null
@@ -1173,6 +1176,45 @@ export type Database = {
           bio?: string | null
           id?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      services_explore: {
+        Row: {
+          category: string | null
+          description: string | null
+          enriched_description: string | null
+          id: number | null
+          is_verified: boolean | null
+          latitude: number | null
+          longitude: number | null
+          name: string | null
+          verified_latitude: number | null
+          verified_longitude: number | null
+        }
+        Insert: {
+          category?: string | null
+          description?: string | null
+          enriched_description?: string | null
+          id?: number | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          verified_latitude?: number | null
+          verified_longitude?: number | null
+        }
+        Update: {
+          category?: string | null
+          description?: string | null
+          enriched_description?: string | null
+          id?: number | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          verified_latitude?: number | null
+          verified_longitude?: number | null
         }
         Relationships: []
       }
