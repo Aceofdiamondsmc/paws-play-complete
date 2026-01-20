@@ -1,18 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import { useState } from 'react';
 import { MapPin, List, Star, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useParks } from '@/hooks/useParks';
 import { cn } from '@/lib/utils';
-import { createPawMarker, createPopupHTML } from '@/components/parks/ParkMarkers';
-import { ParkInfoPanel } from '@/components/parks/ParkInfoPanel';
-import { toast } from '@/hooks/use-toast';
-import type { ParkFilter, FilterOption, Park } from '@/types';
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+import type { ParkFilter, FilterOption } from '@/types';
 
 const filterOptions: FilterOption[] = [
   { id: 'fenced', label: 'Fully Fenced', icon: 'Fence' },
@@ -28,162 +21,9 @@ const iconMap: Record<string, React.ElementType> = {
   Fence, Droplets, Dog, TreePine, Car, Dumbbell
 };
 
-
 export default function Parks() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
-  const [selectedPark, setSelectedPark] = useState<Park | null>(null);
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const geolocateControlRef = useRef<mapboxgl.GeolocateControl | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
   const { parks, loading, activeFilters, toggleFilter } = useParks();
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-
-  // Request location permission on mount
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      toast({
-        title: "Location unavailable",
-        description: "Your browser doesn't support geolocation.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { longitude, latitude } = position.coords;
-        setUserLocation([longitude, latitude]);
-        toast({
-          title: "Location found! 📍",
-          description: "Map will center on your location.",
-        });
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          toast({
-            title: "Location access needed 📍",
-            description: "Please allow location access to see nearby parks.",
-            variant: "destructive",
-          });
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }, []);
-
-  // Initialize map
-  useEffect(() => {
-    if (!mapContainer.current || !MAPBOX_TOKEN || viewMode !== 'map') return;
-    if (map.current) return; // Already initialized
-
-    mapboxgl.accessToken = MAPBOX_TOKEN;
-    
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/paws-play-repeat/cmkd8den2000201slhb1k29ty',
-      center: userLocation || [-98.5795, 39.8283], // User location or center of US
-      zoom: userLocation ? 12 : 4,
-    });
-
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-    // Add GeolocateControl
-    const geolocateControl = new mapboxgl.GeolocateControl({
-      positionOptions: {
-        enableHighAccuracy: true
-      },
-      trackUserLocation: true,
-      showUserLocation: true,
-      showAccuracyCircle: true
-    });
-    
-    geolocateControlRef.current = geolocateControl;
-    map.current.addControl(geolocateControl, 'top-right');
-
-    // Fix blank map on load by forcing recalculation of container size
-    map.current.on('load', () => {
-      map.current?.resize();
-      setMapLoaded(true);
-      
-      // Programmatically trigger geolocate to ask for location permission
-      // and fly to user's current position
-      setTimeout(() => {
-        geolocateControl.trigger();
-      }, 500);
-    });
-
-    return () => {
-      markersRef.current.forEach(marker => marker.remove());
-      markersRef.current = [];
-      geolocateControlRef.current = null;
-      map.current?.remove();
-      map.current = null;
-      setMapLoaded(false);
-    };
-  }, [viewMode]);
-
-  // Update markers when parks change
-  useEffect(() => {
-    if (!map.current || !mapLoaded || viewMode !== 'map') return;
-
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
-
-    // Add park markers
-    const parksWithCoords = parks.filter(park => park.latitude != null && park.longitude != null);
-    
-    parksWithCoords.forEach(park => {
-      const isSelected = selectedPark?.id === park.id;
-      const el = createPawMarker(isSelected);
-      
-      el.addEventListener('mouseenter', () => {
-        if (!isSelected) el.style.transform = 'scale(1.15)';
-      });
-      el.addEventListener('mouseleave', () => {
-        if (!isSelected) el.style.transform = 'scale(1)';
-      });
-      
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setSelectedPark(park);
-      });
-
-      const popup = new mapboxgl.Popup({ 
-        offset: 25,
-        closeButton: true,
-        closeOnClick: false,
-        maxWidth: '280px'
-      }).setHTML(createPopupHTML(park));
-
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([park.longitude!, park.latitude!])
-        .setPopup(popup)
-        .addTo(map.current!);
-
-      markersRef.current.push(marker);
-    });
-
-    // Fit bounds to show all filtered parks
-    if (parksWithCoords.length > 0) {
-      const bounds = new mapboxgl.LngLatBounds();
-      parksWithCoords.forEach(park => {
-        bounds.extend([park.longitude!, park.latitude!]);
-      });
-      
-      if (!bounds.isEmpty()) {
-        map.current.fitBounds(bounds, { 
-          padding: { top: 50, bottom: 50, left: 50, right: 50 }, 
-          maxZoom: 13,
-          duration: 1000
-        });
-      }
-    }
-  }, [parks, mapLoaded, viewMode, selectedPark]);
-
-  // Removed manual locateUser - now using mapbox GeolocateControl
 
   return (
     <div className="h-screen flex flex-col">
@@ -252,7 +92,16 @@ export default function Parks() {
       {/* Content */}
       {viewMode === 'map' ? (
         <div className="flex-1 relative">
-          <div ref={mapContainer} className="absolute inset-0" />
+          {/* Google My Maps Iframe */}
+          <iframe
+            src="https://www.google.com/maps/d/u/0/embed?mid=10wM4h_PU2KV-MWnX0Rk7jtL-ksguNac&ehbc=2E312F"
+            width="100%"
+            height="100%"
+            style={{ border: 0, position: 'absolute', inset: 0 }}
+            allowFullScreen
+            loading="lazy"
+            title="Dog Parks Map"
+          />
           
           {/* Loading overlay */}
           {loading && (
@@ -269,14 +118,6 @@ export default function Parks() {
                 {parks.length} Parks
               </Badge>
             </div>
-          )}
-
-          {/* Selected Park Info Panel with AI Description */}
-          {selectedPark && (
-            <ParkInfoPanel 
-              park={selectedPark} 
-              onClose={() => setSelectedPark(null)} 
-            />
           )}
         </div>
       ) : (
@@ -347,23 +188,6 @@ export default function Parks() {
           )}
         </div>
       )}
-
-      {/* Pulse animation styles */}
-      <style>{`
-        @keyframes pulse {
-          0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-          100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
-        }
-        .mapboxgl-popup-content {
-          border-radius: 12px !important;
-          padding: 0 !important;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
-        }
-        .mapboxgl-popup-close-button {
-          font-size: 18px;
-          padding: 4px 8px;
-        }
-      `}</style>
     </div>
   );
 }

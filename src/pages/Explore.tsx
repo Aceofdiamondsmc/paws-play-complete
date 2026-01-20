@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import { Compass, Search, Dog, Scissors, Stethoscope, Home, MapPin, List, Map as MapIcon, BadgeCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,21 +8,13 @@ import { useServices, getServiceImage, Service } from '@/hooks/useServices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
-// Initialize Mapbox
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
-
 const serviceCategories = [
-  { id: 'Dog Walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-primary/10 text-primary', markerColor: '#8B5CF6' },
-  { id: 'Daycare', label: 'Daycare', icon: Home, color: 'bg-accent/10 text-accent', markerColor: '#F97316' },
-  { id: 'Vet Clinics', label: 'Vet Clinics', icon: Stethoscope, color: 'bg-success/10 text-success', markerColor: '#22C55E' },
-  { id: 'Trainers', label: 'Trainers', icon: Dog, color: 'bg-warning/10 text-warning', markerColor: '#EAB308' },
-  { id: 'Groomers', label: 'Groomers', icon: Scissors, color: 'bg-secondary text-secondary-foreground', markerColor: '#EC4899' },
+  { id: 'Dog Walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-primary/10 text-primary' },
+  { id: 'Daycare', label: 'Daycare', icon: Home, color: 'bg-accent/10 text-accent' },
+  { id: 'Vet Clinics', label: 'Vet Clinics', icon: Stethoscope, color: 'bg-success/10 text-success' },
+  { id: 'Trainers', label: 'Trainers', icon: Dog, color: 'bg-warning/10 text-warning' },
+  { id: 'Groomers', label: 'Groomers', icon: Scissors, color: 'bg-secondary text-secondary-foreground' },
 ];
-
-function getCategoryColor(category: string): string {
-  const cat = serviceCategories.find(c => c.id === category);
-  return cat?.markerColor || '#8B5CF6';
-}
 
 export default function Explore() {
   const navigate = useNavigate();
@@ -32,10 +22,6 @@ export default function Explore() {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const { data: services, isLoading } = useServices(selectedCategory);
-  
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   const handleCategoryClick = (categoryId: string) => {
     setSelectedCategory(prev => prev === categoryId ? null : categoryId);
@@ -47,142 +33,6 @@ export default function Explore() {
     service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     service.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Initialize map
-  useEffect(() => {
-    if (viewMode !== 'map' || !mapContainer.current || map.current) return;
-
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/paws-play-repeat/cmkd8den2000201slhb1k29ty',
-      center: [-122.4194, 37.7749], // San Francisco default
-      zoom: 12,
-    });
-
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-    // Fix blank map on load by forcing recalculation of container size
-    map.current.on('load', () => {
-      map.current?.resize();
-    });
-
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
-  }, [viewMode]);
-
-  // Update markers when services change
-  useEffect(() => {
-    if (!map.current || viewMode !== 'map') return;
-
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
-
-    if (!filteredServices?.length) return;
-
-    const bounds = new mapboxgl.LngLatBounds();
-    let hasValidCoords = false;
-
-    filteredServices.forEach(service => {
-      // Use verified coordinates if available, otherwise fallback to original
-      const lng = service.is_verified && service.verified_longitude ? service.verified_longitude : service.longitude;
-      const lat = service.is_verified && service.verified_latitude ? service.verified_latitude : service.latitude;
-      
-      if (lat && lng) {
-        hasValidCoords = true;
-        const color = getCategoryColor(service.category);
-        const isVerified = service.is_verified;
-        
-        // Create custom marker element
-        const el = document.createElement('div');
-        el.className = 'service-marker';
-        el.innerHTML = `
-          <div style="
-            width: 36px;
-            height: 36px;
-            background: ${color};
-            border-radius: 50%;
-            border: 3px solid ${isVerified ? '#22C55E' : 'white'};
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: transform 0.2s;
-            position: relative;
-          ">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
-              <path d="M10 16c-3.5 0-6-2.5-6-5.5S6.5 5 10 5c3.5 0 6 2.5 6 5.5S13.5 16 10 16z"/>
-              <path d="M14 14l6 6"/>
-            </svg>
-          </div>
-          ${isVerified ? `
-            <div style="
-              position: absolute;
-              top: -4px;
-              right: -4px;
-              width: 14px;
-              height: 14px;
-              background: #22C55E;
-              border-radius: 50%;
-              border: 2px solid white;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            ">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
-          ` : ''}
-        `;
-        el.addEventListener('mouseenter', () => {
-          el.querySelector('div')!.style.transform = 'scale(1.2)';
-        });
-        el.addEventListener('mouseleave', () => {
-          el.querySelector('div')!.style.transform = 'scale(1)';
-        });
-
-        // Create popup with verified badge
-        const verifiedBadge = isVerified ? '<span style="display: inline-flex; align-items: center; gap: 2px; color: #22C55E; font-size: 11px; font-weight: 500;"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Verified</span>' : '';
-        
-        const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-          <div style="padding: 8px; min-width: 150px;">
-            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-              <h3 style="font-weight: 600; margin: 0;">${service.name}</h3>
-              ${verifiedBadge}
-            </div>
-            <p style="color: #666; font-size: 12px; margin-bottom: 4px;">${service.category}</p>
-            <div style="display: flex; align-items: center; gap: 4px; color: #EAB308;">
-              <span>★</span>
-              <span style="font-weight: 500;">${service.rating}</span>
-            </div>
-            <p style="color: #8B5CF6; font-weight: 500; margin-top: 4px;">${service.price}</p>
-          </div>
-        `);
-
-        const marker = new mapboxgl.Marker(el)
-          .setLngLat([lng, lat])
-          .setPopup(popup)
-          .addTo(map.current!);
-
-        el.addEventListener('click', () => {
-          navigate(`/explore/${service.id}`);
-        });
-
-        markersRef.current.push(marker);
-        bounds.extend([lng, lat]);
-      }
-    });
-
-    if (hasValidCoords && !bounds.isEmpty()) {
-      map.current.fitBounds(bounds, { padding: 60, maxZoom: 14 });
-    }
-  }, [filteredServices, viewMode, navigate]);
 
   return (
     <div className="min-h-screen pb-24">
@@ -249,7 +99,16 @@ export default function Explore() {
         {/* Map View */}
         {viewMode === 'map' && (
           <div className="relative rounded-xl overflow-hidden border border-border">
-            <div ref={mapContainer} className="w-full h-[60vh]" />
+            <iframe
+              src="https://www.google.com/maps/d/u/0/embed?mid=10wM4h_PU2KV-MWnX0Rk7jtL-ksguNac&ehbc=2E312F"
+              width="100%"
+              height="600"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              title="Pet Services Map"
+              className="w-full"
+            />
             {isLoading && (
               <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                 <div className="text-center">
