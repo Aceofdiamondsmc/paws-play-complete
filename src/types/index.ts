@@ -10,8 +10,13 @@ export interface Park {
   image_url: string | null;
   rating: number | null;
   user_ratings_total: number | null;
-  is_fenced: boolean | null;
-  has_water_fountain: boolean | null;
+  is_fully_fenced: boolean | null;
+  has_water_station: boolean | null;
+  has_small_dog_area: boolean | null;
+  has_large_dog_area: boolean | null;
+  has_agility_equipment: boolean | null;
+  has_parking: boolean | null;
+  has_grass_surface: boolean | null;
   is_dog_friendly: boolean | null;
   gemini_summary: string | null;
   place_id: string | null;

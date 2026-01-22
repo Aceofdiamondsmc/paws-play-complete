@@ -162,22 +162,46 @@ export default function Parks() {
                       </div>
                     )}
                     <div className="flex flex-wrap gap-1.5 mt-2">
-                      {park.is_fenced && (
+                      {park.is_fully_fenced && (
                         <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
                           <Fence className="w-3 h-3 mr-1" />
                           Fenced
                         </Badge>
                       )}
-                      {park.has_water_fountain && (
+                      {park.has_water_station && (
                         <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                           <Droplets className="w-3 h-3 mr-1" />
                           Water
                         </Badge>
                       )}
-                      {park.is_dog_friendly && (
-                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                      {park.has_small_dog_area && (
+                        <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
                           <Dog className="w-3 h-3 mr-1" />
-                          Dog Friendly
+                          Small Dogs
+                        </Badge>
+                      )}
+                      {park.has_large_dog_area && (
+                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                          <Dog className="w-3 h-3 mr-1" />
+                          Large Dogs
+                        </Badge>
+                      )}
+                      {park.has_agility_equipment && (
+                        <Badge variant="outline" className="text-xs bg-pink-50 text-pink-700 border-pink-200">
+                          <Dumbbell className="w-3 h-3 mr-1" />
+                          Agility
+                        </Badge>
+                      )}
+                      {park.has_parking && (
+                        <Badge variant="outline" className="text-xs bg-slate-50 text-slate-700 border-slate-200">
+                          <Car className="w-3 h-3 mr-1" />
+                          Parking
+                        </Badge>
+                      )}
+                      {park.has_grass_surface && (
+                        <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                          <TreePine className="w-3 h-3 mr-1" />
+                          Grass
                         </Badge>
                       )}
                     </div>

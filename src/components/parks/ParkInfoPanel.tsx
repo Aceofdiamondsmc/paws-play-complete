@@ -29,8 +29,8 @@ export function ParkInfoPanel({ park, onClose }: ParkInfoPanelProps) {
         body: {
           parkName: park.name,
           address: park.address,
-          isFenced: park.is_fenced,
-          hasWater: park.has_water_fountain,
+          isFenced: park.is_fully_fenced,
+          hasWater: park.has_water_station,
           rating: park.rating,
         }
       });
@@ -95,13 +95,13 @@ export function ParkInfoPanel({ park, onClose }: ParkInfoPanelProps) {
           )}
 
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {park.is_fenced && (
+            {park.is_fully_fenced && (
               <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
                 <Fence className="w-3 h-3 mr-1" />
                 Fenced
               </Badge>
             )}
-            {park.has_water_fountain && (
+            {park.has_water_station && (
               <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                 <Droplets className="w-3 h-3 mr-1" />
                 Water
