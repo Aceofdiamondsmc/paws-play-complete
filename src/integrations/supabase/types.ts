@@ -331,11 +331,16 @@ export type Database = {
           description: string | null
           gemini_summary: string | null
           geom: unknown
-          has_water_fountain: boolean | null
+          has_agility_equipment: boolean | null
+          has_grass_surface: boolean | null
+          has_large_dog_area: boolean | null
+          has_parking: boolean | null
+          has_small_dog_area: boolean | null
+          has_water_station: boolean | null
           id: string
           image_url: string | null
           is_dog_friendly: boolean | null
-          is_fenced: boolean | null
+          is_fully_fenced: boolean | null
           latitude: number | null
           longitude: number | null
           name: string
@@ -351,11 +356,16 @@ export type Database = {
           description?: string | null
           gemini_summary?: string | null
           geom?: unknown
-          has_water_fountain?: boolean | null
+          has_agility_equipment?: boolean | null
+          has_grass_surface?: boolean | null
+          has_large_dog_area?: boolean | null
+          has_parking?: boolean | null
+          has_small_dog_area?: boolean | null
+          has_water_station?: boolean | null
           id?: string
           image_url?: string | null
           is_dog_friendly?: boolean | null
-          is_fenced?: boolean | null
+          is_fully_fenced?: boolean | null
           latitude?: number | null
           longitude?: number | null
           name: string
@@ -371,11 +381,16 @@ export type Database = {
           description?: string | null
           gemini_summary?: string | null
           geom?: unknown
-          has_water_fountain?: boolean | null
+          has_agility_equipment?: boolean | null
+          has_grass_surface?: boolean | null
+          has_large_dog_area?: boolean | null
+          has_parking?: boolean | null
+          has_small_dog_area?: boolean | null
+          has_water_station?: boolean | null
           id?: string
           image_url?: string | null
           is_dog_friendly?: boolean | null
-          is_fenced?: boolean | null
+          is_fully_fenced?: boolean | null
           latitude?: number | null
           longitude?: number | null
           name?: string

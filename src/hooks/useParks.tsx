@@ -61,7 +61,33 @@ export function useParks() {
 
       if (fetchError) throw fetchError;
 
-      const parksData = (data || []) as Park[];
+      // Map database columns to our Park type
+      // Using 'as any' to work around stale generated types - the DB has the correct column names
+      const parksData: Park[] = (data || []).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        address: row.address,
+        description: row.description,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        image_url: row.image_url,
+        rating: row.rating,
+        user_ratings_total: row.user_ratings_total,
+        is_fully_fenced: row.is_fully_fenced,
+        has_water_station: row.has_water_station,
+        has_small_dog_area: row.has_small_dog_area,
+        has_large_dog_area: row.has_large_dog_area,
+        has_agility_equipment: row.has_agility_equipment,
+        has_parking: row.has_parking,
+        has_grass_surface: row.has_grass_surface,
+        is_dog_friendly: row.is_dog_friendly,
+        gemini_summary: row.gemini_summary,
+        place_id: row.place_id,
+        added_by: row.added_by,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }));
+      
       setParks(parksData);
       saveToCache(parksData);
     } catch (e) {
@@ -89,11 +115,19 @@ export function useParks() {
     return activeFilters.every(filter => {
       switch (filter) {
         case 'fenced':
-          return park.is_fenced;
+          return park.is_fully_fenced;
         case 'water':
-          return park.has_water_fountain;
-        // For other filters, we'll need additional fields in the database
-        // For now, show all parks if these filters are selected
+          return park.has_water_station;
+        case 'small-dogs':
+          return park.has_small_dog_area;
+        case 'large-dogs':
+          return park.has_large_dog_area;
+        case 'agility':
+          return park.has_agility_equipment;
+        case 'parking':
+          return park.has_parking;
+        case 'grass':
+          return park.has_grass_surface;
         default:
           return true;
       }
