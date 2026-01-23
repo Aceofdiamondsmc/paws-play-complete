@@ -70,6 +70,7 @@ export function useParks() {
         description: row.description,
         latitude: row.latitude,
         longitude: row.longitude,
+        geom: row.geom, // PostGIS geometry column
         image_url: row.image_url,
         rating: row.rating,
         user_ratings_total: row.user_ratings_total,
