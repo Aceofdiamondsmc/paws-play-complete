@@ -916,6 +916,7 @@ export type Database = {
           longitude: number | null
           name: string
           original_description: string | null
+          photo_reference: string | null
           price: string
           rating: number
           suggested_category: string | null
@@ -943,6 +944,7 @@ export type Database = {
           longitude?: number | null
           name: string
           original_description?: string | null
+          photo_reference?: string | null
           price: string
           rating: number
           suggested_category?: string | null
@@ -970,6 +972,7 @@ export type Database = {
           longitude?: number | null
           name?: string
           original_description?: string | null
+          photo_reference?: string | null
           price?: string
           rating?: number
           suggested_category?: string | null
@@ -2137,6 +2140,7 @@ export type Database = {
       }
     }
     Enums: {
+      enrichment_status: "pending" | "processing" | "complete" | "error"
       post_visibility: "public" | "private"
     }
     CompositeTypes: {
@@ -2273,6 +2277,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      enrichment_status: ["pending", "processing", "complete", "error"],
       post_visibility: ["public", "private"],
     },
   },
