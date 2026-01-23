@@ -22,7 +22,8 @@ export async function fetchNearbyParks(
     // Use PostGIS function to find parks within radius
     // ST_DWithin checks if geometries are within specified distance
     // ST_Distance calculates actual distance for sorting
-    const { data, error } = await supabase.rpc('get_nearby_parks', {
+    // Using 'as any' to work around stale generated types - the DB function exists
+    const { data, error } = await (supabase.rpc as any)('get_nearby_parks', {
       user_lat: latitude,
       user_lng: longitude,
       radius_meters: radiusMeters
@@ -34,7 +35,7 @@ export async function fetchNearbyParks(
     }
 
     // Map the response to Park type with distance
-    const parks: Park[] = (data || []).map((row: any) => ({
+    const parks: Park[] = ((data as any[]) || []).map((row: any) => ({
       id: row.id,
       name: row.name,
       address: row.address,

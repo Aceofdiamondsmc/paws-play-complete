@@ -1507,6 +1507,35 @@ export type Database = {
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       get_current_user_role: { Args: never; Returns: string }
+      get_nearby_parks: {
+        Args: { radius_meters?: number; user_lat: number; user_lng: number }
+        Returns: {
+          added_by: string
+          address: string
+          created_at: string
+          description: string
+          distance_meters: number
+          gemini_summary: string
+          geom: unknown
+          has_agility_equipment: boolean
+          has_grass_surface: boolean
+          has_large_dog_area: boolean
+          has_parking: boolean
+          has_small_dog_area: boolean
+          has_water_station: boolean
+          id: string
+          image_url: string
+          is_dog_friendly: boolean
+          is_fully_fenced: boolean
+          latitude: number
+          longitude: number
+          name: string
+          place_id: string
+          rating: number
+          updated_at: string
+          user_ratings_total: number
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
       is_admin: { Args: never; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
