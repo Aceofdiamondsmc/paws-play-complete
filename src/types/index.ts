@@ -7,6 +7,7 @@ export interface Park {
   description: string | null;
   latitude: number | null;
   longitude: number | null;
+  geom: unknown | null; // PostGIS geometry column for spatial queries
   image_url: string | null;
   rating: number | null;
   user_ratings_total: number | null;
@@ -23,6 +24,8 @@ export interface Park {
   added_by: string | null;
   created_at: string | null;
   updated_at: string;
+  // Distance in meters (populated by nearby queries)
+  distance?: number;
 }
 
 export interface Profile {

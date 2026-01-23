@@ -327,6 +327,7 @@ export type Database = {
         Row: {
           added_by: string | null
           address: string | null
+          city: string | null
           created_at: string | null
           description: string | null
           gemini_summary: string | null
@@ -346,12 +347,14 @@ export type Database = {
           name: string
           place_id: string | null
           rating: number | null
+          state: string | null
           updated_at: string
           user_ratings_total: number | null
         }
         Insert: {
           added_by?: string | null
           address?: string | null
+          city?: string | null
           created_at?: string | null
           description?: string | null
           gemini_summary?: string | null
@@ -371,12 +374,14 @@ export type Database = {
           name: string
           place_id?: string | null
           rating?: number | null
+          state?: string | null
           updated_at?: string
           user_ratings_total?: number | null
         }
         Update: {
           added_by?: string | null
           address?: string | null
+          city?: string | null
           created_at?: string | null
           description?: string | null
           gemini_summary?: string | null
@@ -396,6 +401,7 @@ export type Database = {
           name?: string
           place_id?: string | null
           rating?: number | null
+          state?: string | null
           updated_at?: string
           user_ratings_total?: number | null
         }
