@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { X, Camera, Upload, Plus } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +27,7 @@ import { toast } from 'sonner';
 interface PackMemberFormProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
   editingDog?: {
     id: string;
     name: string;
@@ -42,10 +45,11 @@ interface PackMemberFormProps {
 const SIZE_OPTIONS = ['Small', 'Medium', 'Large', 'Extra Large'];
 const ENERGY_OPTIONS = ['Low', 'Medium', 'High', 'Very High'];
 
-export function PackMemberForm({ open, onClose, editingDog }: PackMemberFormProps) {
+export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMemberFormProps) {
   const { addDog, updateDog, uploadDogAvatar } = useDogs();
   const { playStyles } = usePlayStyles();
   const { selectedStyles, updateDogStyles } = useDogPlayStyles(editingDog?.id);
+  const { user } = useAuth();
   
   const [name, setName] = useState(editingDog?.name || '');
   const [breed, setBreed] = useState(editingDog?.breed || '');
@@ -130,18 +134,25 @@ export function PackMemberForm({ open, onClose, editingDog }: PackMemberFormProp
         const { dog, error } = await addDog(dogData);
         if (error) throw error;
 
-        // Upload avatar if selected
-        if (dog && avatarUrl && avatarUrl.startsWith('data:')) {
-          // Convert base64 to file and upload
-          const response = await fetch(avatarUrl);
-          const blob = await response.blob();
-          const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-          await uploadDogAvatar(dog.id, file);
-        }
+        if (dog) {
+          // Upload avatar if selected
+          if (avatarUrl && avatarUrl.startsWith('data:')) {
+            // Convert base64 to file and upload
+            const response = await fetch(avatarUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+            await uploadDogAvatar(dog.id, file);
+          }
 
-        // Set play styles for new dog
-        if (dog && selectedPlayStyles.length > 0) {
-          await updateDogStyles(selectedPlayStyles);
+          // Set play styles for new dog - insert directly since hook doesn't have the new dog id
+          if (selectedPlayStyles.length > 0) {
+            await supabase
+              .from('dog_play_styles')
+              .insert(selectedPlayStyles.map(styleId => ({
+                dog_id: dog.id,
+                play_style_id: styleId
+              })));
+          }
         }
         
         toast.success('Pack member added!');
