@@ -8,6 +8,7 @@ import type { Park } from '@/types';
 import { getCurrentLocation } from '@/lib/spatial-utils';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface ParksMapProps {
   parks: Park[];
@@ -18,6 +19,53 @@ interface ParksMapProps {
 // Default fallback location (Las Vegas)
 const DEFAULT_CENTER: [number, number] = [-115.1398, 36.1699];
 const DEFAULT_ZOOM = 12;
+
+// Proximity alert distance in feet (500 feet = ~152.4 meters)
+const PROXIMITY_ALERT_FEET = 500;
+const FEET_TO_METERS = 0.3048;
+const PROXIMITY_ALERT_METERS = PROXIMITY_ALERT_FEET * FEET_TO_METERS;
+
+// Calculate distance between two points using Haversine formula (returns meters)
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Request notification permission
+async function requestNotificationPermission(): Promise<boolean> {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  const permission = await Notification.requestPermission();
+  return permission === 'granted';
+}
+
+// Trigger browser notification
+function sendNotification(parkName: string) {
+  if (Notification.permission === 'granted') {
+    new Notification('🐕 Park Nearby!', {
+      body: `You are near ${parkName}!`,
+      icon: '/favicon.png',
+      tag: 'park-proximity',
+      requireInteraction: false
+    });
+  }
+}
+
+// Trigger vibration pattern
+function triggerVibration() {
+  if ('vibrate' in navigator) {
+    // Pulse pattern: vibrate 200ms, pause 100ms, vibrate 200ms
+    navigator.vibrate([200, 100, 200]);
+  }
+}
 
 export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -33,6 +81,8 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
   const [geocodedParks, setGeocodedParks] = useState<Map<string, { lat: number; lng: number }>>(new Map());
   const geocodingInProgress = useRef(new Set<string>());
   const hasRequestedLocation = useRef(false);
+  // Track which parks have already triggered alerts this session
+  const alertedParksRef = useRef(new Set<string>());
 
   // Helper to check if coordinates are valid
   const hasValidCoords = (park: Park) => {
@@ -183,6 +233,41 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
     requestLocation();
   }, [mapLoaded, updateUserMarker]);
 
+  // Check proximity to parks and trigger alerts
+  const checkParkProximity = useCallback((userLat: number, userLng: number) => {
+    validParks.forEach(park => {
+      // Skip if already alerted for this park
+      if (alertedParksRef.current.has(park.id)) return;
+
+      const coords = getCoords(park);
+      if (!coords) return;
+
+      const distance = calculateDistance(userLat, userLng, coords.lat, coords.lng);
+      
+      if (distance <= PROXIMITY_ALERT_METERS) {
+        // Mark as alerted so we don't trigger again this session
+        alertedParksRef.current.add(park.id);
+
+        const parkName = park.name || 'Dog Park';
+
+        // Show toast notification
+        toast({
+          title: "🐕 Park Nearby!",
+          description: `You are near ${parkName}!`,
+          duration: 5000,
+        });
+
+        // Trigger browser notification
+        sendNotification(parkName);
+
+        // Trigger vibration
+        triggerVibration();
+
+        console.log(`Proximity alert: ${parkName} (${Math.round(distance)}m away)`);
+      }
+    });
+  }, [validParks]);
+
   // Handle Follow Me toggle with watchPosition
   useEffect(() => {
     if (!followMe || !mapRef.current) {
@@ -199,10 +284,16 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
       return;
     }
 
+    // Request notification permission when Follow Me is enabled
+    requestNotificationPermission();
+
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         updateUserMarker(latitude, longitude);
+        
+        // Check proximity to parks
+        checkParkProximity(latitude, longitude);
         
         if (followMe && mapRef.current) {
           mapRef.current.easeTo({
@@ -228,7 +319,7 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         watchIdRef.current = null;
       }
     };
-  }, [followMe, updateUserMarker]);
+  }, [followMe, updateUserMarker, checkParkProximity]);
 
   // Geocode parks with missing coordinates and save to database
   useEffect(() => {
