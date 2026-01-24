@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useParks } from '@/hooks/useParks';
+import { ParksMap } from '@/components/parks/ParksMap';
 import { cn } from '@/lib/utils';
 import type { ParkFilter, FilterOption } from '@/types';
 
@@ -92,33 +93,7 @@ export default function Parks() {
       {/* Content */}
       {viewMode === 'map' ? (
         <div className="flex-1 relative">
-          {/* Google My Maps Iframe */}
-          <iframe
-            src="https://www.google.com/maps/d/u/0/embed?mid=10wM4h_PU2KV-MWnX0Rk7jtL-ksguNac&ehbc=2E312F"
-            width="100%"
-            height="100%"
-            style={{ border: 0, position: 'absolute', inset: 0 }}
-            allowFullScreen
-            loading="lazy"
-            title="Dog Parks Map"
-          />
-          
-          {/* Loading overlay */}
-          {loading && (
-            <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
-              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-            </div>
-          )}
-
-          {/* Park count badge */}
-          {!loading && (
-            <div className="absolute top-4 left-4 z-10">
-              <Badge variant="secondary" className="bg-card/95 backdrop-blur shadow-md px-3 py-1.5">
-                <PawPrint className="w-4 h-4 mr-1" />
-                {parks.length} Parks
-              </Badge>
-            </div>
-          )}
+          <ParksMap parks={parks} loading={loading} />
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-4 space-y-3">

@@ -56,15 +56,14 @@ export function useParks() {
       const { data, error: fetchError } = await supabase
         .from('parks')
         .select('*')
-        .eq('is_dog_friendly', true)
-        .order('rating', { ascending: false });
+        .order('rating', { ascending: false, nullsFirst: false });
 
       if (fetchError) throw fetchError;
 
       // Map database columns to our Park type
-      // Using 'as any' to work around stale generated types - the DB has the correct column names
+      // Note: The database uses 'Id' (uppercase I) as the primary key
       const parksData: Park[] = (data || []).map((row: any) => ({
-        id: row.id,
+        id: String(row.Id), // Database uses uppercase 'Id'
         name: row.name,
         address: row.address,
         description: row.description,
@@ -73,7 +72,7 @@ export function useParks() {
         geom: row.geom, // PostGIS geometry column
         image_url: row.image_url,
         rating: row.rating,
-        user_ratings_total: row.user_ratings_total,
+        user_ratings_total: row.user_rating_total, // Note: DB column is user_rating_total (singular)
         is_fully_fenced: row.is_fully_fenced,
         has_water_station: row.has_water_station,
         has_small_dog_area: row.has_small_dog_area,
