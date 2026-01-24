@@ -11,7 +11,8 @@ interface DogData {
   avatar_url?: string;
   age_years?: number;
   weight_lbs?: number;
-  health_info?: string;
+  health_notes?: string;
+  play_style?: string[];
 }
 
 export function useDogs() {
@@ -20,11 +21,15 @@ export function useDogs() {
   const addDog = async (data: DogData) => {
     if (!user) return { dog: null, error: new Error('Not authenticated') };
 
+    // Explicitly get owner_id from authenticated user
+    const ownerId = user.id;
+    if (!ownerId) return { dog: null, error: new Error('User ID not found') };
+
     try {
       const { data: dog, error } = await supabase
         .from('dogs')
         .insert({
-          owner_id: user.id,
+          owner_id: ownerId,
           name: data.name,
           breed: data.breed || '',
           size: data.size || 'Medium',
@@ -34,7 +39,8 @@ export function useDogs() {
           avatar_url: data.avatar_url || null,
           age_years: data.age_years || null,
           weight_lbs: data.weight_lbs || null,
-          health_info: data.health_info || null
+          health_notes: data.health_notes || null,
+          play_style: data.play_style || []
         })
         .select()
         .single();
