@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 interface PlaceSearchRequest {
-  action: "search" | "nearby" | "details" | "photo";
+  action: "search" | "nearby" | "details" | "photo" | "getApiKey";
   query?: string;
   location?: { lat: number; lng: number };
   radius?: number;
@@ -57,6 +57,14 @@ serve(async (req) => {
     let response: Response;
 
     switch (action) {
+      case "getApiKey":
+        // Return the API key for client-side Google Maps initialization
+        // Note: This key should be restricted in Google Cloud Console to specific domains
+        return new Response(
+          JSON.stringify({ apiKey: GOOGLE_PLACES_API_KEY }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
       case "search":
         // Text Search API - search for places by query
         if (!query) {

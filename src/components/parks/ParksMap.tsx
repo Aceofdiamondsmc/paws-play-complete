@@ -27,30 +27,57 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
 
-  // Load Google Maps script
+  // Load Google Maps script via edge function API key
   useEffect(() => {
     if (window.google?.maps) {
       setMapLoaded(true);
       return;
     }
 
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      console.error('Google Maps API key not configured');
-      return;
-    }
+    // Fetch API key from edge function, then load the script
+    const loadGoogleMaps = async () => {
+      try {
+        // Use a public API key or fetch from edge function
+        // For now, use a direct key approach - the API key should be configured in Supabase
+        const response = await fetch(
+          'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/google-places',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getApiKey' })
+          }
+        );
+        
+        if (!response.ok) {
+          // Fallback: try to load without fetching key (may already be in window)
+          console.warn('Could not fetch API key, checking if maps already loaded');
+          if (window.google?.maps) {
+            setMapLoaded(true);
+          }
+          return;
+        }
+        
+        const data = await response.json();
+        const apiKey = data.apiKey;
+        
+        if (!apiKey) {
+          console.error('Google Maps API key not available');
+          return;
+        }
 
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setMapLoaded(true);
-    script.onerror = () => console.error('Failed to load Google Maps');
-    document.head.appendChild(script);
-
-    return () => {
-      // Cleanup not needed as script persists
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => setMapLoaded(true);
+        script.onerror = () => console.error('Failed to load Google Maps');
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error('Error loading Google Maps:', error);
+      }
     };
+
+    loadGoogleMaps();
   }, []);
 
   // Initialize map
