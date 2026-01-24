@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { PawPrint, Navigation, Loader2, Crosshair } from 'lucide-react';
 import type { Park } from '@/types';
 import { getCurrentLocation } from '@/lib/spatial-utils';
+import { isIOS, getAppleMapsUrl, getGoogleMapsUrl, formatDistanceMiles, calculateDistance as calcDist } from '@/lib/navigation-utils';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -427,29 +428,67 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
       });
 
       // Build popup content with HTML description and navigate button
-      const navigateUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+      const googleMapsUrl = getGoogleMapsUrl(lat, lng);
+      const appleMapsUrl = getAppleMapsUrl(lat, lng);
       const descriptionHtml = park.description 
         ? `<div style="margin: 8px 0; font-size: 13px; color: #444; max-height: 100px; overflow-y: auto;">${park.description}</div>`
         : '';
 
-      const popupContent = `
-        <div style="padding: 12px; max-width: 300px; font-family: system-ui, sans-serif;">
-          <h3 style="margin: 0 0 8px 0; font-weight: 700; font-size: 16px; color: #1a1a1a;">
-            🐕 ${park.name || 'Dog Park'}
-          </h3>
-          ${park.address ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">📍 ${park.address}</p>` : ''}
-          ${park.rating ? `<p style="margin: 0 0 6px 0; font-size: 13px;">⭐ ${park.rating.toFixed(1)} (${park.user_ratings_total || 0} reviews)</p>` : ''}
-          ${descriptionHtml}
-          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0;">
-            ${park.is_fully_fenced ? '<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🏠 Fenced</span>' : ''}
-            ${park.has_water_station ? '<span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">💧 Water</span>' : ''}
-            ${park.has_small_dog_area ? '<span style="background: #f3e8ff; color: #7e22ce; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🐩 Small Dogs</span>' : ''}
-            ${park.has_large_dog_area ? '<span style="background: #fef3c7; color: #b45309; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🐕‍🦺 Large Dogs</span>' : ''}
-            ${park.has_agility_equipment ? '<span style="background: #fce7f3; color: #be185d; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🏃 Agility</span>' : ''}
-            ${park.has_parking ? '<span style="background: #e5e7eb; color: #374151; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🚗 Parking</span>' : ''}
+      // Calculate distance if user location is known
+      const distanceHtml = userLocation 
+        ? `<p style="margin: 0 0 6px 0; font-size: 13px; color: #3b82f6; font-weight: 500;">📍 ${formatDistanceMiles(calcDist(userLocation.lat, userLocation.lng, lat, lng))} away</p>`
+        : '';
+
+      // Build navigation buttons based on device
+      const isIOSDevice = isIOS();
+      const navButtonsHtml = isIOSDevice
+        ? `
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <a 
+              href="${appleMapsUrl}" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style="
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+                color: white;
+                padding: 8px 14px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-size: 12px;
+                font-weight: 600;
+                box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+              "
+            >
+              🍎 Apple Maps
+            </a>
+            <a 
+              href="${googleMapsUrl}" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style="
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                background: linear-gradient(135deg, #22c55e, #16a34a);
+                color: white;
+                padding: 8px 14px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-size: 12px;
+                font-weight: 600;
+                box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+              "
+            >
+              🗺️ Google
+            </a>
           </div>
+        `
+        : `
           <a 
-            href="${navigateUrl}" 
+            href="${googleMapsUrl}" 
             target="_blank" 
             rel="noopener noreferrer"
             style="
@@ -469,6 +508,26 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
           >
             🧭 Navigate
           </a>
+        `;
+
+      const popupContent = `
+        <div style="padding: 12px; max-width: 300px; font-family: system-ui, sans-serif;">
+          <h3 style="margin: 0 0 8px 0; font-weight: 700; font-size: 16px; color: #1a1a1a;">
+            🐕 ${park.name || 'Dog Park'}
+          </h3>
+          ${park.address ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">📍 ${park.address}</p>` : ''}
+          ${distanceHtml}
+          ${park.rating ? `<p style="margin: 0 0 6px 0; font-size: 13px;">⭐ ${park.rating.toFixed(1)} (${park.user_ratings_total || 0} reviews)</p>` : ''}
+          ${descriptionHtml}
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0;">
+            ${park.is_fully_fenced ? '<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🏠 Fenced</span>' : ''}
+            ${park.has_water_station ? '<span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">💧 Water</span>' : ''}
+            ${park.has_small_dog_area ? '<span style="background: #f3e8ff; color: #7e22ce; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🐩 Small Dogs</span>' : ''}
+            ${park.has_large_dog_area ? '<span style="background: #fef3c7; color: #b45309; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🐕‍🦺 Large Dogs</span>' : ''}
+            ${park.has_agility_equipment ? '<span style="background: #fce7f3; color: #be185d; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🏃 Agility</span>' : ''}
+            ${park.has_parking ? '<span style="background: #e5e7eb; color: #374151; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🚗 Parking</span>' : ''}
+          </div>
+          ${navButtonsHtml}
         </div>
       `;
 
