@@ -331,25 +331,25 @@ export type Database = {
           created_at: string | null
           description: string | null
           gemini_summary: string | null
-          geom: unknown
+          geom: string | null
           has_agility_equipment: boolean | null
           has_grass_surface: boolean | null
           has_large_dog_area: boolean | null
           has_parking: boolean | null
           has_small_dog_area: boolean | null
           has_water_station: boolean | null
-          id: string
+          Id: number
           image_url: string | null
           is_dog_friendly: boolean | null
           is_fully_fenced: boolean | null
           latitude: number | null
           longitude: number | null
-          name: string
+          name: string | null
           place_id: string | null
           rating: number | null
           state: string | null
-          updated_at: string
-          user_ratings_total: number | null
+          updated_at: string | null
+          user_rating_total: number | null
         }
         Insert: {
           added_by?: string | null
@@ -358,25 +358,25 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           gemini_summary?: string | null
-          geom?: unknown
+          geom?: string | null
           has_agility_equipment?: boolean | null
           has_grass_surface?: boolean | null
           has_large_dog_area?: boolean | null
           has_parking?: boolean | null
           has_small_dog_area?: boolean | null
           has_water_station?: boolean | null
-          id?: string
+          Id: number
           image_url?: string | null
           is_dog_friendly?: boolean | null
           is_fully_fenced?: boolean | null
           latitude?: number | null
           longitude?: number | null
-          name: string
+          name?: string | null
           place_id?: string | null
           rating?: number | null
           state?: string | null
-          updated_at?: string
-          user_ratings_total?: number | null
+          updated_at?: string | null
+          user_rating_total?: number | null
         }
         Update: {
           added_by?: string | null
@@ -385,49 +385,27 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           gemini_summary?: string | null
-          geom?: unknown
+          geom?: string | null
           has_agility_equipment?: boolean | null
           has_grass_surface?: boolean | null
           has_large_dog_area?: boolean | null
           has_parking?: boolean | null
           has_small_dog_area?: boolean | null
           has_water_station?: boolean | null
-          id?: string
+          Id?: number
           image_url?: string | null
           is_dog_friendly?: boolean | null
           is_fully_fenced?: boolean | null
           latitude?: number | null
           longitude?: number | null
-          name?: string
+          name?: string | null
           place_id?: string | null
           rating?: number | null
           state?: string | null
-          updated_at?: string
-          user_ratings_total?: number | null
+          updated_at?: string | null
+          user_rating_total?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "parks_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parks_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parks_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       play_styles: {
         Row: {
