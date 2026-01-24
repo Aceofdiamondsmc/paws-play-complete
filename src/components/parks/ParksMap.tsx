@@ -21,9 +21,11 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
+  const [geocodedParks, setGeocodedParks] = useState<Map<string, { lat: number; lng: number }>>(new Map());
+  const geocodingInProgress = useRef(new Set<string>());
 
-  // Filter parks with valid coordinates
-  const validParks = parks.filter(park => {
+  // Helper to check if coordinates are valid
+  const hasValidCoords = (park: Park) => {
     const lat = park.latitude;
     const lng = park.longitude;
     return (
@@ -33,7 +35,18 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
       lat >= -90 && lat <= 90 &&
       lng >= -180 && lng <= 180
     );
-  });
+  };
+
+  // Get display coordinates (from park or geocoded cache)
+  const getCoords = (park: Park): { lat: number; lng: number } | null => {
+    if (hasValidCoords(park)) {
+      return { lat: park.latitude!, lng: park.longitude! };
+    }
+    return geocodedParks.get(park.id) || null;
+  };
+
+  // Parks with valid coords OR that have been geocoded
+  const validParks = parks.filter(park => getCoords(park) !== null);
 
   // Fetch Mapbox token and initialize map
   useEffect(() => {
@@ -99,6 +112,49 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
     };
   }, []);
 
+  // Geocode parks with missing coordinates but valid addresses
+  useEffect(() => {
+    if (!mapLoaded || !mapboxgl.accessToken) return;
+
+    const parksToGeocode = parks.filter(park => 
+      !hasValidCoords(park) && 
+      park.address && 
+      !geocodedParks.has(park.id) &&
+      !geocodingInProgress.current.has(park.id)
+    );
+
+    if (parksToGeocode.length === 0) return;
+
+    // Geocode in batches to avoid rate limiting
+    const geocodeBatch = async () => {
+      for (const park of parksToGeocode.slice(0, 10)) {
+        if (geocodingInProgress.current.has(park.id)) continue;
+        geocodingInProgress.current.add(park.id);
+
+        try {
+          const query = encodeURIComponent(park.address!);
+          const response = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${mapboxgl.accessToken}&limit=1`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.features && data.features.length > 0) {
+              const [lng, lat] = data.features[0].center;
+              setGeocodedParks(prev => new Map(prev).set(park.id, { lat, lng }));
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to geocode ${park.name}:`, error);
+        } finally {
+          geocodingInProgress.current.delete(park.id);
+        }
+      }
+    };
+
+    geocodeBatch();
+  }, [parks, mapLoaded, geocodedParks]);
+
   // Add markers when parks change
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
@@ -112,8 +168,10 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
     const bounds = new mapboxgl.LngLatBounds();
 
     validParks.forEach(park => {
-      const lng = park.longitude!;
-      const lat = park.latitude!;
+      const coords = getCoords(park);
+      if (!coords) return;
+      
+      const { lng, lat } = coords;
 
       // Create custom marker element
       const el = document.createElement('div');
@@ -216,10 +274,13 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
     if (validParks.length > 1) {
       mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 14 });
     } else if (validParks.length === 1) {
-      mapRef.current.flyTo({
-        center: [validParks[0].longitude!, validParks[0].latitude!],
-        zoom: 14
-      });
+      const coords = getCoords(validParks[0]);
+      if (coords) {
+        mapRef.current.flyTo({
+          center: [coords.lng, coords.lat],
+          zoom: 14
+        });
+      }
     }
   }, [validParks, mapLoaded, onParkSelect]);
 
