@@ -3,9 +3,11 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PawPrint, Navigation, Loader2 } from 'lucide-react';
+import { PawPrint, Navigation, Loader2, Crosshair } from 'lucide-react';
 import type { Park } from '@/types';
 import { getCurrentLocation } from '@/lib/spatial-utils';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ParksMapProps {
   parks: Park[];
@@ -13,16 +15,24 @@ interface ParksMapProps {
   onParkSelect?: (park: Park) => void;
 }
 
+// Default fallback location (Las Vegas)
+const DEFAULT_CENTER: [number, number] = [-115.1398, 36.1699];
+const DEFAULT_ZOOM = 12;
+
 export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const watchIdRef = useRef<number | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
+  const [followMe, setFollowMe] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [geocodedParks, setGeocodedParks] = useState<Map<string, { lat: number; lng: number }>>(new Map());
   const geocodingInProgress = useRef(new Set<string>());
+  const hasRequestedLocation = useRef(false);
 
   // Helper to check if coordinates are valid
   const hasValidCoords = (park: Park) => {
@@ -47,6 +57,32 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
 
   // Parks with valid coords OR that have been geocoded
   const validParks = parks.filter(park => getCoords(park) !== null);
+
+  // Update user marker position
+  const updateUserMarker = useCallback((lat: number, lng: number) => {
+    if (!mapRef.current) return;
+
+    if (!userMarkerRef.current) {
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <div style="
+          width: 20px;
+          height: 20px;
+          background: #3b82f6;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2), 0 2px 8px rgba(0,0,0,0.3);
+        "></div>
+      `;
+      userMarkerRef.current = new mapboxgl.Marker({ element: el })
+        .setLngLat([lng, lat])
+        .addTo(mapRef.current);
+    } else {
+      userMarkerRef.current.setLngLat([lng, lat]);
+    }
+
+    setUserLocation({ lat, lng });
+  }, []);
 
   // Fetch Mapbox token and initialize map
   useEffect(() => {
@@ -79,12 +115,19 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         const map = new mapboxgl.Map({
           container: mapContainerRef.current,
           style: 'mapbox://styles/paws-play-repeat/cmkd8den2000201slhb1k29ty',
-          center: [-98.5795, 39.8283], // US center
-          zoom: 3,
+          center: DEFAULT_CENTER,
+          zoom: DEFAULT_ZOOM,
           attributionControl: true,
         });
 
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        // Disable follow mode when user drags the map
+        map.on('dragstart', () => {
+          if (followMe) {
+            setFollowMe(false);
+          }
+        });
 
         map.on('load', () => {
           mapRef.current = map;
@@ -109,10 +152,85 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         mapRef.current.remove();
         mapRef.current = null;
       }
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
     };
   }, []);
 
-  // Geocode parks with missing coordinates but valid addresses
+  // Auto-request user location on map load
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || hasRequestedLocation.current) return;
+    hasRequestedLocation.current = true;
+
+    const requestLocation = async () => {
+      try {
+        const position = await getCurrentLocation();
+        if (position) {
+          updateUserMarker(position.latitude, position.longitude);
+          mapRef.current?.flyTo({
+            center: [position.longitude, position.latitude],
+            zoom: DEFAULT_ZOOM,
+            duration: 1500
+          });
+        }
+      } catch (error) {
+        console.log('Location access denied, using default location');
+        // Already using default center (Las Vegas)
+      }
+    };
+
+    requestLocation();
+  }, [mapLoaded, updateUserMarker]);
+
+  // Handle Follow Me toggle with watchPosition
+  useEffect(() => {
+    if (!followMe || !mapRef.current) {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      console.error('Geolocation not supported');
+      setFollowMe(false);
+      return;
+    }
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        updateUserMarker(latitude, longitude);
+        
+        if (followMe && mapRef.current) {
+          mapRef.current.easeTo({
+            center: [longitude, latitude],
+            duration: 500
+          });
+        }
+      },
+      (error) => {
+        console.error('Watch position error:', error);
+        setFollowMe(false);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 10000
+      }
+    );
+
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
+  }, [followMe, updateUserMarker]);
+
+  // Geocode parks with missing coordinates and save to database
   useEffect(() => {
     if (!mapLoaded || !mapboxgl.accessToken) return;
 
@@ -134,7 +252,7 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         try {
           const query = encodeURIComponent(park.address!);
           const response = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${mapboxgl.accessToken}&limit=1`
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${mapboxgl.accessToken}&limit=1&country=US`
           );
           
           if (response.ok) {
@@ -142,6 +260,21 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
             if (data.features && data.features.length > 0) {
               const [lng, lat] = data.features[0].center;
               setGeocodedParks(prev => new Map(prev).set(park.id, { lat, lng }));
+
+              // Save geocoded coordinates back to Supabase
+              const { error } = await supabase
+                .from('parks')
+                .update({ 
+                  latitude: lat, 
+                  longitude: lng 
+                })
+                .eq('Id', parseInt(park.id));
+
+              if (error) {
+                console.warn(`Failed to save coords for ${park.name}:`, error);
+              } else {
+                console.log(`Saved geocoded coords for ${park.name}`);
+              }
             }
           }
         } catch (error) {
@@ -270,10 +403,10 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
       bounds.extend([lng, lat]);
     });
 
-    // Fit map to show all markers
-    if (validParks.length > 1) {
+    // Only fit bounds if we have valid parks AND user hasn't been located
+    if (validParks.length > 1 && !userLocation) {
       mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 14 });
-    } else if (validParks.length === 1) {
+    } else if (validParks.length === 1 && !userLocation) {
       const coords = getCoords(validParks[0]);
       if (coords) {
         mapRef.current.flyTo({
@@ -282,9 +415,9 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         });
       }
     }
-  }, [validParks, mapLoaded, onParkSelect]);
+  }, [validParks, mapLoaded, onParkSelect, userLocation]);
 
-  // Handle locate user
+  // Handle locate user (one-time location)
   const handleLocateUser = useCallback(async () => {
     if (!mapRef.current) return;
     
@@ -297,28 +430,7 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
       }
 
       const { latitude, longitude } = position;
-
-      // Remove existing user marker
-      if (userMarkerRef.current) {
-        userMarkerRef.current.remove();
-      }
-
-      // Create user location marker
-      const el = document.createElement('div');
-      el.innerHTML = `
-        <div style="
-          width: 20px;
-          height: 20px;
-          background: #3b82f6;
-          border-radius: 50%;
-          border: 3px solid white;
-          box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2), 0 2px 8px rgba(0,0,0,0.3);
-        "></div>
-      `;
-
-      userMarkerRef.current = new mapboxgl.Marker({ element: el })
-        .setLngLat([longitude, latitude])
-        .addTo(mapRef.current);
+      updateUserMarker(latitude, longitude);
 
       mapRef.current.flyTo({
         center: [longitude, latitude],
@@ -331,6 +443,11 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
     } finally {
       setLocatingUser(false);
     }
+  }, [updateUserMarker]);
+
+  // Toggle follow me mode
+  const handleToggleFollowMe = useCallback(() => {
+    setFollowMe(prev => !prev);
   }, []);
 
   return (
@@ -373,9 +490,26 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         </div>
       )}
 
-      {/* Locate me button */}
+      {/* Location control buttons */}
       {mapLoaded && !mapError && (
-        <div className="absolute bottom-24 right-4 z-10">
+        <div className="absolute bottom-24 right-4 z-10 flex flex-col gap-2">
+          {/* Follow Me toggle */}
+          <Button
+            size="icon"
+            variant="secondary"
+            className={cn(
+              "backdrop-blur shadow-md h-10 w-10 rounded-full transition-colors",
+              followMe 
+                ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                : "bg-card/95"
+            )}
+            onClick={handleToggleFollowMe}
+            title={followMe ? "Stop following" : "Follow my location"}
+          >
+            <Crosshair className="w-5 h-5" />
+          </Button>
+
+          {/* Locate me button */}
           <Button
             size="icon"
             variant="secondary"
