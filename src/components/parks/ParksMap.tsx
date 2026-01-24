@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PawPrint, Navigation, Loader2, Crosshair, LogIn } from 'lucide-react';
+import { PawPrint, Navigation, Loader2, Crosshair } from 'lucide-react';
 import type { Park } from '@/types';
 import { getCurrentLocation } from '@/lib/spatial-utils';
 import { cn } from '@/lib/utils';
@@ -68,34 +67,6 @@ function triggerVibration() {
   }
 }
 
-// Login prompt component for unauthenticated users
-function LoginPrompt() {
-  const navigate = useNavigate();
-  
-  return (
-    <div className="absolute inset-0 bg-background flex items-center justify-center z-10">
-      <div className="flex flex-col items-center gap-4 text-center p-6 max-w-sm">
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-          <PawPrint className="w-8 h-8 text-primary" />
-        </div>
-        <h3 className="text-lg font-semibold">Sign in to view parks</h3>
-        <p className="text-sm text-muted-foreground">
-          Create a free account to explore dog parks near you and track your favorite spots.
-        </p>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => navigate('/')}>
-            Go Home
-          </Button>
-          <Button onClick={() => navigate('/me')}>
-            <LogIn className="w-4 h-4 mr-2" />
-            Sign In
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -104,7 +75,6 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
   const watchIdRef = useRef<number | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [needsLogin, setNeedsLogin] = useState(false);
   const [locatingUser, setLocatingUser] = useState(false);
   const [followMe, setFollowMe] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -170,25 +140,12 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
 
     const initMap = async () => {
       try {
-        // Get current session for auth header
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-
-        if (!accessToken) {
-          setNeedsLogin(true);
-          setMapError('Please log in to view the map');
-          return;
-        }
-
-        // Fetch token from edge function with auth
+        // Fetch token from edge function (no auth required for map viewing)
         const response = await fetch(
           'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/mapbox-token',
           {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            }
+            headers: { 'Content-Type': 'application/json' }
           }
         );
 
@@ -602,13 +559,8 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         </div>
       )}
 
-      {/* Login required state */}
-      {needsLogin && (
-        <LoginPrompt />
-      )}
-
-      {/* Error state (non-login errors) */}
-      {mapError && !needsLogin && (
+      {/* Error state */}
+      {mapError && (
         <div className="absolute inset-0 bg-background flex items-center justify-center z-10">
           <div className="flex flex-col items-center gap-3 text-center p-6">
             <PawPrint className="w-12 h-12 text-muted-foreground" />
