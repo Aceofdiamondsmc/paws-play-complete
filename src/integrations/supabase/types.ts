@@ -119,10 +119,11 @@ export type Database = {
           created_at: string | null
           energy: string | null
           energy_level: string | null
-          health_info: string | null
+          health_notes: string | null
           id: string
           name: string
           owner_id: string
+          play_style: string[] | null
           size: string | null
           updated_at: string | null
           weight_lbs: number | null
@@ -135,10 +136,11 @@ export type Database = {
           created_at?: string | null
           energy?: string | null
           energy_level?: string | null
-          health_info?: string | null
+          health_notes?: string | null
           id?: string
           name: string
           owner_id: string
+          play_style?: string[] | null
           size?: string | null
           updated_at?: string | null
           weight_lbs?: number | null
@@ -151,10 +153,11 @@ export type Database = {
           created_at?: string | null
           energy?: string | null
           energy_level?: string | null
-          health_info?: string | null
+          health_notes?: string | null
           id?: string
           name?: string
           owner_id?: string
+          play_style?: string[] | null
           size?: string | null
           updated_at?: string | null
           weight_lbs?: number | null

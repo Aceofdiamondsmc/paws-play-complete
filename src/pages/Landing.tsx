@@ -48,13 +48,13 @@ export default function Landing() {
       paddingBottom: 'max(env(safe-area-inset-bottom), 8px)'
     }}>
         <div className="flex flex-wrap justify-center gap-4 mb-2">
-          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
+          <a href="/privacy.html" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
             Privacy Policy
           </a>
-          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
+          <a href="/tos.html" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
             Terms of Service
           </a>
-          <a href="#" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
+          <a href="/support.html" className="text-foreground/70 hover:text-foreground text-xs font-medium transition-colors">
             Support
           </a>
         </div>
