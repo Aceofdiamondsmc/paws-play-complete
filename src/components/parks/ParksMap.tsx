@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PawPrint, Navigation, Loader2 } from 'lucide-react';
 import type { Park } from '@/types';
-import { getCurrentLocation, formatDistance } from '@/lib/spatial-utils';
+import { getCurrentLocation } from '@/lib/spatial-utils';
 
 interface ParksMapProps {
   parks: Park[];
@@ -11,188 +13,220 @@ interface ParksMapProps {
   onParkSelect?: (park: Park) => void;
 }
 
-declare global {
-  interface Window {
-    google: any;
-    initMap: () => void;
-  }
-}
-
 export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const infoWindowRef = useRef<any>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
 
-  // Load Google Maps script via edge function API key
-  useEffect(() => {
-    if (window.google?.maps) {
-      setMapLoaded(true);
-      return;
-    }
+  // Filter parks with valid coordinates
+  const validParks = parks.filter(park => {
+    const lat = park.latitude;
+    const lng = park.longitude;
+    return (
+      lat != null && lng != null &&
+      !isNaN(lat) && !isNaN(lng) &&
+      isFinite(lat) && isFinite(lng) &&
+      lat >= -90 && lat <= 90 &&
+      lng >= -180 && lng <= 180
+    );
+  });
 
-    // Fetch API key from edge function, then load the script
-    const loadGoogleMaps = async () => {
+  // Fetch Mapbox token and initialize map
+  useEffect(() => {
+    if (mapRef.current) return;
+
+    const initMap = async () => {
       try {
-        // Use a public API key or fetch from edge function
-        // For now, use a direct key approach - the API key should be configured in Supabase
+        // Fetch token from edge function
         const response = await fetch(
-          'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/google-places',
+          'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/mapbox-token',
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'getApiKey' })
+            headers: { 'Content-Type': 'application/json' }
           }
         );
-        
+
         if (!response.ok) {
-          // Fallback: try to load without fetching key (may already be in window)
-          console.warn('Could not fetch API key, checking if maps already loaded');
-          if (window.google?.maps) {
-            setMapLoaded(true);
-          }
-          return;
-        }
-        
-        const data = await response.json();
-        const apiKey = data.apiKey;
-        
-        if (!apiKey) {
-          console.error('Google Maps API key not available');
-          return;
+          throw new Error('Failed to fetch Mapbox token');
         }
 
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => setMapLoaded(true);
-        script.onerror = () => console.error('Failed to load Google Maps');
-        document.head.appendChild(script);
+        const data = await response.json();
+        if (!data.token) {
+          throw new Error('Mapbox token not available');
+        }
+
+        mapboxgl.accessToken = data.token;
+
+        if (!mapContainerRef.current) return;
+
+        const map = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: 'mapbox://styles/mapbox/outdoors-v12',
+          center: [-98.5795, 39.8283], // US center
+          zoom: 3,
+          attributionControl: true,
+        });
+
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        map.on('load', () => {
+          mapRef.current = map;
+          setMapLoaded(true);
+        });
+
+        map.on('error', (e) => {
+          console.error('Mapbox error:', e);
+          setMapError('Failed to load map');
+        });
+
       } catch (error) {
-        console.error('Error loading Google Maps:', error);
+        console.error('Error initializing map:', error);
+        setMapError(error instanceof Error ? error.message : 'Failed to initialize map');
       }
     };
 
-    loadGoogleMaps();
+    initMap();
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
   }, []);
 
-  // Initialize map
+  // Add markers when parks change
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || mapInstanceRef.current) return;
-
-    // Default center (US center)
-    const defaultCenter = { lat: 39.8283, lng: -98.5795 };
-    
-    mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
-      center: defaultCenter,
-      zoom: 4,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: true,
-      zoomControl: true,
-      styles: [
-        {
-          featureType: 'poi.park',
-          elementType: 'geometry.fill',
-          stylers: [{ color: '#c8e6c9' }]
-        },
-        {
-          featureType: 'poi.park',
-          elementType: 'labels.text.fill',
-          stylers: [{ color: '#2e7d32' }]
-        }
-      ]
-    });
-
-    infoWindowRef.current = new window.google.maps.InfoWindow();
-  }, [mapLoaded]);
-
-  // Add/update markers when parks change
-  useEffect(() => {
-    if (!mapInstanceRef.current || !window.google?.maps) return;
+    if (!mapRef.current || !mapLoaded) return;
 
     // Clear existing markers
-    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
-
-    // Filter parks with valid coordinates (excluding null and NaN)
-    const validParks = parks.filter(park => 
-      park.latitude != null && park.longitude != null &&
-      !isNaN(park.latitude) && !isNaN(park.longitude) &&
-      isFinite(park.latitude) && isFinite(park.longitude)
-    );
 
     if (validParks.length === 0) return;
 
-    // Create bounds to fit all markers
-    const bounds = new window.google.maps.LatLngBounds();
+    const bounds = new mapboxgl.LngLatBounds();
 
     validParks.forEach(park => {
-      const position = { lat: park.latitude!, lng: park.longitude! };
-      
-      // Custom marker icon
-      const marker = new window.google.maps.Marker({
-        position,
-        map: mapInstanceRef.current,
-        title: park.name,
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: '#10b981',
-          fillOpacity: 0.9,
-          strokeColor: '#ffffff',
-          strokeWeight: 2,
-        },
-        animation: window.google.maps.Animation.DROP,
+      const lng = park.longitude!;
+      const lat = park.latitude!;
+
+      // Create custom marker element
+      const el = document.createElement('div');
+      el.className = 'park-marker';
+      el.innerHTML = `
+        <div style="
+          width: 32px;
+          height: 32px;
+          background: linear-gradient(135deg, hsl(142, 76%, 36%), hsl(142, 76%, 46%));
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: transform 0.2s;
+        ">
+          <span style="font-size: 14px;">🐕</span>
+        </div>
+      `;
+      el.style.cursor = 'pointer';
+      el.addEventListener('mouseenter', () => {
+        el.querySelector('div')!.style.transform = 'scale(1.2)';
+      });
+      el.addEventListener('mouseleave', () => {
+        el.querySelector('div')!.style.transform = 'scale(1)';
       });
 
-      // Click handler for info window
-      marker.addListener('click', () => {
-        const distanceText = park.distance ? formatDistance(park.distance) : '';
-        const content = `
-          <div style="padding: 8px; max-width: 280px;">
-            <h3 style="margin: 0 0 8px 0; font-weight: bold; font-size: 16px; color: #1a1a1a;">
-              🐕 ${park.name}
-            </h3>
-            ${park.address ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">${park.address}</p>` : ''}
-            ${park.rating ? `<p style="margin: 0 0 6px 0; font-size: 13px;">⭐ ${park.rating.toFixed(1)} (${park.user_ratings_total || 0} reviews)</p>` : ''}
-            ${distanceText ? `<p style="margin: 0 0 6px 0; color: #10b981; font-size: 13px;">📍 ${distanceText}</p>` : ''}
-            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;">
-              ${park.is_fully_fenced ? '<span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🏠 Fenced</span>' : ''}
-              ${park.has_water_station ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-size: 11px;">💧 Water</span>' : ''}
-              ${park.has_small_dog_area ? '<span style="background: #f3e8ff; color: #7e22ce; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🐩 Small Dogs</span>' : ''}
-              ${park.has_large_dog_area ? '<span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🐕‍🦺 Large Dogs</span>' : ''}
-            </div>
+      // Build popup content with HTML description and navigate button
+      const navigateUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+      const descriptionHtml = park.description 
+        ? `<div style="margin: 8px 0; font-size: 13px; color: #444; max-height: 100px; overflow-y: auto;">${park.description}</div>`
+        : '';
+
+      const popupContent = `
+        <div style="padding: 12px; max-width: 300px; font-family: system-ui, sans-serif;">
+          <h3 style="margin: 0 0 8px 0; font-weight: 700; font-size: 16px; color: #1a1a1a;">
+            🐕 ${park.name || 'Dog Park'}
+          </h3>
+          ${park.address ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">📍 ${park.address}</p>` : ''}
+          ${park.rating ? `<p style="margin: 0 0 6px 0; font-size: 13px;">⭐ ${park.rating.toFixed(1)} (${park.user_ratings_total || 0} reviews)</p>` : ''}
+          ${descriptionHtml}
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0;">
+            ${park.is_fully_fenced ? '<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🏠 Fenced</span>' : ''}
+            ${park.has_water_station ? '<span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">💧 Water</span>' : ''}
+            ${park.has_small_dog_area ? '<span style="background: #f3e8ff; color: #7e22ce; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🐩 Small Dogs</span>' : ''}
+            ${park.has_large_dog_area ? '<span style="background: #fef3c7; color: #b45309; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🐕‍🦺 Large Dogs</span>' : ''}
+            ${park.has_agility_equipment ? '<span style="background: #fce7f3; color: #be185d; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🏃 Agility</span>' : ''}
+            ${park.has_parking ? '<span style="background: #e5e7eb; color: #374151; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🚗 Parking</span>' : ''}
           </div>
-        `;
-        
-        infoWindowRef.current.setContent(content);
-        infoWindowRef.current.open(mapInstanceRef.current, marker);
-        
+          <a 
+            href="${navigateUrl}" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              background: linear-gradient(135deg, #3b82f6, #2563eb);
+              color: white;
+              padding: 8px 16px;
+              border-radius: 8px;
+              text-decoration: none;
+              font-size: 13px;
+              font-weight: 600;
+              margin-top: 8px;
+              box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+            "
+          >
+            🧭 Navigate
+          </a>
+        </div>
+      `;
+
+      const popup = new mapboxgl.Popup({
+        offset: 20,
+        closeButton: true,
+        closeOnClick: false,
+        maxWidth: '320px'
+      }).setHTML(popupContent);
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([lng, lat])
+        .setPopup(popup)
+        .addTo(mapRef.current!);
+
+      // Call onParkSelect when popup opens
+      marker.getElement().addEventListener('click', () => {
         if (onParkSelect) {
           onParkSelect(park);
         }
       });
 
       markersRef.current.push(marker);
-      bounds.extend(position);
+      bounds.extend([lng, lat]);
     });
 
     // Fit map to show all markers
     if (validParks.length > 1) {
-      mapInstanceRef.current.fitBounds(bounds, { padding: 50 });
+      mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 14 });
     } else if (validParks.length === 1) {
-      mapInstanceRef.current.setCenter({ lat: validParks[0].latitude!, lng: validParks[0].longitude! });
-      mapInstanceRef.current.setZoom(14);
+      mapRef.current.flyTo({
+        center: [validParks[0].longitude!, validParks[0].latitude!],
+        zoom: 14
+      });
     }
-  }, [parks, onParkSelect]);
+  }, [validParks, mapLoaded, onParkSelect]);
 
-  // Handle user location
+  // Handle locate user
   const handleLocateUser = useCallback(async () => {
+    if (!mapRef.current) return;
+    
     setLocatingUser(true);
     try {
       const position = await getCurrentLocation();
@@ -200,29 +234,37 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         console.error('Could not get user location');
         return;
       }
-      const location = { lat: position.latitude, lng: position.longitude };
-      setUserLocation(location);
-      
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.setCenter(location);
-        mapInstanceRef.current.setZoom(12);
 
-        // Add user location marker
-        new window.google.maps.Marker({
-          position: location,
-          map: mapInstanceRef.current,
-          title: 'Your Location',
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#3b82f6',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 3,
-          },
-          zIndex: 1000,
-        });
+      const { latitude, longitude } = position;
+
+      // Remove existing user marker
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
       }
+
+      // Create user location marker
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <div style="
+          width: 20px;
+          height: 20px;
+          background: #3b82f6;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2), 0 2px 8px rgba(0,0,0,0.3);
+        "></div>
+      `;
+
+      userMarkerRef.current = new mapboxgl.Marker({ element: el })
+        .setLngLat([longitude, latitude])
+        .addTo(mapRef.current);
+
+      mapRef.current.flyTo({
+        center: [longitude, latitude],
+        zoom: 13,
+        duration: 1500
+      });
+
     } catch (error) {
       console.error('Failed to get location:', error);
     } finally {
@@ -230,19 +272,16 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
     }
   }, []);
 
-  // Get count of parks with valid coordinates
-  const validParkCount = parks.filter(p => p.latitude != null && p.longitude != null).length;
-
   return (
     <div className="relative w-full h-full">
       {/* Map container */}
-      <div ref={mapRef} className="absolute inset-0" />
+      <div ref={mapContainerRef} className="absolute inset-0" />
 
       {/* Loading overlay */}
-      {(loading || !mapLoaded) && (
+      {(loading || !mapLoaded) && !mapError && (
         <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
           <div className="flex flex-col items-center gap-2">
-            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
             <span className="text-sm text-muted-foreground">
               {!mapLoaded ? 'Loading map...' : 'Loading parks...'}
             </span>
@@ -250,18 +289,31 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         </div>
       )}
 
+      {/* Error state */}
+      {mapError && (
+        <div className="absolute inset-0 bg-background flex items-center justify-center z-10">
+          <div className="flex flex-col items-center gap-3 text-center p-6">
+            <PawPrint className="w-12 h-12 text-muted-foreground" />
+            <p className="text-muted-foreground">{mapError}</p>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Park count badge */}
-      {!loading && mapLoaded && (
+      {!loading && mapLoaded && !mapError && (
         <div className="absolute top-4 left-4 z-10">
           <Badge variant="secondary" className="bg-card/95 backdrop-blur shadow-md px-3 py-1.5">
             <PawPrint className="w-4 h-4 mr-1" />
-            {validParkCount} Parks
+            {validParks.length} Parks
           </Badge>
         </div>
       )}
 
       {/* Locate me button */}
-      {mapLoaded && (
+      {mapLoaded && !mapError && (
         <div className="absolute bottom-24 right-4 z-10">
           <Button
             size="icon"
@@ -269,6 +321,7 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
             className="bg-card/95 backdrop-blur shadow-md h-10 w-10 rounded-full"
             onClick={handleLocateUser}
             disabled={locatingUser}
+            title="Locate Me"
           >
             {locatingUser ? (
               <Loader2 className="w-5 h-5 animate-spin" />
