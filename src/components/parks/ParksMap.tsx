@@ -78,7 +78,7 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
 
         const map = new mapboxgl.Map({
           container: mapContainerRef.current,
-          style: 'mapbox://styles/mapbox/outdoors-v12',
+          style: 'mapbox://styles/paws-play-repeat/cmkd8den2000201slhb1k29ty',
           center: [-98.5795, 39.8283], // US center
           zoom: 3,
           attributionControl: true,
