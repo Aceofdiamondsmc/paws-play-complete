@@ -1,5 +1,8 @@
 project_id = "xasbgkggwnkvrceziaix"
 
+[functions.mapbox-token]
+verify_jwt = false
+
 [functions.generate-park-description]
 verify_jwt = false
 
