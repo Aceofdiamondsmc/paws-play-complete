@@ -140,17 +140,29 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
 
     const initMap = async () => {
       try {
-        // Fetch token from edge function
+        // Get current session for auth header
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+
+        if (!accessToken) {
+          throw new Error('Please log in to view the map');
+        }
+
+        // Fetch token from edge function with auth
         const response = await fetch(
           'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/mapbox-token',
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            }
           }
         );
 
         if (!response.ok) {
-          throw new Error('Failed to fetch Mapbox token');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to fetch Mapbox token');
         }
 
         const data = await response.json();

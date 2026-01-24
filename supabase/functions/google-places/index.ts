@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,7 +7,7 @@ const corsHeaders = {
 };
 
 interface PlaceSearchRequest {
-  action: "search" | "nearby" | "details" | "photo" | "getApiKey";
+  action: "search" | "nearby" | "details" | "photo";
   query?: string;
   location?: { lat: number; lng: number };
   radius?: number;
@@ -38,6 +39,35 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check - require valid user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("Auth error:", claimsError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log(`Google Places request from user: ${userId}`);
+
     const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
     
     if (!GOOGLE_PLACES_API_KEY) {
@@ -57,14 +87,6 @@ serve(async (req) => {
     let response: Response;
 
     switch (action) {
-      case "getApiKey":
-        // Return the API key for client-side Google Maps initialization
-        // Note: This key should be restricted in Google Cloud Console to specific domains
-        return new Response(
-          JSON.stringify({ apiKey: GOOGLE_PLACES_API_KEY }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-
       case "search":
         // Text Search API - search for places by query
         if (!query) {

@@ -225,10 +225,57 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check - require valid user with admin/moderator role
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("Auth error:", claimsError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log(`Vet service request from user: ${userId}`);
+
+    // Check if user has admin or moderator role
+    const { data: userRole, error: roleError } = await supabaseAuth
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .in('role', ['admin', 'moderator'])
+      .single();
+
+    if (roleError || !userRole) {
+      console.error("Role check failed:", roleError?.message || "No admin/moderator role found");
+      return new Response(
+        JSON.stringify({ error: "Forbidden: Admin or moderator access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`User ${userId} authorized with role: ${userRole.role}`);
+
     const { serviceId, action } = await req.json();
     
-    // Create Supabase client with service role for updates
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    // Create Supabase client with service role for updates (after auth check)
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
