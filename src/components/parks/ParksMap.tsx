@@ -510,16 +510,24 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
           </a>
         `;
 
+      const parkId = `park-popup-${park.id}`;
       const popupContent = `
-        <div style="padding: 12px; max-width: 300px; font-family: system-ui, sans-serif;">
-          <h3 style="margin: 0 0 8px 0; font-weight: 700; font-size: 16px; color: #1a1a1a;">
+        <div 
+          style="padding: 12px; max-width: 300px; font-family: system-ui, sans-serif;"
+          role="dialog"
+          aria-labelledby="${parkId}-title"
+          aria-describedby="${parkId}-desc"
+        >
+          <h3 id="${parkId}-title" style="margin: 0 0 8px 0; font-weight: 700; font-size: 16px; color: #1a1a1a;">
             🐕 ${park.name || 'Dog Park'}
           </h3>
-          ${park.address ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">📍 ${park.address}</p>` : ''}
-          ${distanceHtml}
-          ${park.rating ? `<p style="margin: 0 0 6px 0; font-size: 13px;">⭐ ${park.rating.toFixed(1)} (${park.user_ratings_total || 0} reviews)</p>` : ''}
-          ${descriptionHtml}
-          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0;">
+          <div id="${parkId}-desc">
+            ${park.address ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">📍 ${park.address}</p>` : ''}
+            ${distanceHtml}
+            ${park.rating ? `<p style="margin: 0 0 6px 0; font-size: 13px;">⭐ ${park.rating.toFixed(1)} (${park.user_ratings_total || 0} reviews)</p>` : ''}
+            ${descriptionHtml}
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0;" aria-label="Park amenities">
             ${park.is_fully_fenced ? '<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🏠 Fenced</span>' : ''}
             ${park.has_water_station ? '<span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">💧 Water</span>' : ''}
             ${park.has_small_dog_area ? '<span style="background: #f3e8ff; color: #7e22ce; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">🐩 Small Dogs</span>' : ''}
@@ -543,8 +551,22 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         .setPopup(popup)
         .addTo(mapRef.current!);
 
-      // Call onParkSelect when popup opens
-      marker.getElement().addEventListener('click', () => {
+      // Handle marker click - toggle popup and call onParkSelect
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        // Close all other popups first
+        markersRef.current.forEach(m => {
+          if (m !== marker && m.getPopup()?.isOpen()) {
+            m.getPopup()?.remove();
+          }
+        });
+        
+        // Toggle this popup
+        if (!popup.isOpen()) {
+          marker.togglePopup();
+        }
+        
         if (onParkSelect) {
           onParkSelect(park);
         }
