@@ -59,12 +59,26 @@ export function useDogs() {
     if (!user) return { error: new Error('Not authenticated') };
 
     try {
+      // Explicitly map fields to match the database schema
+      const updateData: Record<string, unknown> = {
+        updated_at: new Date().toISOString()
+      };
+      
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.breed !== undefined) updateData.breed = data.breed;
+      if (data.size !== undefined) updateData.size = data.size;
+      if (data.energy !== undefined) updateData.energy = data.energy;
+      if (data.energy_level !== undefined) updateData.energy_level = data.energy_level;
+      if (data.bio !== undefined) updateData.bio = data.bio;
+      if (data.avatar_url !== undefined) updateData.avatar_url = data.avatar_url;
+      if (data.age_years !== undefined) updateData.age_years = data.age_years;
+      if (data.weight_lbs !== undefined) updateData.weight_lbs = data.weight_lbs;
+      if (data.health_notes !== undefined) updateData.health_notes = data.health_notes;
+      if (data.play_style !== undefined) updateData.play_style = data.play_style;
+
       const { error } = await supabase
         .from('dogs')
-        .update({
-          ...data,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', dogId)
         .eq('owner_id', user.id);
 
