@@ -2,28 +2,25 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Trees, Compass, MessageCircle, CalendarDays, PawPrint, User, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useStats } from '@/contexts/StatsContext';
 
 const navItems = [
-  { path: '/parks', icon: Trees, label: 'Parks', showCount: true },
-  { path: '/explore', icon: Compass, label: 'Explore', showCount: false },
-  { path: '/social', icon: MessageCircle, label: 'Social', showCount: false },
-  { path: '/dates', icon: CalendarDays, label: 'Dates', showCount: false },
-  { path: '/pack', icon: PawPrint, label: 'Pack', showCount: false },
-  { path: '/me', icon: User, label: 'Me', showCount: false },
-  { path: '/shop', icon: ShoppingCart, label: 'Shop', showCount: false },
+  { path: '/parks', icon: Trees, label: 'Parks' },
+  { path: '/explore', icon: Compass, label: 'Explore' },
+  { path: '/social', icon: MessageCircle, label: 'Social' },
+  { path: '/dates', icon: CalendarDays, label: 'Dates' },
+  { path: '/pack', icon: PawPrint, label: 'Pack' },
+  { path: '/me', icon: User, label: 'Me' },
+  { path: '/shop', icon: ShoppingCart, label: 'Shop' },
 ];
 
 export function BottomNav() {
   const location = useLocation();
-  const { parkCount } = useStats();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border">
       <div className="flex items-center justify-around h-20 px-2 pb-safe">
-        {navItems.map(({ path, icon: Icon, label, showCount }) => {
+        {navItems.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
-          const displayCount = showCount && parkCount !== null ? parkCount : null;
           
           return (
             <NavLink
@@ -46,12 +43,6 @@ export function BottomNav() {
                 />
                 {isActive && (
                   <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#228B22] rounded-full" />
-                )}
-                {/* Park count badge */}
-                {displayCount !== null && (
-                  <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
-                    {displayCount}
-                  </div>
                 )}
               </div>
               <span className="text-xs font-medium transition-all duration-300 ease-in-out text-black">
