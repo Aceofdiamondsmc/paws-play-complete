@@ -6,11 +6,11 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { path: '/parks', icon: Trees, label: 'Parks' },
   { path: '/explore', icon: Compass, label: 'Explore' },
+  { path: '/shop', icon: ShoppingCart, label: 'Shop' },
   { path: '/social', icon: MessageCircle, label: 'Social' },
   { path: '/dates', icon: CalendarDays, label: 'Dates' },
   { path: '/pack', icon: PawPrint, label: 'Pack' },
   { path: '/me', icon: User, label: 'Me' },
-  { path: '/shop', icon: ShoppingCart, label: 'Shop' },
 ];
 
 export function BottomNav() {
