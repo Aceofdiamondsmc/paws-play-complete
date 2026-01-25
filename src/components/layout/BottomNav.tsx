@@ -4,10 +4,10 @@ import { Trees, Compass, MessageCircle, CalendarDays, PawPrint, User, ShoppingCa
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { path: '/parks', icon: Trees, label: 'Parks' },
+  { path: '/social', icon: MessageCircle, label: 'Social' },
   { path: '/explore', icon: Compass, label: 'Explore' },
   { path: '/shop', icon: ShoppingCart, label: 'Shop' },
-  { path: '/social', icon: MessageCircle, label: 'Social' },
+  { path: '/parks', icon: Trees, label: 'Parks' },
   { path: '/dates', icon: CalendarDays, label: 'Dates' },
   { path: '/pack', icon: PawPrint, label: 'Pack' },
   { path: '/me', icon: User, label: 'Me' },
