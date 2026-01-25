@@ -140,10 +140,64 @@ export function useDogs() {
     }
   };
 
+  /**
+   * Filter dogs by play style using Supabase .contains() method
+   * This leverages the GIN index on the play_style array column
+   * @param playStyles - Array of play styles to filter by (dogs must have ALL specified styles)
+   * @param limit - Maximum number of results to return
+   */
+  const filterDogsByPlayStyle = async (playStyles: string[], limit: number = 20) => {
+    try {
+      let query = supabase
+        .from('dogs')
+        .select('*');
+
+      // Use .contains() to filter by play_style array - hits GIN index
+      if (playStyles.length > 0) {
+        query = query.contains('play_style', playStyles);
+      }
+
+      const { data, error } = await query.limit(limit);
+
+      if (error) throw error;
+      return { dogs: data, error: null };
+    } catch (e) {
+      console.error('Error filtering dogs by play style:', e);
+      return { dogs: null, error: e as Error };
+    }
+  };
+
+  /**
+   * Get dogs that have ANY of the specified play styles
+   * Uses .overlaps() for "OR" matching instead of "AND" matching
+   */
+  const filterDogsByAnyPlayStyle = async (playStyles: string[], limit: number = 20) => {
+    try {
+      let query = supabase
+        .from('dogs')
+        .select('*');
+
+      // Use .overlaps() to find dogs with ANY of the specified styles
+      if (playStyles.length > 0) {
+        query = query.overlaps('play_style', playStyles);
+      }
+
+      const { data, error } = await query.limit(limit);
+
+      if (error) throw error;
+      return { dogs: data, error: null };
+    } catch (e) {
+      console.error('Error filtering dogs by play style:', e);
+      return { dogs: null, error: e as Error };
+    }
+  };
+
   return {
     addDog,
     updateDog,
     deleteDog,
-    uploadDogAvatar
+    uploadDogAvatar,
+    filterDogsByPlayStyle,
+    filterDogsByAnyPlayStyle
   };
 }
