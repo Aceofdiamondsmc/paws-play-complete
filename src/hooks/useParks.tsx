@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Park, ParkFilter } from '@/types';
 
 const PARKS_CACHE_KEY = 'paws_parks_cache';
 const CACHE_DURATION = 1000 * 60 * 30; // 30 minutes
+const PAGE_SIZE = 50;
 
 interface CachedParks {
   parks: Park[];
@@ -13,10 +14,73 @@ interface CachedParks {
 export function useParks() {
   const [parks, setParks] = useState<Park[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<ParkFilter[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const offsetRef = useRef(0);
+  const initialLoadDone = useRef(false);
 
-  // Load from cache first for offline support
+  // Build filter conditions for the query
+  const buildFilterQuery = useCallback((query: any) => {
+    activeFilters.forEach(filter => {
+      switch (filter) {
+        case 'fenced':
+          query = query.eq('is_fully_fenced', true);
+          break;
+        case 'water':
+          query = query.eq('has_water_station', true);
+          break;
+        case 'small-dogs':
+          query = query.eq('has_small_dog_area', true);
+          break;
+        case 'large-dogs':
+          query = query.eq('has_large_dog_area', true);
+          break;
+        case 'agility':
+          query = query.eq('has_agility_equipment', true);
+          break;
+        case 'parking':
+          query = query.eq('has_parking', true);
+          break;
+        case 'grass':
+          query = query.eq('has_grass_surface', true);
+          break;
+      }
+    });
+    return query;
+  }, [activeFilters]);
+
+  // Map database row to Park type
+  const mapRowToPark = (row: any): Park => ({
+    id: String(row.Id),
+    name: row.name,
+    address: row.address,
+    city: row.city,
+    state: row.state,
+    description: row.description,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    geom: row.geom,
+    image_url: row.image_url,
+    rating: row.rating,
+    user_ratings_total: row.user_rating_total,
+    is_fully_fenced: row.is_fully_fenced,
+    has_water_station: row.has_water_station,
+    has_small_dog_area: row.has_small_dog_area,
+    has_large_dog_area: row.has_large_dog_area,
+    has_agility_equipment: row.has_agility_equipment,
+    has_parking: row.has_parking,
+    has_grass_surface: row.has_grass_surface,
+    is_dog_friendly: row.is_dog_friendly,
+    gemini_summary: row.gemini_summary,
+    place_id: row.place_id,
+    added_by: row.added_by,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  });
+
+  // Load from cache for offline support
   const loadFromCache = useCallback(() => {
     try {
       const cached = localStorage.getItem(PARKS_CACHE_KEY);
@@ -25,6 +89,7 @@ export function useParks() {
         const isValid = Date.now() - timestamp < CACHE_DURATION;
         if (isValid || !navigator.onLine) {
           setParks(cachedParks);
+          setHasMore(false); // Cache has all previously loaded parks
           return true;
         }
       }
@@ -47,94 +112,83 @@ export function useParks() {
     }
   }, []);
 
-  // Fetch parks from Supabase
-  const fetchParks = useCallback(async () => {
+  // Fetch parks with pagination
+  const fetchParks = useCallback(async (offset: number = 0, append: boolean = false) => {
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from('parks')
         .select('*')
-        .order('rating', { ascending: false, nullsFirst: false });
+        .order('rating', { ascending: false, nullsFirst: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      // Apply filters
+      query = buildFilterQuery(query);
+
+      const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 
-      // Map database columns to our Park type
-      // Note: The database uses 'Id' (uppercase I) as the primary key
-      const parksData: Park[] = (data || []).map((row: any) => ({
-        id: String(row.Id), // Database uses uppercase 'Id'
-        name: row.name,
-        address: row.address,
-        city: row.city,
-        state: row.state,
-        description: row.description,
-        latitude: row.latitude,
-        longitude: row.longitude,
-        geom: row.geom, // PostGIS geometry column
-        image_url: row.image_url,
-        rating: row.rating,
-        user_ratings_total: row.user_rating_total, // Note: DB column is user_rating_total (singular)
-        is_fully_fenced: row.is_fully_fenced,
-        has_water_station: row.has_water_station,
-        has_small_dog_area: row.has_small_dog_area,
-        has_large_dog_area: row.has_large_dog_area,
-        has_agility_equipment: row.has_agility_equipment,
-        has_parking: row.has_parking,
-        has_grass_surface: row.has_grass_surface,
-        is_dog_friendly: row.is_dog_friendly,
-        gemini_summary: row.gemini_summary,
-        place_id: row.place_id,
-        added_by: row.added_by,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-      }));
+      const parksData: Park[] = (data || []).map(mapRowToPark);
       
-      setParks(parksData);
-      saveToCache(parksData);
+      // Check if we have more data
+      setHasMore(parksData.length === PAGE_SIZE);
+      
+      if (append) {
+        setParks(prev => {
+          const newParks = [...prev, ...parksData];
+          saveToCache(newParks);
+          return newParks;
+        });
+      } else {
+        setParks(parksData);
+        saveToCache(parksData);
+      }
+      
+      offsetRef.current = offset + parksData.length;
     } catch (e) {
       console.error('Error fetching parks:', e);
       setError('Failed to load parks. Showing cached data.');
-      loadFromCache();
+      if (!append) {
+        loadFromCache();
+      }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [loadFromCache, saveToCache]);
+  }, [buildFilterQuery, loadFromCache, saveToCache]);
+
+  // Load more parks
+  const loadMore = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      fetchParks(offsetRef.current, true);
+    }
+  }, [fetchParks, loadingMore, hasMore]);
+
+  // Reset and refetch when filters change
+  useEffect(() => {
+    offsetRef.current = 0;
+    setHasMore(true);
+    fetchParks(0, false);
+  }, [activeFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial load
   useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+    
     const hasCache = loadFromCache();
     if (hasCache) {
       setLoading(false);
     }
-    fetchParks();
-  }, [fetchParks, loadFromCache]);
-
-  // Filter parks based on active filters
-  const filteredParks = parks.filter(park => {
-    if (activeFilters.length === 0) return true;
-
-    return activeFilters.every(filter => {
-      switch (filter) {
-        case 'fenced':
-          return park.is_fully_fenced;
-        case 'water':
-          return park.has_water_station;
-        case 'small-dogs':
-          return park.has_small_dog_area;
-        case 'large-dogs':
-          return park.has_large_dog_area;
-        case 'agility':
-          return park.has_agility_equipment;
-        case 'parking':
-          return park.has_parking;
-        case 'grass':
-          return park.has_grass_surface;
-        default:
-          return true;
-      }
-    });
-  });
+    fetchParks(0, false);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleFilter = (filter: ParkFilter) => {
     setActiveFilters(prev =>
@@ -148,14 +202,24 @@ export function useParks() {
     setActiveFilters([]);
   };
 
+  // Refresh from start
+  const refresh = useCallback(() => {
+    offsetRef.current = 0;
+    setHasMore(true);
+    fetchParks(0, false);
+  }, [fetchParks]);
+
   return {
-    parks: filteredParks,
-    allParks: parks,
+    parks,
+    allParks: parks, // Alias for backward compatibility
     loading,
+    loadingMore,
     error,
     activeFilters,
+    hasMore,
     toggleFilter,
     clearFilters,
-    refresh: fetchParks
+    refresh,
+    loadMore
   };
 }
