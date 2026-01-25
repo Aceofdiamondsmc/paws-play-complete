@@ -17,7 +17,6 @@ interface ParksMapProps {
   parks: Park[];
   loading: boolean;
   onParkSelect?: (park: Park) => void;
-  onMapCenterChange?: (center: { lat: number; lng: number }) => void;
 }
 
 // Default fallback location (Las Vegas)
@@ -71,7 +70,7 @@ function triggerVibration() {
   }
 }
 
-export function ParksMap({ parks, loading, onParkSelect, onMapCenterChange }: ParksMapProps) {
+export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -191,12 +190,6 @@ export function ParksMap({ parks, loading, onParkSelect, onMapCenterChange }: Pa
           if (followMe) {
             setFollowMe(false);
           }
-        });
-
-        // Notify parent when map center changes (for proximity-based fetching)
-        map.on('moveend', () => {
-          const center = map.getCenter();
-          onMapCenterChange?.({ lat: center.lat, lng: center.lng });
         });
 
         map.on('load', () => {

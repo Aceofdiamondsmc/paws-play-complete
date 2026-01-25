@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { MapPin, List, Star, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -24,43 +24,22 @@ const iconMap: Record<string, React.ElementType> = {
   Fence, Droplets, Dog, TreePine, Car, Dumbbell
 };
 
-// Default center (Las Vegas)
-const DEFAULT_CENTER = { lat: 36.1699, lng: -115.1398 };
-
 export default function Parks() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(DEFAULT_CENTER);
+  const { parks, loading, activeFilters, toggleFilter } = useParks();
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  
-  // Pass map center to useParks for proximity-based fetching
-  const { parks, loading, activeFilters, toggleFilter, fetchNearbyParks } = useParks({ 
-    center: mapCenter,
-    limit: 50,
-    radiusMeters: 50000 // 50km radius
-  });
 
-  // Get user location on mount
+  // Get user location for distance calculations
   useEffect(() => {
     getCurrentLocation().then(location => {
       if (location) {
-        const userLoc = { lat: location.latitude, lng: location.longitude };
-        setUserLocation(userLoc);
-        setMapCenter(userLoc); // Center on user location
+        setUserLocation({ lat: location.latitude, lng: location.longitude });
       }
     });
   }, []);
 
-  // Callback when map center changes
-  const handleMapCenterChange = useCallback((center: { lat: number; lng: number }) => {
-    setMapCenter(center);
-  }, []);
-
   // Calculate distance from user to a park
   const getDistanceToPark = (park: Park): number | undefined => {
-    // Use pre-calculated distance from RPC if available
-    if (park.distance !== undefined) {
-      return park.distance;
-    }
     if (!userLocation || !park.latitude || !park.longitude) return undefined;
     return calculateDistance(userLocation.lat, userLocation.lng, park.latitude, park.longitude);
   };
@@ -139,7 +118,7 @@ export default function Parks() {
       {/* Content */}
       {viewMode === 'map' ? (
         <div className="flex-1 relative">
-          <ParksMap parks={parks} loading={loading} onMapCenterChange={handleMapCenterChange} />
+          <ParksMap parks={parks} loading={loading} />
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
