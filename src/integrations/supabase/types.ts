@@ -77,39 +77,6 @@ export type Database = {
         }
         Relationships: []
       }
-      dog_play_styles: {
-        Row: {
-          created_at: string | null
-          dog_id: string
-          play_style_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          dog_id: string
-          play_style_id: string
-        }
-        Update: {
-          created_at?: string | null
-          dog_id?: string
-          play_style_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dog_play_styles_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dog_play_styles_play_style_id_fkey"
-            columns: ["play_style_id"]
-            isOneToOne: false
-            referencedRelation: "play_styles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       dogs: {
         Row: {
           age_years: number | null
@@ -407,33 +374,6 @@ export type Database = {
           state?: string | null
           updated_at?: string | null
           user_rating_total?: number | null
-        }
-        Relationships: []
-      }
-      play_styles: {
-        Row: {
-          color: string
-          created_at: string | null
-          description: string
-          icon: string
-          id: string
-          name: string
-        }
-        Insert: {
-          color: string
-          created_at?: string | null
-          description: string
-          icon: string
-          id?: string
-          name: string
-        }
-        Update: {
-          color?: string
-          created_at?: string | null
-          description?: string
-          icon?: string
-          id?: string
-          name?: string
         }
         Relationships: []
       }
