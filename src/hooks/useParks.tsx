@@ -101,13 +101,21 @@ export function useParks() {
     }
   }, [loadFromCache, saveToCache]);
 
-  // Initial load
+  // Initial load - non-blocking with immediate cache display
   useEffect(() => {
+    // Load cache synchronously to show data immediately
     const hasCache = loadFromCache();
     if (hasCache) {
       setLoading(false);
     }
-    fetchParks();
+    
+    // Fetch fresh data in the background without blocking navigation
+    // Using setTimeout to defer the network request and allow React to complete initial render
+    const timeoutId = setTimeout(() => {
+      fetchParks();
+    }, 0);
+    
+    return () => clearTimeout(timeoutId);
   }, [fetchParks, loadFromCache]);
 
   // Filter parks based on active filters
