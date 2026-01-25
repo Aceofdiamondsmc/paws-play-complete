@@ -28,14 +28,6 @@ const PROXIMITY_ALERT_FEET = 500;
 const FEET_TO_METERS = 0.3048;
 const PROXIMITY_ALERT_METERS = PROXIMITY_ALERT_FEET * FEET_TO_METERS;
 
-// XSS Prevention: Escape HTML entities in user-provided content
-function escapeHtml(text: string | null | undefined): string {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 // Calculate distance between two points using Haversine formula (returns meters)
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000; // Earth's radius in meters
@@ -151,22 +143,26 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
 
     const initMap = async () => {
       try {
-        // Fetch token from edge function with auth header
-        const { data, error } = await supabase.functions.invoke('mapbox-token', {
-          method: 'POST'
-        });
+        // Fetch token from edge function (no auth required for map viewing)
+        const response = await fetch(
+          'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/mapbox-token',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
 
-        if (error) {
-          throw new Error(error.message || 'Failed to fetch Mapbox token');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to fetch Mapbox token');
         }
 
-        if (!data?.token) {
+        const data = await response.json();
+        if (!data.token) {
           throw new Error('Mapbox token not available');
         }
 
-        const token = data.token;
-
-        mapboxgl.accessToken = token;
+        mapboxgl.accessToken = data.token;
 
         if (!mapContainerRef.current) return;
 
@@ -443,15 +439,10 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
       });
 
       // Build popup content with HTML description and navigate button
-      // XSS Prevention: All user-controllable content is escaped
       const googleMapsUrl = getGoogleMapsUrl(lat, lng);
       const appleMapsUrl = getAppleMapsUrl(lat, lng);
-      const safeDescription = escapeHtml(park.description);
-      const safeName = escapeHtml(park.name) || 'Dog Park';
-      const safeAddress = escapeHtml(park.address);
-      
-      const descriptionHtml = safeDescription 
-        ? `<div style="margin: 8px 0; font-size: 13px; color: #444; max-height: 100px; overflow-y: auto;">${safeDescription}</div>`
+      const descriptionHtml = park.description 
+        ? `<div style="margin: 8px 0; font-size: 13px; color: #444; max-height: 100px; overflow-y: auto;">${park.description}</div>`
         : '';
 
       // Calculate distance if user location is known
@@ -539,10 +530,10 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
           aria-describedby="${parkId}-desc"
         >
           <h3 id="${parkId}-title" style="margin: 0 0 8px 0; font-weight: 700; font-size: 16px; color: #1a1a1a;">
-            🐕 ${safeName}
+            🐕 ${park.name || 'Dog Park'}
           </h3>
           <div id="${parkId}-desc">
-            ${safeAddress ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">📍 ${safeAddress}</p>` : ''}
+            ${park.address ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">📍 ${park.address}</p>` : ''}
             ${distanceHtml}
             ${park.rating ? `<p style="margin: 0 0 6px 0; font-size: 13px;">⭐ ${park.rating.toFixed(1)} (${park.user_ratings_total || 0} reviews)</p>` : ''}
             ${descriptionHtml}
