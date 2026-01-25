@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useService, getServiceImage } from '@/hooks/useServices';
+import { ServiceLocationMap } from '@/components/explore/ServiceLocationMap';
 
 export default function ServiceDetails() {
   const { id } = useParams<{ id: string }>();
@@ -139,7 +140,7 @@ export default function ServiceDetails() {
           </Card>
         )}
 
-        {/* Map Preview - Use verified coordinates when available */}
+{/* Map Preview - Use verified coordinates when available */}
         {(() => {
           const lat = service.is_verified && service.verified_latitude ? service.verified_latitude : service.latitude;
           const lng = service.is_verified && service.verified_longitude ? service.verified_longitude : service.longitude;
@@ -148,7 +149,7 @@ export default function ServiceDetails() {
           
           return (
             <Card className="p-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <h2 className="font-bold">Location</h2>
                 {service.is_verified && (
                   <span className="text-xs text-success flex items-center gap-1">
@@ -157,14 +158,12 @@ export default function ServiceDetails() {
                   </span>
                 )}
               </div>
-              <div className="h-40 bg-muted rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    {lat.toFixed(4)}, {lng.toFixed(4)}
-                  </p>
-                </div>
-              </div>
+              <ServiceLocationMap 
+                latitude={lat}
+                longitude={lng}
+                name={service.name}
+                isVerified={service.is_verified}
+              />
             </Card>
           );
         })()}
