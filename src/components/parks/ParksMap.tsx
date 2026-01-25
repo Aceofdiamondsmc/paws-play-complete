@@ -180,12 +180,9 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         map.addControl(
           new MapboxGeocoder({
             accessToken: mapboxgl.accessToken,
-            mapboxgl: mapboxgl,
-            placeholder: 'Search for a location...',
-            marker: false, // We'll use our own markers
-            collapsed: true,
-          }),
-          'top-left'
+            useBrowserFocus: true,
+            mapboxgl: mapboxgl
+          })
         );
 
         // Disable follow mode when user drags the map
