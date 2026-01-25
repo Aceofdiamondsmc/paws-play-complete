@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
+import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PawPrint, Navigation, Loader2, Crosshair } from 'lucide-react';
@@ -173,6 +175,18 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         });
 
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        // Add geocoder search control
+        map.addControl(
+          new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            mapboxgl: mapboxgl,
+            placeholder: 'Search for a location...',
+            marker: false, // We'll use our own markers
+            collapsed: true,
+          }),
+          'top-left'
+        );
 
         // Disable follow mode when user drags the map
         map.on('dragstart', () => {
