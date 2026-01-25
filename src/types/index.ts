@@ -4,6 +4,8 @@ export interface Park {
   id: string;
   name: string;
   address: string | null;
+  city: string | null;
+  state: string | null;
   description: string | null;
   latitude: number | null;
   longitude: number | null;
