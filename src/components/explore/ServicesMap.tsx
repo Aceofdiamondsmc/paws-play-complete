@@ -1,10 +1,17 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from '@/integrations/supabase/client';
 import { Service } from '@/hooks/useServices';
-import { BadgeCheck, MapPin, Navigation, Loader2 } from 'lucide-react';
+import { MapPin, Navigation, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { 
+  isIOS, 
+  getAppleMapsUrl, 
+  getGoogleMapsUrl, 
+  formatDistanceMiles, 
+  calculateDistance 
+} from '@/lib/navigation-utils';
 
 interface ServicesMapProps {
   services: Service[];
@@ -137,9 +144,50 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
     return el;
   }, []);
 
-  // Create popup content
-  const createPopupContent = useCallback((service: Service) => {
+  // Filter services within user's vicinity (25 miles = ~40234 meters)
+  const VICINITY_RADIUS_METERS = 40234;
+  
+  const nearbyServices = useMemo(() => {
+    if (!userLocation) return services;
+    
+    return services
+      .map(service => {
+        const lat = service.is_verified && service.verified_latitude 
+          ? service.verified_latitude 
+          : service.latitude;
+        const lng = service.is_verified && service.verified_longitude 
+          ? service.verified_longitude 
+          : service.longitude;
+        
+        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+          return { ...service, distanceMeters: Infinity };
+        }
+        
+        const distanceMeters = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
+        return { ...service, distanceMeters };
+      })
+      .filter(service => service.distanceMeters <= VICINITY_RADIUS_METERS)
+      .sort((a, b) => a.distanceMeters - b.distanceMeters);
+  }, [services, userLocation]);
+
+  // Create popup content with navigation buttons
+  const createPopupContent = useCallback((service: Service & { distanceMeters?: number }) => {
     const color = CATEGORY_COLORS[service.category] || '#6B7280';
+    const lat = service.is_verified && service.verified_latitude 
+      ? service.verified_latitude 
+      : service.latitude;
+    const lng = service.is_verified && service.verified_longitude 
+      ? service.verified_longitude 
+      : service.longitude;
+    
+    const distanceText = service.distanceMeters && service.distanceMeters !== Infinity 
+      ? formatDistanceMiles(service.distanceMeters) 
+      : '';
+    
+    const appleMapsUrl = lat && lng ? getAppleMapsUrl(lat, lng) : '';
+    const googleMapsUrl = lat && lng ? getGoogleMapsUrl(lat, lng) : '';
+    const showNavButtons = lat && lng;
+    const isIOSDevice = isIOS();
     
     return `
       <div style="max-width: 280px; font-family: system-ui, -apple-system, sans-serif;" role="dialog" aria-labelledby="popup-title-${service.id}">
@@ -162,6 +210,73 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
           <p style="font-size: 12px; color: #6B7280; margin: 8px 0; line-height: 1.4;">${service.enriched_description.slice(0, 100)}${service.enriched_description.length > 100 ? '...' : ''}</p>
         ` : ''}
         <p style="font-size: 13px; font-weight: 600; color: #228B22; margin: 8px 0;">${service.price}</p>
+        
+        ${distanceText ? `
+          <p style="font-size: 12px; color: #3b82f6; font-weight: 500; margin: 8px 0;">📍 ${distanceText} away</p>
+        ` : ''}
+        
+        ${showNavButtons ? `
+          <div style="display: flex; gap: 8px; margin: 12px 0;">
+            ${isIOSDevice ? `
+              <a 
+                href="${appleMapsUrl}" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style="
+                  flex: 1;
+                  padding: 8px 12px;
+                  background: linear-gradient(135deg, #3b82f6, #2563eb);
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  font-weight: 600;
+                  font-size: 12px;
+                  text-decoration: none;
+                  text-align: center;
+                  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+                "
+              >🍎 Apple Maps</a>
+              <a 
+                href="${googleMapsUrl}" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style="
+                  flex: 1;
+                  padding: 8px 12px;
+                  background: linear-gradient(135deg, #22c55e, #16a34a);
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  font-weight: 600;
+                  font-size: 12px;
+                  text-decoration: none;
+                  text-align: center;
+                  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+                "
+              >🗺️ Google</a>
+            ` : `
+              <a 
+                href="${googleMapsUrl}" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style="
+                  flex: 1;
+                  padding: 8px 12px;
+                  background: linear-gradient(135deg, #3b82f6, #2563eb);
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  font-weight: 600;
+                  font-size: 12px;
+                  text-decoration: none;
+                  text-align: center;
+                  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+                "
+              >🧭 Navigate</a>
+            `}
+          </div>
+        ` : ''}
+        
         <button 
           onclick="window.dispatchEvent(new CustomEvent('service-click', { detail: ${service.id} }))"
           style="
@@ -174,7 +289,6 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
             font-weight: 600;
             font-size: 13px;
             cursor: pointer;
-            margin-top: 8px;
           "
         >
           View Details
@@ -193,7 +307,7 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
     return () => window.removeEventListener('service-click', handleServiceClick as EventListener);
   }, [onServiceClick]);
 
-  // Update markers when services change
+  // Update markers when services change - use nearby services
   useEffect(() => {
     if (!map.current) return;
 
@@ -201,10 +315,10 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
-    // Filter services by category if selected
+    // Filter services by category if selected, using nearby services
     const filteredServices = selectedCategory 
-      ? services.filter(s => s.category === selectedCategory)
-      : services;
+      ? nearbyServices.filter(s => s.category === selectedCategory)
+      : nearbyServices;
 
     // Add markers for services with valid coordinates
     filteredServices.forEach(service => {
@@ -231,7 +345,7 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
         popupRef.current = new mapboxgl.Popup({
           offset: 25,
           closeButton: true,
-          maxWidth: '300px',
+          maxWidth: '320px',
         })
           .setLngLat([lng, lat])
           .setHTML(createPopupContent(service))
@@ -241,18 +355,24 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
       markersRef.current.push(marker);
     });
 
-    // Fit bounds to show all markers
+    // Fit bounds to show all markers + user location
     if (markersRef.current.length > 0) {
       const bounds = new mapboxgl.LngLatBounds();
+      
+      // Include user location in bounds
+      if (userLocation) {
+        bounds.extend([userLocation.lng, userLocation.lat]);
+      }
+      
       markersRef.current.forEach(marker => {
         bounds.extend(marker.getLngLat());
       });
       
-      if (markersRef.current.length > 1) {
-        map.current.fitBounds(bounds, { padding: 50, maxZoom: 14 });
+      if (markersRef.current.length > 1 || userLocation) {
+        map.current.fitBounds(bounds, { padding: 50, maxZoom: 13 });
       }
     }
-  }, [services, selectedCategory, createMarkerElement, createPopupContent]);
+  }, [nearbyServices, selectedCategory, createMarkerElement, createPopupContent, userLocation]);
 
   // Locate me function
   const handleLocateMe = useCallback(() => {
