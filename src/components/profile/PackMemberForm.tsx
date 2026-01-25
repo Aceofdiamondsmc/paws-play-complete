@@ -74,8 +74,17 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [errors, setErrors] = useState<{ name?: string }>({});
+  const [touched, setTouched] = useState<{ name?: boolean }>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const validateName = (value: string) => {
+    if (!value.trim()) return 'Name is required';
+    if (value.trim().length < 2) return 'Name must be at least 2 characters';
+    if (value.trim().length > 50) return 'Name must be less than 50 characters';
+    return undefined;
+  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -113,8 +122,13 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim()) {
-      toast.error('Please enter a name');
+    // Validate all fields
+    const nameError = validateName(name);
+    setErrors({ name: nameError });
+    setTouched({ name: true });
+    
+    if (nameError) {
+      toast.error(nameError);
       return;
     }
 
@@ -209,14 +223,30 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name" className="flex items-center gap-1">
+                Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (touched.name) {
+                    setErrors(prev => ({ ...prev, name: validateName(e.target.value) }));
+                  }
+                }}
+                onBlur={() => {
+                  setTouched(prev => ({ ...prev, name: true }));
+                  setErrors(prev => ({ ...prev, name: validateName(name) }));
+                }}
                 placeholder="Your pup's name"
-                className="mt-1"
+                className={`mt-1 ${touched.name && errors.name ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                aria-invalid={touched.name && !!errors.name}
+                aria-describedby={errors.name ? 'name-error' : undefined}
               />
+              {touched.name && errors.name && (
+                <p id="name-error" className="text-sm text-destructive mt-1">{errors.name}</p>
+              )}
             </div>
 
             <div>
