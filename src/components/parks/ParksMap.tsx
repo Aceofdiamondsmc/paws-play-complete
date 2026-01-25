@@ -12,6 +12,7 @@ import { isIOS, getAppleMapsUrl, getGoogleMapsUrl, formatDistanceMiles, calculat
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useStats } from '@/contexts/StatsContext';
 
 interface ParksMapProps {
   parks: Park[];
@@ -71,6 +72,7 @@ function triggerVibration() {
 }
 
 export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
+  const { parkCount } = useStats();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -669,7 +671,7 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
         <div className="absolute top-4 left-4 z-10">
           <Badge variant="secondary" className="bg-card/95 backdrop-blur shadow-md px-3 py-1.5">
             <PawPrint className="w-4 h-4 mr-1" />
-            {validParks.length} Parks
+            {parkCount} Parks
           </Badge>
         </div>
       )}
