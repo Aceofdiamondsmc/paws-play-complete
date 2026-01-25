@@ -1086,12 +1086,6 @@ export type Database = {
         }
         Relationships: []
       }
-      park_counts: {
-        Row: {
-          total_parks: number | null
-        }
-        Relationships: []
-      }
       posts_public: {
         Row: {
           author_display_id: string | null
