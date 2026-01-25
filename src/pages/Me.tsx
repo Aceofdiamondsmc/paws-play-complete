@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ import { VaccinationForm } from '@/components/profile/VaccinationForm';
 import { MessageList } from '@/components/profile/MessageList';
 import { ChatView } from '@/components/profile/ChatView';
 import { EditProfileForm } from '@/components/profile/EditProfileForm';
+import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 
 // Pet-themed placeholder images
@@ -27,8 +29,10 @@ const DOG_AVATARS = [
 
 export default function Me() {
   const { user, profile, dogs, signIn, signUp, signInWithGoogle, signOut, loading } = useAuth();
+  const { isAdmin } = useAdmin();
   const { friends } = useFriendships();
   const { conversations, totalUnread } = useMessages();
+  const navigate = useNavigate();
   
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -368,6 +372,19 @@ export default function Me() {
             </p>
           )}
         </Card>
+
+        {/* Admin Dashboard Link - Only visible to admins */}
+        {isAdmin && (
+          <Card className="p-4">
+            <Button 
+              className="w-full rounded-full gap-2"
+              onClick={() => navigate('/admin')}
+            >
+              <Shield className="w-4 h-4" />
+              Admin Dashboard
+            </Button>
+          </Card>
+        )}
 
         {/* Sign Out */}
         <Button 

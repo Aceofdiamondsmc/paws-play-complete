@@ -66,6 +66,8 @@ export function useParks() {
         id: String(row.Id), // Database uses uppercase 'Id'
         name: row.name,
         address: row.address,
+        city: row.city,
+        state: row.state,
         description: row.description,
         latitude: row.latitude,
         longitude: row.longitude,
