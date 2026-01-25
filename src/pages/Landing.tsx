@@ -10,7 +10,7 @@ export default function Landing() {
   const handleLetsPlay = () => {
     // Start fetching stats immediately (non-blocking)
     prefetchStats();
-    navigate('/parks');
+    navigate('/social');
   };
 
   return <div className="relative min-h-[100dvh] flex flex-col items-center overflow-y-auto overflow-x-hidden">
