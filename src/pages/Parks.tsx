@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useParks } from '@/hooks/useParks';
+import { useStats } from '@/contexts/StatsContext';
 import { ParksMap } from '@/components/parks/ParksMap';
 import { cn } from '@/lib/utils';
 import { openNavigation, calculateDistance, formatDistanceMiles } from '@/lib/navigation-utils';
@@ -25,6 +26,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 export default function Parks() {
+  const { parkCount } = useStats();
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const { parks, loading, activeFilters, toggleFilter } = useParks();
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -56,10 +58,16 @@ export default function Parks() {
       {/* Header */}
       <div className="bg-card border-b border-border p-4 space-y-3 z-10">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <PawPrint className="w-6 h-6 text-primary" />
-            Dog Parks
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <PawPrint className="w-6 h-6 text-primary" />
+              Dog Parks
+            </h1>
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-2.5 py-1">
+              <Dog className="w-4 h-4 mr-1" />
+              {parkCount}
+            </Badge>
+          </div>
           <div className="flex gap-2">
             <Button
               variant={viewMode === 'map' ? 'default' : 'outline'}
