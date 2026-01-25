@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -38,7 +39,7 @@ interface PackMemberFormProps {
     avatar_url?: string | null;
     age_years?: number | null;
     weight_lbs?: number | null;
-    health_info?: string | null;
+    health_notes?: string | null;
   };
 }
 
@@ -58,7 +59,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   const [bio, setBio] = useState(editingDog?.bio || '');
   const [ageYears, setAgeYears] = useState(editingDog?.age_years?.toString() || '');
   const [weightLbs, setWeightLbs] = useState(editingDog?.weight_lbs?.toString() || '');
-  const [healthInfo, setHealthInfo] = useState(editingDog?.health_info || '');
+  const [healthInfo, setHealthInfo] = useState(editingDog?.health_notes || '');
   const [avatarUrl, setAvatarUrl] = useState(editingDog?.avatar_url || '');
   const [selectedPlayStyles, setSelectedPlayStyles] = useState<string[]>(selectedStyles);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -175,6 +176,9 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
           <DialogTitle className="flex items-center gap-2">
             {editingDog ? 'Edit Pack Member' : 'Add Pack Member'}
           </DialogTitle>
+          <DialogDescription>
+            {editingDog ? 'Update your pet\'s information below.' : 'Add your furry friend to your pack by filling out the details below.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
