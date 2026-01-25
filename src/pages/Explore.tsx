@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useServices, getServiceImage, Service } from '@/hooks/useServices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { ServicesMap } from '@/components/explore/ServicesMap';
 
 const serviceCategories = [
   { id: 'Dog Walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-primary/10 text-primary' },
@@ -96,28 +97,13 @@ export default function Explore() {
           })}
         </div>
 
-        {/* Map View */}
+{/* Map View */}
         {viewMode === 'map' && (
-          <div className="relative rounded-xl overflow-hidden border border-border">
-            <iframe
-              src="https://www.google.com/maps/d/u/0/embed?mid=10wM4h_PU2KV-MWnX0Rk7jtL-ksguNac&ehbc=2E312F"
-              width="100%"
-              height="600"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              title="Pet Services Map"
-              className="w-full"
-            />
-            {isLoading && (
-              <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Loading services...</p>
-                </div>
-              </div>
-            )}
-          </div>
+          <ServicesMap 
+            services={filteredServices || []} 
+            selectedCategory={selectedCategory}
+            onServiceClick={(id) => navigate(`/explore/${id}`)}
+          />
         )}
 
         {/* List View */}

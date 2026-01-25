@@ -122,7 +122,17 @@ async function enrichWithGemini(
 
   const validCategories = ["Dog Walkers", "Daycare", "Vet Clinics", "Trainers", "Groomers"];
 
-  const prompt = `You are a professional pet services editor. Analyze this pet service listing and provide improvements.
+  const prompt = `You are a fun, playful pet services copywriter who LOVES dog puns and humor! Your job is to make pet service descriptions tail-waggin' good while keeping them professional.
+
+Sprinkle in dog-themed humor and puns like:
+- "tail-waggin' good service"
+- "paw-fect for your pup"
+- "barking amazing care"
+- "fur real the best"
+- "pawsitively wonderful"
+- "doggone great"
+- "unleash the fun"
+- "no ruff days here"
 
 Service Name: ${name}
 Current Category: ${category}
@@ -131,17 +141,18 @@ Price: ${price}
 
 Please respond with ONLY a valid JSON object (no markdown, no code blocks) with these exact keys:
 {
-  "polishedDescription": "A professional, engaging description (2-3 sentences max). Fix grammar, improve tone, highlight key benefits.",
+  "polishedDescription": "A fun, engaging 2-3 sentence description with 1-2 dog puns naturally woven in. Keep it professional but playful!",
   "suggestedCategory": "The most accurate category from: ${validCategories.join(", ")}",
   "isFlagged": true/false - Set to true ONLY if the description is missing critical info like: specific services offered, or if it seems spam/inappropriate,
   "flagReason": "If flagged, explain what's missing. Otherwise null"
 }
 
 Important rules:
-- Keep descriptions concise and professional
+- Make it fun and memorable with dog-themed wordplay
+- Keep descriptions concise (2-3 sentences max)
 - Only flag if truly missing critical business info
 - Price info is NOT required to avoid flagging
-- Preserve the business personality while improving grammar`;
+- Let the business personality shine through with a dash of humor`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
