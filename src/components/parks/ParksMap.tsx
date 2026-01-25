@@ -28,6 +28,14 @@ const PROXIMITY_ALERT_FEET = 500;
 const FEET_TO_METERS = 0.3048;
 const PROXIMITY_ALERT_METERS = PROXIMITY_ALERT_FEET * FEET_TO_METERS;
 
+// XSS Prevention: Escape HTML entities in user-provided content
+function escapeHtml(text: string | null | undefined): string {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Calculate distance between two points using Haversine formula (returns meters)
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000; // Earth's radius in meters
@@ -439,10 +447,15 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
       });
 
       // Build popup content with HTML description and navigate button
+      // XSS Prevention: All user-controllable content is escaped
       const googleMapsUrl = getGoogleMapsUrl(lat, lng);
       const appleMapsUrl = getAppleMapsUrl(lat, lng);
-      const descriptionHtml = park.description 
-        ? `<div style="margin: 8px 0; font-size: 13px; color: #444; max-height: 100px; overflow-y: auto;">${park.description}</div>`
+      const safeDescription = escapeHtml(park.description);
+      const safeName = escapeHtml(park.name) || 'Dog Park';
+      const safeAddress = escapeHtml(park.address);
+      
+      const descriptionHtml = safeDescription 
+        ? `<div style="margin: 8px 0; font-size: 13px; color: #444; max-height: 100px; overflow-y: auto;">${safeDescription}</div>`
         : '';
 
       // Calculate distance if user location is known
@@ -530,10 +543,10 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
           aria-describedby="${parkId}-desc"
         >
           <h3 id="${parkId}-title" style="margin: 0 0 8px 0; font-weight: 700; font-size: 16px; color: #1a1a1a;">
-            🐕 ${park.name || 'Dog Park'}
+            🐕 ${safeName}
           </h3>
           <div id="${parkId}-desc">
-            ${park.address ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">📍 ${park.address}</p>` : ''}
+            ${safeAddress ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">📍 ${safeAddress}</p>` : ''}
             ${distanceHtml}
             ${park.rating ? `<p style="margin: 0 0 6px 0; font-size: 13px;">⭐ ${park.rating.toFixed(1)} (${park.user_ratings_total || 0} reviews)</p>` : ''}
             ${descriptionHtml}
