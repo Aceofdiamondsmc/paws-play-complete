@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { useDogs } from '@/hooks/useDogs';
 import { toast } from 'sonner';
+import { BreedCombobox } from './BreedCombobox';
 
 // Play style options stored directly (no separate table)
 const PLAY_STYLE_OPTIONS = [
@@ -251,13 +252,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
 
             <div>
               <Label htmlFor="breed">Breed</Label>
-              <Input
-                id="breed"
-                value={breed}
-                onChange={(e) => setBreed(e.target.value)}
-                placeholder="e.g., Golden Retriever"
-                className="mt-1"
-              />
+              <BreedCombobox value={breed} onValueChange={setBreed} />
             </div>
 
             <div>
