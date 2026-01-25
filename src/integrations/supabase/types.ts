@@ -538,6 +538,13 @@ export type Database = {
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "post_access_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       post_comments: {
@@ -568,6 +575,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts_public"
             referencedColumns: ["id"]
           },
         ]
@@ -672,6 +686,13 @@ export type Database = {
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "post_images_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       post_likes: {
@@ -699,6 +720,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1055,6 +1083,51 @@ export type Database = {
           f_table_schema?: unknown
           srid?: number | null
           type?: string | null
+        }
+        Relationships: []
+      }
+      posts_public: {
+        Row: {
+          author_display_id: string | null
+          author_short_id: string | null
+          content: string | null
+          created_at: string | null
+          id: string | null
+        }
+        Insert: {
+          author_display_id?: never
+          author_short_id?: never
+          content?: string | null
+          created_at?: string | null
+          id?: string | null
+        }
+        Update: {
+          author_display_id?: never
+          author_short_id?: never
+          content?: string | null
+          created_at?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
+      products_public: {
+        Row: {
+          description: string | null
+          id: string | null
+          name: string | null
+          price: number | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string | null
+          name?: string | null
+          price?: number | null
+        }
+        Update: {
+          description?: string | null
+          id?: string | null
+          name?: string | null
+          price?: number | null
         }
         Relationships: []
       }
