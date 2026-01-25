@@ -26,24 +26,26 @@ export function useDogs() {
     if (!ownerId) return { dog: null, error: new Error('User ID not found') };
 
     try {
+      const insertData = {
+        owner_id: ownerId,
+        name: data.name,
+        breed: data.breed || '',
+        size: data.size || 'Medium',
+        energy: data.energy || 'Medium',
+        energy_level: data.energy_level || data.energy || 'Medium',
+        bio: data.bio || '',
+        avatar_url: data.avatar_url || null,
+        age_years: data.age_years || null,
+        weight_lbs: data.weight_lbs || null,
+        health_notes: data.health_notes || null,
+        play_style: Array.isArray(data.play_style) ? data.play_style : []
+      };
+
       const { data: dog, error } = await supabase
         .from('dogs')
-        .insert({
-          owner_id: ownerId,
-          name: data.name,
-          breed: data.breed || '',
-          size: data.size || 'Medium',
-          energy: data.energy || 'Medium',
-          energy_level: data.energy_level || data.energy || 'Medium',
-          bio: data.bio || '',
-          avatar_url: data.avatar_url || null,
-          age_years: data.age_years || null,
-          weight_lbs: data.weight_lbs || null,
-          health_notes: data.health_notes || null,
-          play_style: data.play_style || []
-        })
+        .insert(insertData)
         .select()
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid PGRST204 error
 
       if (error) throw error;
 
