@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -22,8 +21,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useDogs } from '@/hooks/useDogs';
-import { usePlayStyles, useDogPlayStyles } from '@/hooks/usePlayStyles';
 import { toast } from 'sonner';
+
+// Play style options stored directly (no separate table)
+const PLAY_STYLE_OPTIONS = [
+  'Fetch',
+  'Tug-of-war',
+  'Chase',
+  'Wrestling',
+  'Swimming',
+  'Running',
+  'Cuddling',
+  'Independent',
+];
 
 interface PackMemberFormProps {
   open: boolean;
@@ -48,8 +58,6 @@ const ENERGY_OPTIONS = ['Low', 'Medium', 'High', 'Very High'];
 
 export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMemberFormProps) {
   const { addDog, updateDog, uploadDogAvatar } = useDogs();
-  const { playStyles } = usePlayStyles();
-  const { selectedStyles, updateDogStyles } = useDogPlayStyles(editingDog?.id);
   const { user } = useAuth();
   
   const [name, setName] = useState(editingDog?.name || '');
@@ -61,7 +69,9 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   const [weightLbs, setWeightLbs] = useState(editingDog?.weight_lbs?.toString() || '');
   const [healthInfo, setHealthInfo] = useState(editingDog?.health_notes || '');
   const [avatarUrl, setAvatarUrl] = useState(editingDog?.avatar_url || '');
-  const [selectedPlayStyles, setSelectedPlayStyles] = useState<string[]>(selectedStyles);
+  const [selectedPlayStyles, setSelectedPlayStyles] = useState<string[]>(
+    (editingDog as { play_style?: string[] | null })?.play_style || []
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
@@ -127,34 +137,17 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
       if (editingDog) {
         const { error } = await updateDog(editingDog.id, dogData);
         if (error) throw error;
-
-        // Update play styles
-        await updateDogStyles(selectedPlayStyles);
-        
         toast.success('Pack member updated!');
       } else {
         const { dog, error } = await addDog(dogData);
         if (error) throw error;
 
-        if (dog) {
-          // Upload avatar if selected
-          if (avatarUrl && avatarUrl.startsWith('data:')) {
-            // Convert base64 to file and upload
-            const response = await fetch(avatarUrl);
-            const blob = await response.blob();
-            const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-            await uploadDogAvatar(dog.id, file);
-          }
-
-          // Set play styles for new dog - insert directly since hook doesn't have the new dog id
-          if (selectedPlayStyles.length > 0) {
-            await supabase
-              .from('dog_play_styles')
-              .insert(selectedPlayStyles.map(styleId => ({
-                dog_id: dog.id,
-                play_style_id: styleId
-              })));
-          }
+        if (dog && avatarUrl && avatarUrl.startsWith('data:')) {
+          // Convert base64 to file and upload
+          const response = await fetch(avatarUrl);
+          const blob = await response.blob();
+          const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+          await uploadDogAvatar(dog.id, file);
         }
         
         toast.success('Pack member added!');
@@ -298,18 +291,18 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
           <div>
             <Label className="mb-2 block">Play Style</Label>
             <div className="flex flex-wrap gap-2">
-              {playStyles.map(style => (
+              {PLAY_STYLE_OPTIONS.map(style => (
                 <button
-                  key={style.id}
+                  key={style}
                   type="button"
-                  onClick={() => togglePlayStyle(style.id)}
+                  onClick={() => togglePlayStyle(style)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    selectedPlayStyles.includes(style.id)
+                    selectedPlayStyles.includes(style)
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
-                  {style.name}
+                  {style}
                 </button>
               ))}
             </div>
