@@ -144,12 +144,8 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
     return el;
   }, []);
 
-  // Filter services within user's vicinity (25 miles = ~40234 meters)
-  const VICINITY_RADIUS_METERS = 40234;
-  
-  const nearbyServices = useMemo(() => {
-    if (!userLocation) return services;
-    
+  // Calculate distances and sort by proximity (show all services, sorted by distance)
+  const servicesWithDistance = useMemo(() => {
     return services
       .map(service => {
         const lat = service.is_verified && service.verified_latitude 
@@ -159,15 +155,20 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
           ? service.verified_longitude 
           : service.longitude;
         
-        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-          return { ...service, distanceMeters: Infinity };
+        if (!lat || !lng || isNaN(lat) || isNaN(lng) || !userLocation) {
+          return { ...service, distanceMeters: undefined };
         }
         
         const distanceMeters = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
         return { ...service, distanceMeters };
       })
-      .filter(service => service.distanceMeters <= VICINITY_RADIUS_METERS)
-      .sort((a, b) => a.distanceMeters - b.distanceMeters);
+      .sort((a, b) => {
+        // Sort by distance (undefined distances go last)
+        if (a.distanceMeters === undefined && b.distanceMeters === undefined) return 0;
+        if (a.distanceMeters === undefined) return 1;
+        if (b.distanceMeters === undefined) return -1;
+        return a.distanceMeters - b.distanceMeters;
+      });
   }, [services, userLocation]);
 
   // Create popup content with navigation buttons
@@ -315,10 +316,10 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
-    // Filter services by category if selected, using nearby services
+    // Filter services by category if selected
     const filteredServices = selectedCategory 
-      ? nearbyServices.filter(s => s.category === selectedCategory)
-      : nearbyServices;
+      ? servicesWithDistance.filter(s => s.category === selectedCategory)
+      : servicesWithDistance;
 
     // Add markers for services with valid coordinates
     filteredServices.forEach(service => {
@@ -372,7 +373,7 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
         map.current.fitBounds(bounds, { padding: 50, maxZoom: 13 });
       }
     }
-  }, [nearbyServices, selectedCategory, createMarkerElement, createPopupContent, userLocation]);
+  }, [servicesWithDistance, selectedCategory, createMarkerElement, createPopupContent, userLocation]);
 
   // Locate me function
   const handleLocateMe = useCallback(() => {
