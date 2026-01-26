@@ -7,9 +7,9 @@ const navItems = [
   { path: '/social', icon: MessageCircle, label: 'Social' },
   { path: '/explore', icon: Compass, label: 'Explore' },
   { path: '/shop', icon: ShoppingCart, label: 'Shop' },
-  { path: '/parks', icon: Trees, label: 'Parks' },
-  { path: '/dates', icon: CalendarDays, label: 'Dates' },
   { path: '/pack', icon: PawPrint, label: 'Pack' },
+  { path: '/dates', icon: CalendarDays, label: 'Dates' },
+  { path: '/parks', icon: Trees, label: 'Parks' },
   { path: '/me', icon: User, label: 'Me' },
 ];
 
