@@ -1,210 +1,119 @@
 
-# Rebuild "Add to Pack" Logic from Scratch
+# Fix "record 'old' has no field 'image_path'" Error
 
-## Root Cause Identified
+## Root Cause
 
-The `dogs` table was **deleted** from the database at 18:53:56 UTC today (visible in Postgres logs). This is why dog creation fails silently - there's no table to insert into.
-
-## What We Need to Rebuild
+The `posts` table has three storage cleanup triggers that reference a column called `image_path`, but the actual column in the `posts` table is named `image_url`.
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                    COMPLETE REBUILD PLAN                           │
-├─────────────────────────────────────────────────────────────────────┤
-│  1. Recreate dogs table with all columns                           │
-│  2. Add RLS policies for security                                  │
-│  3. Add storage policies for dog-avatars bucket                    │
-│  4. Fix PackMemberForm to call onSuccess callback                  │
-│  5. Ensure proper data mapping and refresh flow                    │
-└─────────────────────────────────────────────────────────────────────┘
+Trigger Functions Found:
++--------------------------------------+-------------------+
+| Function Name                        | References        |
++--------------------------------------+-------------------+
+| posts_delete_storage_trigger         | OLD.image_path    |
+| posts_bulk_delete_storage_trigger    | OLD.image_path    |
+| posts_update_storage_trigger         | OLD.image_path    |
++--------------------------------------+-------------------+
+
+Actual Posts Table Schema:
+- image_url (text) <-- Correct column name
+- image_path does NOT exist
 ```
 
-## Step 1: Recreate the Dogs Table
+## Solution
 
-Create the `dogs` table with all required columns matching your specification:
+Create a database migration to update all three trigger functions to use `image_url` instead of `image_path`. The `delete_storage_object` function expects a storage path, so we also need to extract the path from the full URL.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | Primary key, auto-generated |
-| owner_id | uuid | References authenticated user (NOT NULL) |
-| name | text | Dog's name (NOT NULL) |
-| avatar_url | text | URL from dog-avatars bucket |
-| size | text | Small/Medium/Large/Extra Large |
-| energy | text | Low/Medium/High/Very High |
-| energy_level | text | Duplicate for compatibility |
-| breed | text | Dog breed |
-| bio | text | Dog personality description |
-| age_years | integer | Age in years |
-| weight_lbs | numeric | Weight in pounds |
-| health_notes | text | Medical/health information |
-| play_style | text[] | **Array** for multi-select (Fetch, Chase, etc.) |
-| created_at | timestamptz | Auto-set on creation |
-| updated_at | timestamptz | Auto-updated |
+## Implementation
 
-## Step 2: Add RLS Policies
+### Database Migration
 
-Secure the table so users can only manage their own dogs:
-
-```text
-RLS Policies for dogs table:
-┌────────────────────────────────────────────────────┐
-│ SELECT: owner_id = auth.uid()                     │
-│ INSERT: owner_id = auth.uid()                     │
-│ UPDATE: owner_id = auth.uid()                     │
-│ DELETE: owner_id = auth.uid()                     │
-└────────────────────────────────────────────────────┘
-```
-
-## Step 3: Add Storage Policies for dog-avatars Bucket
-
-The bucket exists but needs RLS policies:
-
-```text
-Storage Policies for dog-avatars:
-┌────────────────────────────────────────────────────┐
-│ SELECT (public read): true                        │
-│ INSERT: folder matches user.id                    │
-│ UPDATE: folder matches user.id                    │
-│ DELETE: folder matches user.id                    │
-└────────────────────────────────────────────────────┘
-```
-
-## Step 4: Fix the onSuccess Callback
-
-Currently `PackMemberForm.tsx` calls `onClose()` but not `onSuccess()` after saving. This prevents the parent component from knowing the operation succeeded.
-
-```text
-Current (broken):
-  onClose();  // Closes modal but doesn't notify parent
-
-Fixed:
-  onSuccess?.();  // Notify parent first
-  onClose();      // Then close modal
-```
-
-## Step 5: Ensure Data Flow Works
-
-After save:
-1. `addDog()` inserts record with owner_id from auth
-2. If avatar selected, upload to dog-avatars bucket  
-3. Update dog record with avatar_url
-4. Call `refreshDogs()` to update the UI
-5. Call `onSuccess()` to notify parent
-6. Close the modal
-
-## Implementation Details
-
-### Database Migration SQL
+Update the three trigger functions to:
+1. Reference `image_url` instead of `image_path`
+2. Extract the storage path from the full URL (the URL format is `https://[project].supabase.co/storage/v1/object/public/[bucket]/[path]`)
 
 ```sql
--- Recreate dogs table
-CREATE TABLE public.dogs (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id uuid NOT NULL,
-  name text NOT NULL,
-  avatar_url text,
-  size text DEFAULT 'Medium',
-  energy text DEFAULT 'Medium',
-  energy_level text DEFAULT 'Medium',
-  breed text DEFAULT '',
-  bio text DEFAULT '',
-  age_years integer,
-  weight_lbs numeric,
-  health_notes text,
-  play_style text[] DEFAULT '{}',
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
+-- Fix posts_delete_storage_trigger to use image_url
+CREATE OR REPLACE FUNCTION public.posts_delete_storage_trigger()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  storage_path TEXT;
+BEGIN
+  IF OLD.image_url IS NOT NULL THEN
+    -- Extract path after '/storage/v1/object/public/'
+    storage_path := regexp_replace(OLD.image_url, '^.*/storage/v1/object/public/', '');
+    IF storage_path IS NOT NULL AND storage_path != OLD.image_url THEN
+      PERFORM public.delete_storage_object(storage_path);
+    END IF;
+  END IF;
+  RETURN OLD;
+END;
+$$;
 
--- Enable RLS
-ALTER TABLE public.dogs ENABLE ROW LEVEL SECURITY;
+-- Fix posts_bulk_delete_storage_trigger
+CREATE OR REPLACE FUNCTION public.posts_bulk_delete_storage_trigger()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  img_record RECORD;
+  storage_path TEXT;
+BEGIN
+  -- Delete main image if exists
+  IF OLD.image_url IS NOT NULL THEN
+    storage_path := regexp_replace(OLD.image_url, '^.*/storage/v1/object/public/', '');
+    IF storage_path IS NOT NULL AND storage_path != OLD.image_url THEN
+      PERFORM public.delete_storage_object(storage_path);
+    END IF;
+  END IF;
 
--- RLS Policies
-CREATE POLICY "dogs_select_own" ON public.dogs
-  FOR SELECT USING (owner_id = auth.uid());
+  -- Delete all images in child table
+  FOR img_record IN SELECT image_path FROM public.post_images WHERE post_id = OLD.id LOOP
+    PERFORM public.delete_storage_object(img_record.image_path);
+  END LOOP;
+  RETURN OLD;
+END;
+$$;
 
-CREATE POLICY "dogs_insert_own" ON public.dogs
-  FOR INSERT WITH CHECK (owner_id = auth.uid());
-
-CREATE POLICY "dogs_update_own" ON public.dogs
-  FOR UPDATE USING (owner_id = auth.uid())
-  WITH CHECK (owner_id = auth.uid());
-
-CREATE POLICY "dogs_delete_own" ON public.dogs
-  FOR DELETE USING (owner_id = auth.uid());
-
--- Create index for filtering by play_style
-CREATE INDEX idx_dogs_play_style ON public.dogs USING GIN (play_style);
-
--- Create index for owner lookups
-CREATE INDEX idx_dogs_owner_id ON public.dogs (owner_id);
-```
-
-### Storage Bucket Policies SQL
-
-```sql
--- Allow public read access to dog avatars
-CREATE POLICY "dog_avatars_public_read"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'dog-avatars');
-
--- Allow authenticated users to upload to their folder
-CREATE POLICY "dog_avatars_insert_own"
-ON storage.objects FOR INSERT
-WITH CHECK (
-  bucket_id = 'dog-avatars' 
-  AND auth.uid()::text = (storage.foldername(name))[1]
-);
-
--- Allow users to update their own files
-CREATE POLICY "dog_avatars_update_own"
-ON storage.objects FOR UPDATE
-USING (
-  bucket_id = 'dog-avatars'
-  AND auth.uid()::text = (storage.foldername(name))[1]
-);
-
--- Allow users to delete their own files
-CREATE POLICY "dog_avatars_delete_own"
-ON storage.objects FOR DELETE
-USING (
-  bucket_id = 'dog-avatars'
-  AND auth.uid()::text = (storage.foldername(name))[1]
-);
-```
-
-### Code Fix in PackMemberForm.tsx
-
-```typescript
-// After successful save (around line 168-171)
-toast.success('Pack member added!');
-onSuccess?.();  // ADD THIS LINE - notify parent of success
-onClose();
+-- Fix posts_update_storage_trigger
+CREATE OR REPLACE FUNCTION public.posts_update_storage_trigger()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  old_path TEXT;
+BEGIN
+  IF (OLD.image_url IS DISTINCT FROM NEW.image_url) AND (OLD.image_url IS NOT NULL) THEN
+    old_path := regexp_replace(OLD.image_url, '^.*/storage/v1/object/public/', '');
+    IF old_path IS NOT NULL AND old_path != OLD.image_url THEN
+      PERFORM public.delete_storage_object(old_path);
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
 ```
 
 ## Files to Modify
 
 | File | Action | Purpose |
 |------|--------|---------|
-| New migration | Create | Recreate dogs table + RLS |
-| New migration | Create | Add storage policies |
-| `src/components/profile/PackMemberForm.tsx` | Modify | Add onSuccess callback |
+| New migration file | Create | Fix all three trigger functions |
 
 ## Expected Outcome
 
-After implementation:
-1. The `dogs` table will exist with proper schema
-2. RLS will protect user data (owners can only see their own dogs)
-3. Dog avatars upload to `dog-avatars` bucket with proper security
-4. Play styles save as a `text[]` array (multi-select)
-5. `owner_id` is automatically set from the authenticated user
-6. After saving, the modal closes and My Pack refreshes to show the new dog
+After the migration:
+1. Deleting posts from the Admin Social page will work without errors
+2. The storage cleanup will correctly extract paths from URLs and delete orphaned images
+3. Update operations that change images will also clean up old files correctly
 
-## Summary of What Was Broken
+## Technical Notes
 
-| Issue | Root Cause | Fix |
-|-------|-----------|-----|
-| Dogs not saving | Table was dropped | Recreate table |
-| No security | No RLS policies | Add owner-based policies |
-| Avatars might fail | Missing storage policies | Add bucket policies |
-| UI not refreshing | onSuccess not called | Add callback invocation |
+- The `regexp_replace` extracts everything after `/storage/v1/object/public/` from the URL
+- The check `storage_path != OLD.image_url` ensures we only call delete if the regex actually matched (external URLs won't be processed)
+- The `post_images` child table already uses `image_path` (not a URL), so that part of the bulk delete function remains unchanged
