@@ -21,6 +21,7 @@ import Shop from "./pages/Shop";
 import NotFound from "./pages/NotFound";
 import AdminParks from "./pages/admin/AdminParks";
 import AdminServices from "./pages/admin/AdminServices";
+import AdminSocial from "./pages/admin/AdminSocial";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
 
@@ -58,6 +59,7 @@ const App = () => (
                 <Route index element={<Navigate to="/admin/parks" replace />} />
                 <Route path="parks" element={<AdminParks />} />
                 <Route path="services" element={<AdminServices />} />
+                <Route path="social" element={<AdminSocial />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="settings" element={<AdminSettings />} />
               </Route>
