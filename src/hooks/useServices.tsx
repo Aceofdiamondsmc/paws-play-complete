@@ -24,6 +24,9 @@ export interface Service {
   photo_reference: string | null;
 }
 
+// Google Maps API key for Places photos
+const GOOGLE_API_KEY = 'AIzaSyBp8PRiV7axY_8KXC8LZzaSzGEO_4hbqLQ';
+
 // Fallback images by category from Unsplash
 const FALLBACK_IMAGES: Record<string, string> = {
   'Dog Walkers': 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop',
@@ -34,11 +37,15 @@ const FALLBACK_IMAGES: Record<string, string> = {
 };
 
 export function getServiceImage(service: Service): string {
-  // Use image_url from database if it exists
+  // Priority 1: Use image_url from database if it exists
   if (service.image_url) {
     return service.image_url;
   }
-  // Fallback to category-based stock photos
+  // Priority 2: Use Google Places photo_reference if available
+  if (service.photo_reference && !service.photo_reference.startsWith('Aap_uE')) {
+    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${service.photo_reference}&key=${GOOGLE_API_KEY}`;
+  }
+  // Fallback: category-based stock photos
   return FALLBACK_IMAGES[service.category] || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop';
 }
 
