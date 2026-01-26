@@ -16,6 +16,7 @@ import { VaccinationForm } from '@/components/profile/VaccinationForm';
 import { MessageList } from '@/components/profile/MessageList';
 import { ChatView } from '@/components/profile/ChatView';
 import { EditProfileForm } from '@/components/profile/EditProfileForm';
+import { OnboardingFlow } from '@/components/profile/OnboardingFlow';
 import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 
@@ -28,7 +29,7 @@ const DOG_AVATARS = [
 ];
 
 export default function Me() {
-  const { user, profile, dogs, signIn, signUp, signInWithGoogle, signOut, loading } = useAuth();
+  const { user, profile, dogs, signIn, signUp, signInWithGoogle, signOut, loading, refreshProfile } = useAuth();
   const { isAdmin } = useAdmin();
   const { friends } = useFriendships();
   const { conversations, totalUnread } = useMessages();
@@ -110,6 +111,11 @@ export default function Me() {
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
+  }
+
+  // Show onboarding flow for new users
+  if (user && profile?.onboarding_completed === false) {
+    return <OnboardingFlow onComplete={refreshProfile} />;
   }
 
   // Show chat view if conversation selected
