@@ -37,18 +37,13 @@ export function usePosts() {
     try {
       setLoading(true);
 
-      // Fetch public posts (and private posts from friends if logged in)
-      let query = supabase
+      // Always fetch public posts for both authenticated and guest users
+      const { data: postsData, error } = await supabase
         .from('posts')
         .select('*')
+        .eq('visibility', 'public')
         .order('created_at', { ascending: false })
         .limit(50);
-
-      if (!user) {
-        query = query.eq('visibility', 'public');
-      }
-
-      const { data: postsData, error } = await query;
 
       if (error) throw error;
 
