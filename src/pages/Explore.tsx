@@ -11,11 +11,11 @@ import { ServicesMap } from '@/components/explore/ServicesMap';
 import { ExploreAssistant } from '@/components/explore/ExploreAssistant';
 
 const serviceCategories = [
-  { id: 'Dog Walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-primary/10 text-primary' },
-  { id: 'Daycare', label: 'Daycare', icon: Home, color: 'bg-accent/10 text-accent' },
-  { id: 'Vet Clinics', label: 'Vet Clinics', icon: Stethoscope, color: 'bg-success/10 text-success' },
-  { id: 'Trainers', label: 'Trainers', icon: Dog, color: 'bg-warning/10 text-warning' },
-  { id: 'Groomers', label: 'Groomers', icon: Scissors, color: 'bg-secondary text-secondary-foreground' },
+  { id: 'Dog Walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]' },
+  { id: 'Daycare', label: 'Daycare', icon: Home, color: 'bg-green-100 text-green-600', activeColor: 'bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]' },
+  { id: 'Vet Clinics', label: 'Vet Clinics', icon: Stethoscope, color: 'bg-red-100 text-red-600', activeColor: 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]' },
+  { id: 'Trainers', label: 'Trainers', icon: Dog, color: 'bg-orange-100 text-orange-600', activeColor: 'bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.5)]' },
+  { id: 'Groomers', label: 'Groomers', icon: Scissors, color: 'bg-purple-100 text-purple-600', activeColor: 'bg-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.5)]' },
 ];
 
 export default function Explore() {
@@ -85,9 +85,9 @@ export default function Explore() {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryClick(cat.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full whitespace-nowrap font-medium transition-all ${
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full whitespace-nowrap font-medium transition-all duration-300 ${
                   isSelected 
-                    ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2' 
+                    ? cat.activeColor
                     : `${cat.color} hover:opacity-80`
                 }`}
               >
