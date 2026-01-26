@@ -1,163 +1,210 @@
 
-# Complete "Add to Pack" Onboarding Flow
+# Rebuild "Add to Pack" Logic from Scratch
 
-## Summary
+## Root Cause Identified
 
-This plan addresses several interconnected issues to make the "Add Pack Member" flow work seamlessly as the nucleus of your app's onboarding experience:
+The `dogs` table was **deleted** from the database at 18:53:56 UTC today (visible in Postgres logs). This is why dog creation fails silently - there's no table to insert into.
 
-1. Fix dog avatar uploads to use the correct `dog-avatars` bucket
-2. Create an onboarding flow that collects basic profile info (display name, city/state) before adding the first dog
-3. Ensure profiles are automatically created for new users
-4. Mark `onboarding_completed` after the first dog is added
-
-## Current Issues Found
-
-| Issue | Current Behavior | Expected Behavior |
-|-------|-----------------|-------------------|
-| Dog avatars bucket | Uploads to `post-images` | Should use `dog-avatars` |
-| Profile creation | May fail silently if profile doesn't exist | Auto-create profile on signup |
-| Onboarding flow | Jumps straight to empty profile | Collect basics then add dog |
-| `onboarding_completed` flag | Never set to `true` | Set after first dog added |
-
-## Implementation Plan
-
-### Step 1: Database - Auto-Create Profile on Signup
-
-Create a trigger that automatically inserts a row into `profiles` when a new user signs up via Supabase Auth.
+## What We Need to Rebuild
 
 ```text
-SQL Migration:
-┌─────────────────────────────────────────────────────────┐
-│ 1. Create function handle_new_user()                   │
-│ 2. Create trigger on auth.users AFTER INSERT           │
-│ 3. Trigger inserts into profiles with:                 │
-│    - id = user.id                                       │
-│    - is_public = true                                   │
-│    - onboarding_completed = false                       │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                    COMPLETE REBUILD PLAN                           │
+├─────────────────────────────────────────────────────────────────────┤
+│  1. Recreate dogs table with all columns                           │
+│  2. Add RLS policies for security                                  │
+│  3. Add storage policies for dog-avatars bucket                    │
+│  4. Fix PackMemberForm to call onSuccess callback                  │
+│  5. Ensure proper data mapping and refresh flow                    │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Step 2: Fix Dog Avatar Upload Bucket
+## Step 1: Recreate the Dogs Table
 
-Update `src/hooks/useDogs.tsx` to upload dog photos to the `dog-avatars` bucket instead of `post-images`.
+Create the `dogs` table with all required columns matching your specification:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | Primary key, auto-generated |
+| owner_id | uuid | References authenticated user (NOT NULL) |
+| name | text | Dog's name (NOT NULL) |
+| avatar_url | text | URL from dog-avatars bucket |
+| size | text | Small/Medium/Large/Extra Large |
+| energy | text | Low/Medium/High/Very High |
+| energy_level | text | Duplicate for compatibility |
+| breed | text | Dog breed |
+| bio | text | Dog personality description |
+| age_years | integer | Age in years |
+| weight_lbs | numeric | Weight in pounds |
+| health_notes | text | Medical/health information |
+| play_style | text[] | **Array** for multi-select (Fetch, Chase, etc.) |
+| created_at | timestamptz | Auto-set on creation |
+| updated_at | timestamptz | Auto-updated |
+
+## Step 2: Add RLS Policies
+
+Secure the table so users can only manage their own dogs:
 
 ```text
-File: src/hooks/useDogs.tsx
-
-Change:
-  .from('post-images')
-
-To:
-  .from('dog-avatars')
+RLS Policies for dogs table:
+┌────────────────────────────────────────────────────┐
+│ SELECT: owner_id = auth.uid()                     │
+│ INSERT: owner_id = auth.uid()                     │
+│ UPDATE: owner_id = auth.uid()                     │
+│ DELETE: owner_id = auth.uid()                     │
+└────────────────────────────────────────────────────┘
 ```
 
-### Step 3: Create Onboarding Component
+## Step 3: Add Storage Policies for dog-avatars Bucket
 
-Build a new `OnboardingFlow` component that appears for users where `onboarding_completed = false`. This component will:
-
-1. **Step 1 - Profile Basics**: Collect display name, city, and state
-2. **Step 2 - Add First Dog**: Present the PackMemberForm
-3. **Step 3 - Mark Complete**: Set `onboarding_completed = true`
+The bucket exists but needs RLS policies:
 
 ```text
-User Journey:
-┌──────────────┐     ┌────────────────────┐     ┌──────────────┐
-│ Sign Up /    │ ──▶ │ Onboarding Flow    │ ──▶ │ Main App     │
-│ First Login  │     │ (Profile + Dog)    │     │ (/social)    │
-└──────────────┘     └────────────────────┘     └──────────────┘
-                            │
-                      ┌─────┴─────┐
-                      │           │
-                   Step 1      Step 2
-                  "About You" "Add Pack Member"
+Storage Policies for dog-avatars:
+┌────────────────────────────────────────────────────┐
+│ SELECT (public read): true                        │
+│ INSERT: folder matches user.id                    │
+│ UPDATE: folder matches user.id                    │
+│ DELETE: folder matches user.id                    │
+└────────────────────────────────────────────────────┘
 ```
 
-### Step 4: Update Me.tsx to Show Onboarding
+## Step 4: Fix the onSuccess Callback
 
-Modify `src/pages/Me.tsx` to detect when `onboarding_completed === false` and show the onboarding flow instead of the regular profile view.
+Currently `PackMemberForm.tsx` calls `onClose()` but not `onSuccess()` after saving. This prevents the parent component from knowing the operation succeeded.
 
-### Step 5: Mark Onboarding Complete After First Dog
+```text
+Current (broken):
+  onClose();  // Closes modal but doesn't notify parent
 
-After successfully adding the first dog in the onboarding flow, update the user's profile to set `onboarding_completed = true`.
+Fixed:
+  onSuccess?.();  // Notify parent first
+  onClose();      // Then close modal
+```
 
-## Files to Create/Modify
+## Step 5: Ensure Data Flow Works
+
+After save:
+1. `addDog()` inserts record with owner_id from auth
+2. If avatar selected, upload to dog-avatars bucket  
+3. Update dog record with avatar_url
+4. Call `refreshDogs()` to update the UI
+5. Call `onSuccess()` to notify parent
+6. Close the modal
+
+## Implementation Details
+
+### Database Migration SQL
+
+```sql
+-- Recreate dogs table
+CREATE TABLE public.dogs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id uuid NOT NULL,
+  name text NOT NULL,
+  avatar_url text,
+  size text DEFAULT 'Medium',
+  energy text DEFAULT 'Medium',
+  energy_level text DEFAULT 'Medium',
+  breed text DEFAULT '',
+  bio text DEFAULT '',
+  age_years integer,
+  weight_lbs numeric,
+  health_notes text,
+  play_style text[] DEFAULT '{}',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE public.dogs ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "dogs_select_own" ON public.dogs
+  FOR SELECT USING (owner_id = auth.uid());
+
+CREATE POLICY "dogs_insert_own" ON public.dogs
+  FOR INSERT WITH CHECK (owner_id = auth.uid());
+
+CREATE POLICY "dogs_update_own" ON public.dogs
+  FOR UPDATE USING (owner_id = auth.uid())
+  WITH CHECK (owner_id = auth.uid());
+
+CREATE POLICY "dogs_delete_own" ON public.dogs
+  FOR DELETE USING (owner_id = auth.uid());
+
+-- Create index for filtering by play_style
+CREATE INDEX idx_dogs_play_style ON public.dogs USING GIN (play_style);
+
+-- Create index for owner lookups
+CREATE INDEX idx_dogs_owner_id ON public.dogs (owner_id);
+```
+
+### Storage Bucket Policies SQL
+
+```sql
+-- Allow public read access to dog avatars
+CREATE POLICY "dog_avatars_public_read"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'dog-avatars');
+
+-- Allow authenticated users to upload to their folder
+CREATE POLICY "dog_avatars_insert_own"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'dog-avatars' 
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- Allow users to update their own files
+CREATE POLICY "dog_avatars_update_own"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'dog-avatars'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- Allow users to delete their own files
+CREATE POLICY "dog_avatars_delete_own"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'dog-avatars'
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
+```
+
+### Code Fix in PackMemberForm.tsx
+
+```typescript
+// After successful save (around line 168-171)
+toast.success('Pack member added!');
+onSuccess?.();  // ADD THIS LINE - notify parent of success
+onClose();
+```
+
+## Files to Modify
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `supabase/migrations/[new].sql` | Create | Auto-create profile trigger |
-| `src/hooks/useDogs.tsx` | Modify | Use `dog-avatars` bucket |
-| `src/components/profile/OnboardingFlow.tsx` | Create | New onboarding component |
-| `src/pages/Me.tsx` | Modify | Show onboarding when needed |
-| `src/hooks/useProfileManagement.tsx` | Modify | Add `completeOnboarding` function |
-
-## Technical Details
-
-### Database Trigger (Step 1)
-
-```sql
--- Function to handle new user signup
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.profiles (id, is_public, onboarding_completed, created_at, updated_at)
-  VALUES (
-    NEW.id,
-    true,
-    false,
-    NOW(),
-    NOW()
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-END;
-$$;
-
--- Trigger on auth.users
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-```
-
-### OnboardingFlow Component (Step 3)
-
-The component will have a stepper UI:
-- Show current step indicator (1/2)
-- Step 1: Form for display name, city, state with validation
-- Step 2: Embed the existing PackMemberForm
-- On completion, navigate to the main app
-
-### Onboarding Detection Logic (Step 4)
-
-```typescript
-// In Me.tsx
-if (user && profile?.onboarding_completed === false) {
-  return <OnboardingFlow onComplete={() => refreshProfile()} />;
-}
-```
-
-## Storage Bucket Confirmation
-
-Your `dog-avatars` bucket is correctly configured:
-- Bucket is **public** (images can be viewed by anyone)
-- RLS policy allows authenticated users to upload to their folder
-- RLS policy allows public read access
+| New migration | Create | Recreate dogs table + RLS |
+| New migration | Create | Add storage policies |
+| `src/components/profile/PackMemberForm.tsx` | Modify | Add onSuccess callback |
 
 ## Expected Outcome
 
 After implementation:
+1. The `dogs` table will exist with proper schema
+2. RLS will protect user data (owners can only see their own dogs)
+3. Dog avatars upload to `dog-avatars` bucket with proper security
+4. Play styles save as a `text[]` array (multi-select)
+5. `owner_id` is automatically set from the authenticated user
+6. After saving, the modal closes and My Pack refreshes to show the new dog
 
-1. **New users** signing up will automatically have a profile created
-2. **First visit to /me** will show a friendly onboarding flow asking for basic info
-3. **Adding first dog** completes onboarding and marks `onboarding_completed = true`
-4. **Dog photos** upload to the correct `dog-avatars` bucket
-5. **Returning users** see their normal profile with pack members
+## Summary of What Was Broken
 
-## Optional Enhancements (Future)
-
-- Add a progress indicator showing "Welcome to the Pack!" celebration after completing onboarding
-- Allow skipping the dog addition (since you chose "Optional")
-- Add profile completion percentage badge
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Dogs not saving | Table was dropped | Recreate table |
+| No security | No RLS policies | Add owner-based policies |
+| Avatars might fail | Missing storage policies | Add bucket policies |
+| UI not refreshing | onSuccess not called | Add callback invocation |
