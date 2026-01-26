@@ -8,6 +8,7 @@ import { useServices, getServiceImage, Service } from '@/hooks/useServices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ServicesMap } from '@/components/explore/ServicesMap';
+import { ExploreAssistant } from '@/components/explore/ExploreAssistant';
 
 const serviceCategories = [
   { id: 'Dog Walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-primary/10 text-primary' },
@@ -148,6 +149,9 @@ export default function Explore() {
           </div>
         )}
       </div>
+      
+      {/* AI Assistant FAB */}
+      <ExploreAssistant />
     </div>
   );
 }

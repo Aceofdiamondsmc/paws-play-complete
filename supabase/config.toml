@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.import-services]
 verify_jwt = false
+
+[functions.explore-assistant]
+verify_jwt = false
