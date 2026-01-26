@@ -51,10 +51,13 @@ export interface Dog {
   name: string;
   breed: string | null;
   size: string | null;
-  energy: string | null;
   energy_level: string | null;
   bio: string | null;
   avatar_url: string | null;
+  age_years: number | null;
+  weight_lbs: number | null;
+  health_notes: string | null;
+  play_style: string[] | null;
   created_at: string | null;
   updated_at: string | null;
 }

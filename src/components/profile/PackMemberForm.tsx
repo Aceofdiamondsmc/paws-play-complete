@@ -168,6 +168,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         toast.success('Pack member added!');
       }
 
+      onSuccess?.();
       onClose();
     } catch (error) {
       toast.error('Something went wrong');

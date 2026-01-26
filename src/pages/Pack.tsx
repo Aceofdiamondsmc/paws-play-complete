@@ -18,13 +18,16 @@ const testDogs: DogWithOwner[] = [
     name: 'Max',
     breed: 'Golden Retriever',
     size: 'Large',
-    energy: 'High',
     energy_level: 'High',
     bio: 'Loves to play fetch and swim! Always ready for an adventure at the park. Great with other dogs and kids.',
     avatar_url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=400&fit=crop',
     owner_id: 'test-owner-1',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    age_years: null,
+    weight_lbs: null,
+    health_notes: null,
+    play_style: ['Fetch', 'Swimming'],
     playStyles: ['Fetch Fanatic', 'Water Lover'],
     owner: {
       id: 'test-owner-1',
@@ -38,13 +41,16 @@ const testDogs: DogWithOwner[] = [
     name: 'Fisco',
     breed: 'French Bulldog',
     size: 'Small',
-    energy: 'Medium',
     energy_level: 'Medium',
     bio: 'A playful little guy who loves cuddles and short walks. Gets along great with everyone!',
     avatar_url: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=400&fit=crop',
     owner_id: 'test-owner-2',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    age_years: null,
+    weight_lbs: null,
+    health_notes: null,
+    play_style: ['Cuddling', 'Tug-of-war'],
     playStyles: ['Cuddler', 'Tug Champion'],
     owner: {
       id: 'test-owner-2',
@@ -58,13 +64,16 @@ const testDogs: DogWithOwner[] = [
     name: 'Bella',
     breed: 'Border Collie',
     size: 'Medium',
-    energy: 'High',
     energy_level: 'High',
     bio: 'Super smart and loves to run! Agility champion in training. Needs an active playmate.',
     avatar_url: 'https://images.unsplash.com/photo-1503256207526-0d5d80fa2f47?w=400&h=400&fit=crop',
     owner_id: 'test-owner-3',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    age_years: null,
+    weight_lbs: null,
+    health_notes: null,
+    play_style: ['Chase', 'Fetch'],
     playStyles: ['Chase Expert', 'Fetch Fanatic'],
     owner: {
       id: 'test-owner-3',
@@ -78,13 +87,16 @@ const testDogs: DogWithOwner[] = [
     name: 'Sonny',
     breed: 'Labrador Retriever',
     size: 'Large',
-    energy: 'Low',
     energy_level: 'Low',
     bio: 'A gentle giant who loves lazy afternoons and belly rubs. Perfect for calm playdates.',
     avatar_url: 'https://images.unsplash.com/photo-1529429617124-95b109e86bb8?w=400&h=400&fit=crop',
     owner_id: 'test-owner-4',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    age_years: null,
+    weight_lbs: null,
+    health_notes: null,
+    play_style: ['Cuddling', 'Swimming'],
     playStyles: ['Cuddler', 'Water Lover'],
     owner: {
       id: 'test-owner-4',
@@ -223,7 +235,7 @@ export default function Pack() {
     );
   }
 
-  const energyInfo = getEnergyLevel(currentDog.energy_level || currentDog.energy);
+  const energyInfo = getEnergyLevel(currentDog.energy_level);
 
   return (
     <div 
