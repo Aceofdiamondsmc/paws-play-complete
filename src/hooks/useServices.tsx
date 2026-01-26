@@ -24,6 +24,9 @@ export interface Service {
   photo_reference: string | null;
 }
 
+// Supabase storage URL base
+const SUPABASE_STORAGE_URL = 'https://xasbgkggwnkvrceziaix.supabase.co/storage/v1/object/public/service-images';
+
 // Fallback images by category from Unsplash
 const FALLBACK_IMAGES: Record<string, string> = {
   'Dog Walkers': 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop',
@@ -37,12 +40,19 @@ const FALLBACK_IMAGES: Record<string, string> = {
 const GOOGLE_API_KEY = 'AIzaSyBp8PRiV7axY_8KXC8LZzaSzGEO_4hbqLQ';
 
 export function getServiceImage(service: Service): string {
-  // First priority: Google Places photo_reference
+  // First priority: Supabase storage image_url (if it contains our storage URL or is a full path)
+  if (service.image_url) {
+    // If it's already a full URL, use it directly
+    if (service.image_url.startsWith('http')) {
+      return service.image_url;
+    }
+    // If it's a path, construct the full Supabase URL
+    return `${SUPABASE_STORAGE_URL}/${service.image_url}`;
+  }
+  // Second priority: Google Places photo_reference
   if (service.photo_reference) {
     return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${service.photo_reference}&key=${GOOGLE_API_KEY}`;
   }
-  // Second priority: existing image_url
-  if (service.image_url) return service.image_url;
   // Fallback: category-based stock photos
   return FALLBACK_IMAGES[service.category] || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop';
 }
