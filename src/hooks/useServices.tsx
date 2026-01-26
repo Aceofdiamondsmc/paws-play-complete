@@ -19,6 +19,8 @@ export interface Service {
   verified_latitude: number | null;
   verified_longitude: number | null;
   enrichment_status: 'pending' | 'processing' | 'completed' | 'failed';
+  phone: string | null;
+  website: string | null;
 }
 
 // Fallback images by category from Unsplash

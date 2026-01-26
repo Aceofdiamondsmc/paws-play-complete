@@ -871,6 +871,7 @@ export type Database = {
           longitude: number | null
           name: string
           original_description: string | null
+          phone: string | null
           photo_reference: string | null
           price: string
           rating: number
@@ -879,6 +880,7 @@ export type Database = {
           verified_address: string | null
           verified_latitude: number | null
           verified_longitude: number | null
+          website: string | null
         }
         Insert: {
           category: string
@@ -899,6 +901,7 @@ export type Database = {
           longitude?: number | null
           name: string
           original_description?: string | null
+          phone?: string | null
           photo_reference?: string | null
           price: string
           rating: number
@@ -907,6 +910,7 @@ export type Database = {
           verified_address?: string | null
           verified_latitude?: number | null
           verified_longitude?: number | null
+          website?: string | null
         }
         Update: {
           category?: string
@@ -927,6 +931,7 @@ export type Database = {
           longitude?: number | null
           name?: string
           original_description?: string | null
+          phone?: string | null
           photo_reference?: string | null
           price?: string
           rating?: number
@@ -935,6 +940,7 @@ export type Database = {
           verified_address?: string | null
           verified_latitude?: number | null
           verified_longitude?: number | null
+          website?: string | null
         }
         Relationships: []
       }
