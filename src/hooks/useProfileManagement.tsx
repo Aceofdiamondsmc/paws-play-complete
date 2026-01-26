@@ -63,8 +63,31 @@ export function useProfile() {
     }
   };
 
+  const completeOnboarding = async () => {
+    if (!user) return { error: new Error('Not authenticated') };
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          onboarding_completed: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      await refreshProfile();
+      return { error: null };
+    } catch (e) {
+      console.error('Error completing onboarding:', e);
+      return { error: e as Error };
+    }
+  };
+
   return {
     updateProfile,
-    uploadAvatar
+    uploadAvatar,
+    completeOnboarding
   };
 }

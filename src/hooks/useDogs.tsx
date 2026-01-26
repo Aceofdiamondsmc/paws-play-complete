@@ -123,13 +123,13 @@ export function useDogs() {
       const filePath = `${user.id}/${dogId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('post-images')
+        .from('dog-avatars')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('post-images')
+        .from('dog-avatars')
         .getPublicUrl(filePath);
 
       // Update dog avatar
