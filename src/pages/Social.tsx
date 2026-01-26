@@ -11,85 +11,13 @@ import { useParks } from '@/hooks/useParks';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import bostonTerrierPost from '@/assets/boston-terrier-post.png';
+
 import CreatePostForm from '@/components/social/CreatePostForm';
 import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
 import CommentsDrawer from '@/components/social/CommentsDrawer';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
-// Sample posts for inspiration when no real posts exist
-const samplePosts = [
-  {
-    id: 'sample-1',
-    author: { display_name: 'Sarah & Max', avatar_url: null },
-    content: "Max had the best time at Riverside Dog Park today! Made three new furry friends and perfected his fetch game. The new agility course is pawsome! 🐕",
-    parkName: 'Riverside Dog Park',
-    rating: 5,
-    isReview: true,
-    likesCount: 24,
-    commentsCount: 8,
-    isLiked: false,
-    timeAgo: '30m ago',
-    imageUrl: bostonTerrierPost,
-  },
-  {
-    id: 'sample-2',
-    author: { display_name: 'Michael & Luna', avatar_url: null },
-    content: "Luna discovered her love for swimming today! Who knew my little pup would turn into a water dog? 💦🐾",
-    likesCount: 42,
-    commentsCount: 12,
-    isLiked: true,
-    timeAgo: '2h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=400&h=400&fit=crop',
-  },
-  {
-    id: 'sample-3',
-    author: { display_name: 'Emily & Buddy', avatar_url: null },
-    content: "Oakwood Dog Park needs better shade areas. The equipment is great but it gets too hot in the afternoon. Still, Buddy had fun!",
-    parkName: 'Oakwood Dog Park',
-    rating: 3,
-    isReview: true,
-    likesCount: 15,
-    commentsCount: 5,
-    isLiked: false,
-    timeAgo: '4h ago',
-  },
-  {
-    id: 'sample-4',
-    author: { display_name: 'Jake & Charlie', avatar_url: null },
-    content: "Charlie made so many friends today! Look at that smile! Golden Retrievers really are the friendliest pups. 🌟",
-    likesCount: 58,
-    commentsCount: 14,
-    isLiked: false,
-    timeAgo: '6h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=400&fit=crop',
-  },
-  {
-    id: 'sample-5',
-    author: { display_name: 'Rachel & Bella', avatar_url: null },
-    content: "Bella and her new bestie playing at the park! Nothing beats puppy playtime energy! 🐶❤️",
-    parkName: 'Sunny Meadows Park',
-    likesCount: 67,
-    commentsCount: 19,
-    isLiked: true,
-    timeAgo: '8h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&h=400&fit=crop',
-  },
-  {
-    id: 'sample-6',
-    author: { display_name: 'Amanda & Zeus', avatar_url: null },
-    content: "First time at Maplewood Dog Park and we loved it! Great fenced area for small dogs. Zeus felt right at home! 🏆",
-    parkName: 'Maplewood Dog Park',
-    rating: 5,
-    isReview: true,
-    likesCount: 31,
-    commentsCount: 7,
-    isLiked: false,
-    timeAgo: '10h ago',
-    imageUrl: 'https://images.unsplash.com/photo-1477884213360-7e9d7dcc1e48?w=400&h=400&fit=crop',
-  },
-];
 
 // Star rating component
 function StarRating({ rating }: { rating: number }) {
@@ -144,13 +72,10 @@ export default function Social() {
     { id: 'reviews', label: 'Park Reviews', icon: MapPin },
   ];
 
-  // Use sample posts if no real posts, otherwise show real posts
-  const displayPosts = posts.length > 0 ? posts : samplePosts;
-
-  // Filter sample posts based on active filter
+  // Filter posts based on active filter
   const filteredPosts = activeFilter === 'reviews' 
-    ? displayPosts.filter((p: any) => p.isReview || p.content?.toLowerCase().includes('park'))
-    : displayPosts;
+    ? posts.filter((p) => p.content?.toLowerCase().includes('park'))
+    : posts;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
@@ -318,7 +243,7 @@ export default function Social() {
                   {/* Action buttons */}
                   <div className="flex items-center gap-6 mt-4 pt-2">
                     <button
-                      onClick={() => post.id.startsWith('sample') ? null : likePost(post.id)}
+                      onClick={() => likePost(post.id)}
                       className={cn(
                         "flex items-center gap-1.5 text-sm font-semibold transition-colors",
                         post.isLiked 
@@ -331,7 +256,7 @@ export default function Social() {
                     </button>
                     
                     <button 
-                      onClick={() => !post.id.startsWith('sample') && setCommentsPostId(post.id)}
+                      onClick={() => setCommentsPostId(post.id)}
                       className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <MessageCircle className="w-5 h-5" />
