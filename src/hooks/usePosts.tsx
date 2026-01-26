@@ -37,11 +37,10 @@ export function usePosts() {
     try {
       setLoading(true);
 
-      // Always fetch public posts for both authenticated and guest users
+      // Fetch all posts (RLS policies will control visibility)
       const { data: postsData, error } = await supabase
         .from('posts')
         .select('*')
-        .eq('visibility', 'public')
         .order('created_at', { ascending: false })
         .limit(50);
 
