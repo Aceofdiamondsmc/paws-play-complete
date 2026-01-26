@@ -21,6 +21,7 @@ export interface Service {
   enrichment_status: 'pending' | 'processing' | 'completed' | 'failed';
   phone: string | null;
   website: string | null;
+  photo_reference: string | null;
 }
 
 // Fallback images by category from Unsplash
@@ -32,8 +33,17 @@ const FALLBACK_IMAGES: Record<string, string> = {
   'Groomers': 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400&h=300&fit=crop',
 };
 
+// Google Places API key for dynamic photos
+const GOOGLE_API_KEY = 'AIzaSyBp8PRiV7axY_8KXC8LZzaSzGEO_4hbqLQ';
+
 export function getServiceImage(service: Service): string {
+  // First priority: Google Places photo_reference
+  if (service.photo_reference) {
+    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${service.photo_reference}&key=${GOOGLE_API_KEY}`;
+  }
+  // Second priority: existing image_url
   if (service.image_url) return service.image_url;
+  // Fallback: category-based stock photos
   return FALLBACK_IMAGES[service.category] || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop';
 }
 
