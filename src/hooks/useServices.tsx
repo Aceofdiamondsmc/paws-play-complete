@@ -24,8 +24,8 @@ export interface Service {
   photo_reference: string | null;
 }
 
-// Google Maps API key for Places photos
-const GOOGLE_API_KEY = 'AIzaSyBp8PRiV7axY_8KXC8LZzaSzGEO_4hbqLQ';
+// Google Maps API key for Places photos - uses environment variable for security
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 // Fallback images by category from Unsplash
 const FALLBACK_IMAGES: Record<string, string> = {
