@@ -84,7 +84,6 @@ export type Database = {
           bio: string | null
           breed: string | null
           created_at: string | null
-          energy: string | null
           energy_level: string | null
           health_notes: string | null
           id: string
@@ -101,12 +100,11 @@ export type Database = {
           bio?: string | null
           breed?: string | null
           created_at?: string | null
-          energy?: string | null
           energy_level?: string | null
           health_notes?: string | null
           id?: string
           name: string
-          owner_id: string
+          owner_id?: string
           play_style?: string[] | null
           size?: string | null
           updated_at?: string | null
@@ -118,7 +116,6 @@ export type Database = {
           bio?: string | null
           breed?: string | null
           created_at?: string | null
-          energy?: string | null
           energy_level?: string | null
           health_notes?: string | null
           id?: string
@@ -411,15 +408,7 @@ export type Database = {
           reviewer_id?: string
           would_meet_again?: boolean
         }
-        Relationships: [
-          {
-            foreignKeyName: "playdate_feedback_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       playdate_requests: {
         Row: {
@@ -461,22 +450,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "playdate_requests_receiver_dog_id_fkey"
-            columns: ["receiver_dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "playdate_requests_sender_dog_id_fkey"
-            columns: ["sender_dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       playdate_schedules: {
         Row: {
@@ -1038,15 +1012,7 @@ export type Database = {
           vaccination_type?: string
           verified_date?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "vaccination_records_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
