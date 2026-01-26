@@ -170,11 +170,30 @@ export default function ServiceDetails() {
 
         {/* Action Buttons */}
         <div className="flex gap-3">
-          <Button className="flex-1 rounded-full" size="lg">
+          <Button 
+            className="flex-1 rounded-full" 
+            size="lg"
+            disabled={!service.phone}
+            onClick={() => {
+              if (service.phone) {
+                window.location.href = `tel:${service.phone.replace(/\D/g, '')}`;
+              }
+            }}
+          >
             <Phone className="w-4 h-4 mr-2" />
             Contact
           </Button>
-          <Button variant="outline" className="flex-1 rounded-full" size="lg">
+          <Button 
+            variant="outline" 
+            className="flex-1 rounded-full" 
+            size="lg"
+            disabled={!service.website}
+            onClick={() => {
+              if (service.website) {
+                window.open(service.website, '_blank', 'noopener,noreferrer');
+              }
+            }}
+          >
             <Globe className="w-4 h-4 mr-2" />
             Website
           </Button>
