@@ -41,6 +41,7 @@ export interface Profile {
   state: string | null;
   is_public: boolean;
   onboarding_completed: boolean | null;
+  onesignal_player_id: string | null;
   created_at: string | null;
   updated_at: string | null;
 }

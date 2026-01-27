@@ -5,7 +5,7 @@ import type { Post, Profile } from '@/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface PostWithDetails extends Post {
-  author?: Profile;
+  author?: Partial<Profile>;
   likesCount: number;
   commentsCount: number;
   isLiked: boolean;
@@ -17,7 +17,7 @@ interface Comment {
   author_id: string;
   body: string;
   created_at: string | null;
-  author?: Profile;
+  author?: Partial<Profile>;
 }
 
 export function usePosts() {
