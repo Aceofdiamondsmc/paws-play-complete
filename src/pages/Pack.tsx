@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
@@ -202,8 +202,8 @@ export default function Pack() {
           .limit(50);
 
         if (dogs && dogs.length > 0) {
-          // Filter out current user's dogs
-          const filteredDogs = user ? dogs.filter(d => d.owner_id !== user.id) : dogs;
+          // RPC now includes user's dog first - no filtering needed
+          const filteredDogs = dogs;
           
           if (filteredDogs.length > 0) {
             const ownerIds = [...new Set(filteredDogs.map(d => d.owner_id))];
@@ -351,8 +351,8 @@ export default function Pack() {
         <div className="relative inline-block">
           <Avatar className="w-36 h-36 border-4 border-white shadow-xl">
             <AvatarImage src={currentDog.avatar_url || undefined} className="object-cover" />
-            <AvatarFallback className="bg-gray-600 text-5xl text-white">
-              {currentDog.name?.[0] || 'D'}
+            <AvatarFallback className="bg-[#7CB69D]/30">
+              <PawPrint className="w-16 h-16 text-white/80" />
             </AvatarFallback>
           </Avatar>
           {/* Energy Badge */}
@@ -526,8 +526,8 @@ export default function Pack() {
                   <div className="flex items-center gap-3">
                     <Avatar className="w-12 h-12 border-2 border-[#4ade80]/30">
                       <AvatarImage src={currentDog.owner.avatar_url || undefined} />
-                      <AvatarFallback className="bg-[#4ade80] text-white font-bold">
-                        {currentDog.owner.display_name?.[0] || 'S'}
+                      <AvatarFallback className="bg-[#4ade80]/20">
+                        <PawPrint className="w-6 h-6 text-[#4ade80]" />
                       </AvatarFallback>
                     </Avatar>
                     <span className="font-semibold text-white">{currentDog.owner.display_name || 'Sarah Johnson'}</span>
@@ -548,7 +548,9 @@ export default function Pack() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar className="w-12 h-12 border-2 border-[#4ade80]/30">
-                      <AvatarFallback className="bg-[#4ade80] text-white font-bold">S</AvatarFallback>
+                      <AvatarFallback className="bg-[#4ade80]/20">
+                        <PawPrint className="w-6 h-6 text-[#4ade80]" />
+                      </AvatarFallback>
                     </Avatar>
                     <span className="font-semibold text-white">Sarah Johnson</span>
                   </div>

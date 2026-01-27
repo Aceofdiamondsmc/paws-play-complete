@@ -87,6 +87,7 @@ export type Database = {
           energy_level: string | null
           health_notes: string | null
           id: string
+          is_public: boolean | null
           name: string
           owner_id: string
           play_style: string[] | null
@@ -103,6 +104,7 @@ export type Database = {
           energy_level?: string | null
           health_notes?: string | null
           id?: string
+          is_public?: boolean | null
           name: string
           owner_id?: string
           play_style?: string[] | null
@@ -119,6 +121,7 @@ export type Database = {
           energy_level?: string | null
           health_notes?: string | null
           id?: string
+          is_public?: boolean | null
           name?: string
           owner_id?: string
           play_style?: string[] | null
