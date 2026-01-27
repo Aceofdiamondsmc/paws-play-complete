@@ -1,64 +1,138 @@
 
 
-## Fix Dog Profile Edit Form Pre-Population
+## Redirect Authenticated Users to /me After Sign-In
 
-The edit form appears empty because React's `useState` only initializes values on first render. When the modal opens with different `editingDog` data, the state doesn't update.
+This plan ensures users are automatically navigated to the `/me` route upon successful authentication, whether via email/password or Google OAuth.
 
 ---
 
-### Root Cause
+### Current Behavior
+
+| Sign-in Method | Current Redirect |
+|----------------|------------------|
+| Email/Password | Stays on `/me` page (no navigation needed, but page doesn't update immediately) |
+| Google OAuth | Redirects to `/` (landing page) |
+| Email Confirmation Link | Redirects to `/` (landing page) |
+
+---
+
+### Solution Overview
+
+Three changes are needed to cover all authentication scenarios:
+
+| Change | File | Purpose |
+|--------|------|---------|
+| 1 | `src/pages/Landing.tsx` | Redirect authenticated users away from landing page |
+| 2 | `src/hooks/useAuth.tsx` | Update OAuth and email redirect URLs to `/me` |
+| 3 | `src/pages/Me.tsx` | Navigate to `/me` after successful email/password sign-in |
+
+---
+
+### Implementation Details
+
+#### 1. Update Landing.tsx - Redirect Authenticated Users
+
+Add a `useEffect` that checks if the user is authenticated and redirects them to `/me`:
 
 ```typescript
-// Line 65-76 in PackMemberForm.tsx
-const [name, setName] = useState(editingDog?.name || '');
-const [breed, setBreed] = useState(editingDog?.breed || '');
-// etc...
+import { useAuth } from '@/hooks/useAuth';
+
+export default function Landing() {
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const { prefetchStats } = useStats();
+
+  // Redirect authenticated users to /me
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/me', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  // ... rest of component
+}
 ```
 
-The `useState` hook only uses its initial value argument during the component's first mount. If `PackMemberForm` is already mounted (hidden) and `editingDog` changes, the states keep their previous values.
+This handles the case where OAuth or email confirmation redirects to `/`.
 
----
+#### 2. Update useAuth.tsx - Change OAuth Redirect URLs
 
-### Solution
+Update both the `signUp` and `signInWithGoogle` functions to redirect to `/me`:
 
-Add a `useEffect` hook that resets all form state whenever `editingDog` changes. This ensures that:
-- When editing a dog, all fields are populated with that dog's data
-- When adding a new dog (after editing), fields are cleared
-- Play style tags are correctly pre-selected
+**signUp function (line 118):**
+```typescript
+const redirectUrl = `${window.location.origin}/me`;
+```
 
----
+**signInWithGoogle function (line 130):**
+```typescript
+const redirectUrl = `${window.location.origin}/me`;
+```
 
-### Changes to PackMemberForm.tsx
+This ensures the browser redirects directly to `/me` after Google OAuth completes.
 
-Add a `useEffect` after the state declarations (around line 82) to sync form state with `editingDog`:
+#### 3. Update Me.tsx - Navigate After Email/Password Sign-In
+
+The `handleSubmit` function should navigate after successful sign-in:
 
 ```typescript
-// Reset form when editingDog changes
-useEffect(() => {
-  setName(editingDog?.name || '');
-  setBreed(editingDog?.breed || '');
-  setSize(editingDog?.size || 'Medium');
-  setEnergy(editingDog?.energy_level || 'Medium');
-  setBio(editingDog?.bio || '');
-  setAgeYears(editingDog?.age_years?.toString() || '');
-  setWeightLbs(editingDog?.weight_lbs?.toString() || '');
-  setHealthInfo(editingDog?.health_notes || '');
-  setAvatarUrl(editingDog?.avatar_url || '');
-  setSelectedPlayStyles(editingDog?.play_style || []);
-  // Reset validation state
-  setErrors({});
-  setTouched({});
-}, [editingDog]);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!email || !password) {
+    toast.error('Please fill in all fields');
+    return;
+  }
+
+  setIsSubmitting(true);
+  try {
+    const { error } = isLogin 
+      ? await signIn(email, password)
+      : await signUp(email, password);
+
+    if (error) {
+      toast.error(error.message);
+    } else if (!isLogin) {
+      toast.success('Check your email to confirm your account!');
+    } else {
+      // Successful login - navigate to /me (forces re-render with authenticated state)
+      navigate('/me', { replace: true });
+    }
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 ```
 
 ---
 
-### Additional Import
+### Authentication Flow After Changes
 
-Add `useEffect` to the React import:
-
-```typescript
-import React, { useState, useRef, useEffect } from 'react';
+```text
+                     +------------------+
+                     |   User Signs In  |
+                     +------------------+
+                              |
+        +---------------------+---------------------+
+        |                     |                     |
+   Email/Password        Google OAuth         Email Confirm
+        |                     |                     |
+        v                     v                     v
+   handleSubmit()      OAuth redirectTo      Email redirectTo
+   calls navigate()    set to /me            set to /me
+        |                     |                     |
+        v                     v                     v
+   +--------------------------------------------------+
+   |              User lands on /me                   |
+   +--------------------------------------------------+
+                              |
+              (If lands on / by accident)
+                              |
+                              v
+                 Landing.tsx useEffect
+                 detects user & redirects
+                              |
+                              v
+                     User sees /me page
 ```
 
 ---
@@ -67,24 +141,15 @@ import React, { useState, useRef, useEffect } from 'react';
 
 | File | Changes |
 |------|---------|
-| `src/components/profile/PackMemberForm.tsx` | Add `useEffect` import and form reset effect |
+| `src/pages/Landing.tsx` | Add `useAuth` hook and `useEffect` to redirect authenticated users |
+| `src/hooks/useAuth.tsx` | Update `redirectUrl` in `signUp` and `signInWithGoogle` to `/me` |
+| `src/pages/Me.tsx` | Add `navigate('/me')` after successful `signIn` call |
 
 ---
 
-### Technical Details
+### Technical Notes
 
-- The `useEffect` dependency array includes `editingDog`, so it runs whenever a different dog is selected for editing
-- All form fields are reset: name, breed, size, energy level, bio, age, weight, health notes, avatar URL, and play styles
-- Validation state (`errors` and `touched`) is also reset to clear any previous validation errors
-- This pattern is commonly called "controlled form synchronization" and ensures the form always reflects the current `editingDog` prop
-
----
-
-### Expected Behavior After Fix
-
-1. User clicks "Edit" on a dog card
-2. `editingDog` is set to that dog's data
-3. `useEffect` runs and populates all form fields
-4. User sees the form pre-filled with their dog's current information
-5. Play style tags that were previously saved appear highlighted/selected
+- Using `{ replace: true }` in `navigate()` prevents the user from navigating back to the landing/login page with the browser back button
+- The `loading` check in Landing.tsx prevents premature redirect while auth state is still being determined
+- This approach handles all three sign-in methods: email/password, Google OAuth, and email confirmation links
 
