@@ -17,6 +17,7 @@ import { MessageList } from '@/components/profile/MessageList';
 import { ChatView } from '@/components/profile/ChatView';
 import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { OnboardingFlow } from '@/components/profile/OnboardingFlow';
+import { NotificationsList } from '@/components/profile/NotificationsList';
 import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 
@@ -306,6 +307,9 @@ export default function Me() {
             <p className="text-xs text-muted-foreground">Playdates</p>
           </Card>
         </div>
+
+        {/* Notifications Section */}
+        <NotificationsList />
 
         {/* Messages Section */}
         <MessageList onSelectConversation={handleSelectConversation} />
