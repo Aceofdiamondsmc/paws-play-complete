@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import type { Dog as DogType, Profile } from '@/types';
+import type { Dog as DogType, Profile, DogWithDistance } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DogWithOwner extends DogType {
   owner?: Profile;
+  distance_meters?: number | null;
 }
 
 // Test dogs data for demo
@@ -102,48 +104,139 @@ const testDogs: DogWithOwner[] = [
   }
 ];
 
+// Helper to format distance in miles
+function formatDistanceMiles(meters: number | null | undefined): string {
+  if (!meters) return '';
+  const miles = meters / 1609.34;
+  if (miles < 0.1) return 'Nearby';
+  if (miles < 1) return `${(miles).toFixed(1)} mi`;
+  return `${Math.round(miles)} mi`;
+}
+
 export default function Pack() {
+  const { user } = useAuth();
   const [discoveryDogs, setDiscoveryDogs] = useState<DogWithOwner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
   
   // Touch/swipe handling
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Get user location on mount
   useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          setLocationStatus('granted');
+        },
+        () => {
+          setLocationStatus('denied');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      setLocationStatus('denied');
+    }
+  }, []);
+
+  // Fetch dogs when location status is resolved
+  useEffect(() => {
+    if (locationStatus === 'pending') return;
+    
     const fetchDogs = async () => {
       setLoading(true);
-      const { data: dogs } = await supabase
-        .from('dogs')
-        .select('*')
-        .limit(20);
+      
+      try {
+        if (userLocation && user) {
+          // Use RPC for proximity-sorted results
+          const { data: dogs, error } = await (supabase.rpc as any)('get_nearby_dogs', {
+            user_lat: userLocation.lat,
+            user_lng: userLocation.lng,
+            limit_count: 50
+          });
 
-      if (dogs && dogs.length > 0) {
-        const ownerIds = [...new Set(dogs.map(d => d.owner_id))];
-        const { data: profiles } = await supabase
-          .from('profiles_safe')
+          if (!error && dogs && dogs.length > 0) {
+            setDiscoveryDogs(dogs.map((d: DogWithDistance) => ({
+              id: d.id,
+              owner_id: d.owner_id,
+              name: d.name,
+              breed: d.breed,
+              size: d.size,
+              energy_level: d.energy_level,
+              bio: d.bio,
+              avatar_url: d.avatar_url,
+              age_years: d.age_years,
+              play_style: d.play_style,
+              created_at: d.created_at,
+              updated_at: null,
+              weight_lbs: null,
+              health_notes: null,
+              distance_meters: d.distance_meters,
+              owner: {
+                id: d.owner_id,
+                display_name: d.owner_display_name,
+                avatar_url: d.owner_avatar_url,
+                city: d.owner_city,
+                state: d.owner_state,
+                is_public: true,
+              } as Profile
+            })));
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // Fallback: fetch from dogs_discovery view without distance sorting
+        const { data: dogs } = await supabase
+          .from('dogs')
           .select('*')
-          .in('id', ownerIds);
+          .limit(50);
 
-        const profileMap = new Map<string, Profile>();
-        profiles?.forEach(p => profileMap.set(p.id, p as Profile));
+        if (dogs && dogs.length > 0) {
+          // Filter out current user's dogs
+          const filteredDogs = user ? dogs.filter(d => d.owner_id !== user.id) : dogs;
+          
+          if (filteredDogs.length > 0) {
+            const ownerIds = [...new Set(filteredDogs.map(d => d.owner_id))];
+            const { data: profiles } = await supabase
+              .from('profiles_safe')
+              .select('*')
+              .in('id', ownerIds);
 
-        setDiscoveryDogs(dogs.map(d => ({
-          ...d as DogType,
-          owner: profileMap.get(d.owner_id)
-        })));
-      } else {
-        // Use test dogs when no dogs in database
+            const profileMap = new Map<string, Profile>();
+            profiles?.forEach(p => profileMap.set(p.id as string, p as Profile));
+
+            setDiscoveryDogs(filteredDogs.map(d => ({
+              ...d as DogType,
+              owner: profileMap.get(d.owner_id)
+            })));
+          } else {
+            // Use test dogs when no other dogs in database
+            setDiscoveryDogs(testDogs);
+          }
+        } else {
+          // Use test dogs when no dogs in database
+          setDiscoveryDogs(testDogs);
+        }
+      } catch (err) {
+        console.error('Error fetching dogs:', err);
         setDiscoveryDogs(testDogs);
       }
+      
       setLoading(false);
     };
 
     fetchDogs();
-  }, []);
+  }, [locationStatus, userLocation, user]);
 
   const currentDog = discoveryDogs[currentIndex];
 
@@ -298,12 +391,18 @@ export default function Pack() {
         )}
 
         <div className="p-6 pt-8 space-y-5">
-          {/* Verified Badge */}
+          {/* Verified Badge + Distance */}
           <div className="flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#4ade80]/20 text-[#4ade80] font-semibold text-sm border border-[#4ade80]/30">
               <CheckCircle className="w-4 h-4" />
               Verified
             </span>
+            {currentDog.distance_meters && (
+              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#3b82f6]/20 text-[#60a5fa] font-semibold text-sm border border-[#3b82f6]/30">
+                <MapPin className="w-4 h-4" />
+                {formatDistanceMiles(currentDog.distance_meters)}
+              </span>
+            )}
           </div>
 
           {/* Match Badges */}
