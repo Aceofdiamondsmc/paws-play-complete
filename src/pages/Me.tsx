@@ -66,6 +66,9 @@ export default function Me() {
         toast.error(error.message);
       } else if (!isLogin) {
         toast.success('Check your email to confirm your account!');
+      } else {
+        // Successful login - navigate to /me (forces re-render with authenticated state)
+        navigate('/me', { replace: true });
       }
     } finally {
       setIsSubmitting(false);
