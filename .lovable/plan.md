@@ -1,17 +1,8 @@
 
 
-## Enable iOS Web Push with "Add to Home Screen" Prompt
+## Update Parks Tab to Use `get_parks_nearby` RPC with Pagination
 
-This plan adds iOS-specific detection and an instructional prompt that guides Safari users to add the app to their home screen, which is required for web push notifications on iOS.
-
----
-
-### Background
-
-On iOS, web push notifications only work when:
-1. The app is added to the home screen (runs in "standalone" mode)
-2. The user is on iOS 16.4+ with Safari
-3. A valid Web App Manifest is present
+This plan updates the Parks tab to use the new `get_parks_nearby` Supabase RPC function with pagination support, non-blocking rendering, and a "Load More" button.
 
 ---
 
@@ -19,203 +10,246 @@ On iOS, web push notifications only work when:
 
 | Step | Description |
 |------|-------------|
-| 1 | Create PWA manifest.json with required iOS properties |
-| 2 | Add manifest link and iOS-specific meta tags to index.html |
-| 3 | Create utility functions for iOS and standalone mode detection |
-| 4 | Update NotificationPrompt to show iOS-specific "Add to Home Screen" instructions |
-| 5 | Add localStorage tracking to not repeatedly show the prompt |
+| 1 | Update `useParks` hook to accept user location and use the new RPC |
+| 2 | Add pagination state (`pageOffset`) and `loadMore` function |
+| 3 | Update Parks.tsx to request GPS location on mount |
+| 4 | Add "Load More" button at the bottom of the list view |
+| 5 | Show a small spinner only during pagination loads |
+| 6 | Ensure initial render is non-blocking (show UI immediately) |
 
 ---
 
-### Step 1: Create PWA Manifest
+### Implementation Details
 
-Create `public/manifest.json` with properties required for iOS PWA support:
+#### 1. Update `useParks` Hook (`src/hooks/useParks.tsx`)
 
-```json
-{
-  "name": "Paws Play Repeat",
-  "short_name": "PawsPlay",
-  "description": "Connect with fellow pet parents",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#1a1f2e",
-  "theme_color": "#4ECDC4",
-  "icons": [
-    {
-      "src": "/favicon.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/favicon.png",
-      "sizes": "512x512",
-      "type": "image/png"
+Refactor the hook to:
+- Accept optional `userLat` and `userLng` parameters
+- Call `get_parks_nearby` RPC instead of a standard `select`
+- Add `pageOffset` state and `loadMore` function
+- Append results on pagination (not replace)
+- Track `hasMore` to know when to hide the button
+
+```typescript
+interface UseParksOptions {
+  userLat?: number;
+  userLng?: number;
+  radiusMeters?: number;
+  pageSize?: number;
+}
+
+export function useParks(options: UseParksOptions = {}) {
+  const { userLat, userLng, radiusMeters = 10000, pageSize = 50 } = options;
+  
+  const [parks, setParks] = useState<Park[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [pageOffset, setPageOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeFilters, setActiveFilters] = useState<ParkFilter[]>([]);
+
+  const fetchParks = useCallback(async (offset: number = 0, append: boolean = false) => {
+    if (!userLat || !userLng) {
+      // No location - fall back to cache or show empty
+      return;
     }
-  ]
-}
-```
 
----
-
-### Step 2: Update index.html
-
-Add manifest link and iOS-specific meta tags:
-
-```html
-<!-- PWA Manifest -->
-<link rel="manifest" href="/manifest.json" />
-
-<!-- iOS PWA Support -->
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="PawsPlay" />
-```
-
----
-
-### Step 3: Add Detection Utilities
-
-Update `src/lib/navigation-utils.ts` with new helper functions:
-
-```typescript
-/**
- * Check if running as installed PWA (standalone mode)
- */
-export function isStandalone(): boolean {
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true
-  );
-}
-
-/**
- * Check if iOS Safari (not Chrome/Firefox on iOS)
- */
-export function isIOSSafari(): boolean {
-  const ua = navigator.userAgent;
-  const isIOS = /iPad|iPhone|iPod/.test(ua);
-  const isWebkit = /WebKit/.test(ua);
-  const isChrome = /CriOS/.test(ua);
-  const isFirefox = /FxiOS/.test(ua);
-  return isIOS && isWebkit && !isChrome && !isFirefox;
-}
-```
-
----
-
-### Step 4: Update NotificationPrompt Component
-
-Modify `NotificationPrompt.tsx` to handle three scenarios:
-
-```text
-+------------------+     +---------------------+     +-------------------+
-|  User on iOS     | --> |  Running as PWA?    | --> |  Show normal      |
-|  Safari?         |     |  (standalone mode)  |     |  notification     |
-+------------------+     +---------------------+     |  prompt           |
-        |                         |                  +-------------------+
-        | No                      | No
-        v                         v
-+------------------+     +---------------------+
-|  Show normal     |     |  Show "Add to       |
-|  notification    |     |  Home Screen"       |
-|  prompt          |     |  instructions       |
-+------------------+     +---------------------+
-```
-
-**New prompt UI for iOS Safari users not in standalone mode:**
-
-- Title: "Get Notifications on iPhone"
-- Message: "Add this app to your home screen to receive push notifications"
-- Visual step-by-step instructions:
-  1. Tap the Share button (icon shown)
-  2. Scroll down and tap "Add to Home Screen"
-  3. Tap "Add" to confirm
-- Dismiss button saves to localStorage to not show again for 7 days
-
----
-
-### Step 5: Component State Logic
-
-```typescript
-// New state to track prompt type
-const [promptType, setPromptType] = useState<'standard' | 'ios-install' | null>(null);
-
-useEffect(() => {
-  if (user && profile && !profile.onesignal_player_id) {
-    const dismissed = localStorage.getItem('ios-install-prompt-dismissed');
-    const dismissedAt = dismissed ? parseInt(dismissed, 10) : 0;
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    
-    // Check if iOS Safari but NOT standalone
-    if (isIOSSafari() && !isStandalone()) {
-      // Don't show if dismissed within 7 days
-      if (Date.now() - dismissedAt > sevenDays) {
-        setTimeout(() => setPromptType('ios-install'), 3000);
+    try {
+      if (offset === 0) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
       }
-    } else {
-      // Non-iOS or already standalone - show standard prompt
-      setTimeout(() => setPromptType('standard'), 3000);
+
+      const { data, error: rpcError } = await (supabase.rpc as any)('get_parks_nearby', {
+        user_lat: userLat,
+        user_lng: userLng,
+        radius_meters: radiusMeters,
+        page_size: pageSize,
+        page_offset: offset
+      });
+
+      if (rpcError) throw rpcError;
+
+      const newParks = mapParksData(data || []);
+
+      if (append) {
+        setParks(prev => [...prev, ...newParks]);
+      } else {
+        setParks(newParks);
+      }
+
+      setHasMore(newParks.length === pageSize);
+
+    } catch (e) {
+      console.error('Error fetching parks:', e);
+      setError('Failed to load parks');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-  }
-}, [user, profile]);
+  }, [userLat, userLng, radiusMeters, pageSize]);
+
+  const loadMore = useCallback(() => {
+    const newOffset = pageOffset + pageSize;
+    setPageOffset(newOffset);
+    fetchParks(newOffset, true);
+  }, [pageOffset, pageSize, fetchParks]);
+
+  // Fetch when location changes
+  useEffect(() => {
+    if (userLat && userLng) {
+      setPageOffset(0);
+      fetchParks(0, false);
+    }
+  }, [userLat, userLng, fetchParks]);
+
+  return {
+    parks: filteredParks,
+    loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+    // ... rest of existing returns
+  };
+}
 ```
 
----
+#### 2. Update Parks Page (`src/pages/Parks.tsx`)
 
-### iOS Install Prompt UI
+Request GPS location on mount and pass to hook:
+
+```typescript
+export default function Parks() {
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  
+  // Request GPS location on mount
+  useEffect(() => {
+    getCurrentLocation().then(location => {
+      if (location) {
+        setUserLocation({ lat: location.latitude, lng: location.longitude });
+      }
+    });
+  }, []);
+
+  // Pass location to useParks hook
+  const { 
+    parks, 
+    loading, 
+    loadingMore,
+    hasMore,
+    loadMore,
+    activeFilters, 
+    toggleFilter 
+  } = useParks({
+    userLat: userLocation?.lat,
+    userLng: userLocation?.lng,
+    radiusMeters: 10000,
+    pageSize: 50
+  });
+
+  // ... rest of component
+}
+```
+
+#### 3. Add "Load More" Button to List View
+
+Add at the bottom of the list view, only showing when there are more results:
 
 ```tsx
-{promptType === 'ios-install' && (
-  <Card className="p-4 shadow-lg border-primary/20 bg-card/95 backdrop-blur-sm">
-    <div className="flex items-start gap-3">
-      <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-        <Share className="w-5 h-5 text-blue-500" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-sm">Get Notifications on iPhone 📲</h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          Add this app to your home screen to receive alerts:
-        </p>
-        <ol className="text-xs text-muted-foreground mt-2 space-y-1.5 list-decimal list-inside">
-          <li>Tap <Share className="inline w-3 h-3 mb-0.5" /> at the bottom of Safari</li>
-          <li>Scroll and tap <span className="font-medium">"Add to Home Screen"</span></li>
-          <li>Tap <span className="font-medium">"Add"</span> to confirm</li>
-        </ol>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="rounded-full text-xs h-8 mt-3"
-          onClick={handleDismissIOSPrompt}
-        >
-          Got it
-        </Button>
-      </div>
-      <button onClick={handleDismissIOSPrompt} className="text-muted-foreground hover:text-foreground">
-        <X className="w-4 h-4" />
-      </button>
+{/* List View Content */}
+<div className="flex-1 overflow-y-auto p-4 space-y-3">
+  {loading ? (
+    <div className="flex items-center justify-center py-12">
+      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
     </div>
-  </Card>
-)}
+  ) : parks.length === 0 ? (
+    <div className="text-center py-12 text-muted-foreground">
+      <Dog className="w-12 h-12 mx-auto mb-3 opacity-50" />
+      <p className="font-medium">No parks found nearby</p>
+      <p className="text-sm mt-1">Try expanding your search area</p>
+    </div>
+  ) : (
+    <>
+      {parks.map(park => (
+        <Card key={park.id}>
+          {/* ... existing park card content ... */}
+        </Card>
+      ))}
+      
+      {/* Load More Button */}
+      {hasMore && (
+        <div className="flex justify-center py-4">
+          <Button
+            variant="outline"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="rounded-full"
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Load More Parks'
+            )}
+          </Button>
+        </div>
+      )}
+    </>
+  )}
+</div>
 ```
 
 ---
 
-### Files to Create/Modify
+### Data Flow
 
-| File | Action | Description |
-|------|--------|-------------|
-| `public/manifest.json` | Create | PWA manifest for iOS home screen support |
-| `index.html` | Modify | Add manifest link and iOS meta tags |
-| `src/lib/navigation-utils.ts` | Modify | Add isStandalone() and isIOSSafari() functions |
-| `src/components/notifications/NotificationPrompt.tsx` | Modify | Add iOS detection and install instructions UI |
+```text
++------------------+     +-------------------+     +------------------+
+|  Parks.tsx       |     |  useParks Hook    |     |  Supabase RPC    |
+|  Mount           | --> |  userLat/Lng set  | --> |  get_parks_nearby|
++------------------+     +-------------------+     +------------------+
+        |                         |                        |
+        v                         v                        v
++------------------+     +-------------------+     +------------------+
+|  getCurrentLoc() |     |  fetchParks(0)    |     |  Returns 50 parks|
+|  GPS request     |     |  offset=0         |     |  sorted by dist  |
++------------------+     +-------------------+     +------------------+
+                                  |
+                                  v
+                         +-------------------+
+                         |  User taps        |
+                         |  "Load More"      |
+                         +-------------------+
+                                  |
+                                  v
+                         +-------------------+     +------------------+
+                         |  loadMore()       | --> |  RPC offset=50   |
+                         |  fetchParks(50)   |     |  Append results  |
+                         +-------------------+     +------------------+
+```
+
+---
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useParks.tsx` | Refactor to use RPC with pagination, add `loadMore` function |
+| `src/pages/Parks.tsx` | Pass location to hook, add "Load More" button and spinner |
 
 ---
 
 ### Technical Notes
 
-- The `display: standalone` in manifest is required for iOS to treat it as a PWA
-- `(window.navigator as any).standalone` is iOS-specific and indicates home screen install
-- localStorage tracking prevents annoying users who dismiss the prompt
-- The Share icon from lucide-react matches iOS Safari's share button
-- OneSignal handles the actual push subscription once the PWA is installed
+- **Non-blocking Render**: The UI renders immediately with `loading=true` state. No blocking occurs.
+- **Cache Strategy**: Cache can still be used for offline fallback, but primary data comes from the RPC.
+- **Distance Field**: The RPC should return `distance_meters` which maps to `park.distance` for display.
+- **Pagination Reset**: When location changes, `pageOffset` resets to 0 and parks are replaced (not appended).
+- **hasMore Logic**: If fewer than `pageSize` results return, we know there are no more pages.
+- **Filter Integration**: Client-side filtering continues to work on the fetched results.
 
