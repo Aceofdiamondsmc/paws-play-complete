@@ -123,7 +123,7 @@ export function NotificationsList() {
             onClick={markAllAsRead}
           >
             <Check className="w-3 h-3" />
-            Mark all read
+            Clear All
           </Button>
         )}
       </div>
