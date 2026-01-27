@@ -1,70 +1,96 @@
 
+# Sync Play Style Pills with Add Pack Member Selections
 
-# Remove Email from User Profile Display
+## Problem
 
-## Overview
+The Play Style pills displayed on the Pack tab are currently **hardcoded mock values** that don't reflect what users actually selected in the "Add Pack Member" form.
 
-Remove the visible email address from the user's profile on the "Me" tab. The email is stored securely in the backend and doesn't need to be displayed on the profile view.
+**Current behavior:**
+- Form saves: `['Fetch', 'Cuddling', 'Swimming']` → saved correctly to database
+- Pack tab shows: `['Fetch Fanatic', 'Water Lover']` → random mock values, ignoring the database
 
-## Current State
+## Root Cause
 
-The email is currently displayed in the profile header section at line 274:
-
-```tsx
-<p className="text-primary-foreground/80 text-sm">{user.email}</p>
-```
-
-This shows the user's email directly below their display name in the teal header area.
+In `src/pages/Pack.tsx`:
+- Lines 139-146: Mock play styles are randomly assigned, **overwriting** the real `play_style` data
+- Line 338: Renders `playStyles` (mock) instead of `play_style` (real database data)
+- Fallback on line 338 defaults to `['Fetch Fanatic', 'Water Lover']` if nothing exists
 
 ## Solution
 
-Remove the email display line from the profile header.
+Update `Pack.tsx` to use the actual `play_style` array from the database instead of the mock `playStyles` property.
 
-## Implementation
+## Implementation Details
 
-### File: `src/pages/Me.tsx`
+### File: `src/pages/Pack.tsx`
 
-**Delete line 274:**
+**Change 1: Remove mock play style assignment (lines 139-146)**
+
+Replace the mock style generation with the actual database values:
 
 ```tsx
-// Remove this line:
-<p className="text-primary-foreground/80 text-sm">{user.email}</p>
+// Before:
+const playStyleOptions = ['Fetch Fanatic', 'Water Lover', 'Tug Champion', 'Chase Expert', 'Cuddler'];
+
+setDiscoveryDogs(dogs.map(d => ({
+  ...d as DogType,
+  owner: profileMap.get(d.owner_id),
+  playStyles: playStyleOptions.slice(0, Math.floor(Math.random() * 3) + 1)  // ❌ Random mock
+})));
+
+// After:
+setDiscoveryDogs(dogs.map(d => ({
+  ...d as DogType,
+  owner: profileMap.get(d.owner_id)
+  // ✅ No mock playStyles - use real play_style from database
+})));
 ```
 
-**Before (lines 272-282):**
+**Change 2: Update rendering to use real data (line 338)**
+
 ```tsx
-<div>
-  <h2 className="text-xl font-bold">{profile?.display_name || 'Pet Parent'}</h2>
-  <p className="text-primary-foreground/80 text-sm">{user.email}</p>
-  {profile?.city && profile?.state && (
-    <p className="text-primary-foreground/60 text-sm mt-1 flex items-center gap-1">
-      <MapPin className="w-3 h-3" />
-      {profile.city}, {profile.state}
-    </p>
-  )}
-</div>
+// Before:
+{(currentDog.playStyles || ['Fetch Fanatic', 'Water Lover']).map((style, idx) => (
+
+// After:
+{(currentDog.play_style && currentDog.play_style.length > 0 
+  ? currentDog.play_style 
+  : ['No play styles set']
+).map((style, idx) => (
 ```
 
-**After:**
+**Change 3: Remove playStyles from interface (lines 9-12)**
+
 ```tsx
-<div>
-  <h2 className="text-xl font-bold">{profile?.display_name || 'Pet Parent'}</h2>
-  {profile?.city && profile?.state && (
-    <p className="text-primary-foreground/60 text-sm mt-1 flex items-center gap-1">
-      <MapPin className="w-3 h-3" />
-      {profile.city}, {profile.state}
-    </p>
-  )}
-</div>
+// Before:
+interface DogWithOwner extends DogType {
+  owner?: Profile;
+  playStyles?: string[];  // ❌ Remove this
+}
+
+// After:
+interface DogWithOwner extends DogType {
+  owner?: Profile;
+  // ✅ Use play_style from DogType instead
+}
 ```
 
-## Additional Cleanup
+**Change 4: Update test dogs to use play_style only (lines 15-108)**
 
-The `Mail` icon import on line 3 is only used for the login form, so it can remain. No other changes needed.
+Remove the duplicate `playStyles` property from test dogs since `play_style` already contains the correct values.
 
-## Summary
+## Result
 
-| File | Change |
-|------|--------|
-| `src/pages/Me.tsx` | Remove line 274 displaying `user.email` |
+| Before | After |
+|--------|-------|
+| Shows random mock styles like "Fetch Fanatic" | Shows actual selected styles like "Fetch", "Cuddling" |
+| Ignores user selections from Add Pack Member | Respects and displays user's chosen play styles |
+| Uses `playStyles` (mock property) | Uses `play_style` (real database column) |
 
+## Visual Impact
+
+The pill labels will now match exactly what users selected in the form:
+- If user selected "Fetch" and "Swimming" → Pills show "Fetch" and "Swimming"
+- If no styles selected → Shows "No play styles set" message
+
+The pill styling (colors, icons) will remain the same beautiful design.
