@@ -766,6 +766,13 @@ export type Database = {
             referencedRelation: "dogs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "posts_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs_discovery"
+            referencedColumns: ["id"]
+          },
         ]
       }
       products: {
@@ -821,6 +828,8 @@ export type Database = {
           full_name: string | null
           id: string
           is_public: boolean
+          latitude: number | null
+          longitude: number | null
           onboarding_completed: boolean | null
           onesignal_player_id: string | null
           state: string | null
@@ -837,6 +846,8 @@ export type Database = {
           full_name?: string | null
           id: string
           is_public?: boolean
+          latitude?: number | null
+          longitude?: number | null
           onboarding_completed?: boolean | null
           onesignal_player_id?: string | null
           state?: string | null
@@ -853,6 +864,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_public?: boolean
+          latitude?: number | null
+          longitude?: number | null
           onboarding_completed?: boolean | null
           onesignal_player_id?: string | null
           state?: string | null
@@ -1052,6 +1065,50 @@ export type Database = {
       }
     }
     Views: {
+      dogs_discovery: {
+        Row: {
+          age_years: number | null
+          avatar_url: string | null
+          bio: string | null
+          breed: string | null
+          created_at: string | null
+          energy_level: string | null
+          id: string | null
+          name: string | null
+          owner_avatar_url: string | null
+          owner_city: string | null
+          owner_display_name: string | null
+          owner_id: string | null
+          owner_latitude: number | null
+          owner_longitude: number | null
+          owner_state: string | null
+          play_style: string[] | null
+          size: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dogs_owner_fk"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dogs_owner_fk"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dogs_owner_fk"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geography_columns: {
         Row: {
           coord_dimension: number | null
@@ -1515,6 +1572,27 @@ export type Database = {
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       get_current_user_role: { Args: never; Returns: string }
+      get_nearby_dogs: {
+        Args: { limit_count?: number; user_lat: number; user_lng: number }
+        Returns: {
+          age_years: number
+          avatar_url: string
+          bio: string
+          breed: string
+          created_at: string
+          distance_meters: number
+          energy_level: string
+          id: string
+          name: string
+          owner_avatar_url: string
+          owner_city: string
+          owner_display_name: string
+          owner_id: string
+          owner_state: string
+          play_style: string[]
+          size: string
+        }[]
+      }
       get_nearby_parks: {
         Args: { radius_meters?: number; user_lat: number; user_lng: number }
         Returns: {

@@ -140,3 +140,23 @@ export interface FilterOption {
 }
 
 export type TabName = 'parks' | 'explore' | 'social' | 'dates' | 'pack' | 'me' | 'shop';
+
+// Discovery dog with distance info for Pack tab
+export interface DogWithDistance {
+  id: string;
+  owner_id: string;
+  name: string;
+  breed: string | null;
+  size: string | null;
+  energy_level: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  age_years: number | null;
+  play_style: string[] | null;
+  created_at: string | null;
+  owner_display_name: string | null;
+  owner_avatar_url: string | null;
+  owner_city: string | null;
+  owner_state: string | null;
+  distance_meters: number | null;
+}
