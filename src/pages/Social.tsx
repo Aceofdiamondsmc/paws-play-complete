@@ -1,10 +1,26 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/hooks/useAuth';
 import { useParks } from '@/hooks/useParks';
@@ -15,6 +31,7 @@ import { cn } from '@/lib/utils';
 import CreatePostForm from '@/components/social/CreatePostForm';
 import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
 import CommentsDrawer from '@/components/social/CommentsDrawer';
+import EditPostModal from '@/components/social/EditPostModal';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
@@ -41,12 +58,30 @@ function StarRating({ rating }: { rating: number }) {
 export default function Social() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { posts, loading, createPost, likePost, refresh, newPostIds } = usePosts();
+  const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts();
   const { allParks } = useParks();
   const [isPosting, setIsPosting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
+  
+  // Edit modal state
+  const [editingPost, setEditingPost] = useState<{ id: string; content: string } | null>(null);
+  
+  // Delete confirmation state
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+
+  const handleDeletePost = async () => {
+    if (!deletingPostId) return;
+    
+    const { error } = await deletePost(deletingPostId);
+    if (error) {
+      toast.error('Failed to delete post');
+    } else {
+      toast.success('Post deleted');
+    }
+    setDeletingPostId(null);
+  };
   const handlePost = async (
     content: string, 
     imageUrl?: string, 
@@ -200,16 +235,48 @@ export default function Social() {
                       </div>
                     </div>
                     
-                    {/* Park Review Badge */}
-                    {(post.isReview || post.content?.toLowerCase().includes('park')) && (
-                      <Badge 
-                        variant="outline" 
-                        className="border-primary text-primary bg-primary/5 font-semibold shrink-0"
-                      >
-                        <MapPin className="w-3 h-3 mr-1" />
-                        Park Review
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {/* Park Review Badge */}
+                      {(post.isReview || post.content?.toLowerCase().includes('park')) && (
+                        <Badge 
+                          variant="outline" 
+                          className="border-primary text-primary bg-primary/5 font-semibold shrink-0"
+                        >
+                          <MapPin className="w-3 h-3 mr-1" />
+                          Park Review
+                        </Badge>
+                      )}
+                      
+                      {/* Owner Actions Menu */}
+                      {user && post.author_id === user.id && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="p-1.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                              aria-label="Post options"
+                            >
+                              <MoreHorizontal className="w-5 h-5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem
+                              onClick={() => setEditingPost({ id: post.id, content: post.content })}
+                              className="cursor-pointer"
+                            >
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeletingPostId(post.id)}
+                              className="cursor-pointer text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Content */}
@@ -316,6 +383,36 @@ export default function Social() {
         open={!!commentsPostId}
         onOpenChange={(open) => !open && setCommentsPostId(null)}
       />
+
+      {/* Edit Post Modal */}
+      <EditPostModal
+        open={!!editingPost}
+        onOpenChange={(open) => !open && setEditingPost(null)}
+        postId={editingPost?.id || null}
+        initialContent={editingPost?.content || ''}
+        onPostUpdated={refresh}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingPostId} onOpenChange={(open) => !open && setDeletingPostId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePost}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -323,6 +323,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           gemini_summary: string | null
+          geo: unknown
           geom: string | null
           has_agility_equipment: boolean | null
           has_grass_surface: boolean | null
@@ -350,6 +351,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           gemini_summary?: string | null
+          geo?: unknown
           geom?: string | null
           has_agility_equipment?: boolean | null
           has_grass_surface?: boolean | null
@@ -377,6 +379,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           gemini_summary?: string | null
+          geo?: unknown
           geom?: string | null
           has_agility_equipment?: boolean | null
           has_grass_surface?: boolean | null
@@ -1601,18 +1604,19 @@ export type Database = {
         Returns: {
           added_by: string
           address: string
+          city: string
           created_at: string
           description: string
           distance_meters: number
           gemini_summary: string
-          geom: unknown
+          geom: string
           has_agility_equipment: boolean
           has_grass_surface: boolean
           has_large_dog_area: boolean
           has_parking: boolean
           has_small_dog_area: boolean
           has_water_station: boolean
-          id: string
+          id: number
           image_url: string
           is_dog_friendly: boolean
           is_fully_fenced: boolean
@@ -1621,6 +1625,44 @@ export type Database = {
           name: string
           place_id: string
           rating: number
+          state: string
+          updated_at: string
+          user_ratings_total: number
+        }[]
+      }
+      get_parks_nearby: {
+        Args: {
+          page_offset?: number
+          page_size?: number
+          radius_meters?: number
+          user_lat: number
+          user_lng: number
+        }
+        Returns: {
+          added_by: string
+          address: string
+          city: string
+          created_at: string
+          description: string
+          distance_meters: number
+          gemini_summary: string
+          geom: string
+          has_agility_equipment: boolean
+          has_grass_surface: boolean
+          has_large_dog_area: boolean
+          has_parking: boolean
+          has_small_dog_area: boolean
+          has_water_station: boolean
+          id: number
+          image_url: string
+          is_dog_friendly: boolean
+          is_fully_fenced: boolean
+          latitude: number
+          longitude: number
+          name: string
+          place_id: string
+          rating: number
+          state: string
           updated_at: string
           user_ratings_total: number
         }[]
