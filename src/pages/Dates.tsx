@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,11 +6,40 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlaydates } from '@/hooks/usePlaydates';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import datesBackground from '@/assets/dates-background.jpg';
 
 export default function Dates() {
-  const { user } = useAuth();
-  const { pendingPlaydates, acceptedPlaydates, playdates, loading, updatePlaydateStatus } = usePlaydates();
+  const { user, dogs } = useAuth();
+  const { 
+    pendingPlaydates, 
+    incomingPendingPlaydates,
+    outgoingPendingPlaydates,
+    acceptedPlaydates, 
+    playdates, 
+    loading, 
+    updatePlaydateStatus,
+    acceptPlaydate 
+  } = usePlaydates();
+
+  const handleAccept = async (playdateId: string) => {
+    const { error } = await acceptPlaydate(playdateId);
+    if (error) {
+      toast.error(error.message || 'Failed to accept playdate');
+    } else {
+      toast.success('Playdate accepted! Check your Booked tab.');
+    }
+  };
+
+  const handleDecline = async (playdateId: string) => {
+    const { error } = await updatePlaydateStatus(playdateId, 'declined');
+    if (error) {
+      toast.error(error.message || 'Failed to decline playdate');
+    } else {
+      toast.info('Playdate declined');
+    }
+  };
+  
 
   if (!user) {
     return (
@@ -58,7 +87,7 @@ export default function Dates() {
           <TabsTrigger value="all" className="rounded-full">All</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pending" className="mt-4 space-y-3">
+        <TabsContent value="pending" className="mt-4 space-y-4">
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -69,15 +98,44 @@ export default function Dates() {
               <p>No pending playdate requests</p>
             </div>
           ) : (
-            pendingPlaydates.map(playdate => (
-              <PlaydateCard
-                key={playdate.id}
-                playdate={playdate}
-                onAccept={() => updatePlaydateStatus(playdate.id, 'accepted')}
-                onDecline={() => updatePlaydateStatus(playdate.id, 'declined')}
-                showActions
-              />
-            ))
+            <>
+              {/* Incoming Requests - Show Accept/Decline */}
+              {incomingPendingPlaydates.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                    <Inbox className="w-4 h-4" />
+                    Incoming Requests
+                  </h3>
+                  {incomingPendingPlaydates.map(playdate => (
+                    <PlaydateCard
+                      key={playdate.id}
+                      playdate={playdate}
+                      onAccept={() => handleAccept(playdate.id)}
+                      onDecline={() => handleDecline(playdate.id)}
+                      showActions
+                      isIncoming
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Outgoing Requests - No actions, just status */}
+              {outgoingPendingPlaydates.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                    <Send className="w-4 h-4" />
+                    Sent Requests
+                  </h3>
+                  {outgoingPendingPlaydates.map(playdate => (
+                    <PlaydateCard
+                      key={playdate.id}
+                      playdate={playdate}
+                      isOutgoing
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 
@@ -116,12 +174,16 @@ function PlaydateCard({
   playdate, 
   onAccept, 
   onDecline, 
-  showActions = false 
+  showActions = false,
+  isIncoming = false,
+  isOutgoing = false
 }: { 
   playdate: any; 
   onAccept?: () => void; 
   onDecline?: () => void;
   showActions?: boolean;
+  isIncoming?: boolean;
+  isOutgoing?: boolean;
 }) {
   return (
     <Card className="p-4 bg-card">
