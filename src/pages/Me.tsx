@@ -271,7 +271,6 @@ export default function Me() {
           </div>
           <div>
             <h2 className="text-xl font-bold">{profile?.display_name || 'Pet Parent'}</h2>
-            <p className="text-primary-foreground/80 text-sm">{user.email}</p>
             {profile?.city && profile?.state && (
               <p className="text-primary-foreground/60 text-sm mt-1 flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
