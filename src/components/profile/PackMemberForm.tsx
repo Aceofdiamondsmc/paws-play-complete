@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,6 +80,23 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   const [touched, setTouched] = useState<{ name?: boolean }>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset form when editingDog changes
+  useEffect(() => {
+    setName(editingDog?.name || '');
+    setBreed(editingDog?.breed || '');
+    setSize(editingDog?.size || 'Medium');
+    setEnergy(editingDog?.energy_level || 'Medium');
+    setBio(editingDog?.bio || '');
+    setAgeYears(editingDog?.age_years?.toString() || '');
+    setWeightLbs(editingDog?.weight_lbs?.toString() || '');
+    setHealthInfo(editingDog?.health_notes || '');
+    setAvatarUrl(editingDog?.avatar_url || '');
+    setSelectedPlayStyles(editingDog?.play_style || []);
+    // Reset validation state
+    setErrors({});
+    setTouched({});
+  }, [editingDog]);
 
   const validateName = (value: string) => {
     if (!value.trim()) return 'Name is required';
