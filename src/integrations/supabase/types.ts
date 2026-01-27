@@ -126,7 +126,29 @@ export type Database = {
           updated_at?: string | null
           weight_lbs?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dogs_owner_fk"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dogs_owner_fk"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dogs_owner_fk"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       friendships: {
         Row: {
