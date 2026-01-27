@@ -27,11 +27,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
+    
+    if (error) {
+      console.error('Error fetching profile (session may have expired):', error);
+      setProfile(null);
+      return;
+    }
     
     if (data) {
       setProfile(data as Profile);
@@ -39,10 +45,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const fetchDogs = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('dogs')
       .select('*')
       .eq('owner_id', userId);
+    
+    if (error) {
+      console.error('Error fetching dogs (session may have expired):', error);
+      setDogs([]);
+      return;
+    }
     
     if (data) {
       setDogs(data as Dog[]);
