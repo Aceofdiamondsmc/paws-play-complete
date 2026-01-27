@@ -732,6 +732,7 @@ export type Database = {
           author_id: string
           content: string
           created_at: string | null
+          dog_id: string | null
           id: string
           image_url: string | null
           updated_at: string
@@ -741,6 +742,7 @@ export type Database = {
           author_id: string
           content: string
           created_at?: string | null
+          dog_id?: string | null
           id?: string
           image_url?: string | null
           updated_at?: string
@@ -750,12 +752,21 @@ export type Database = {
           author_id?: string
           content?: string
           created_at?: string | null
+          dog_id?: string | null
           id?: string
           image_url?: string | null
           updated_at?: string
           visibility?: Database["public"]["Enums"]["post_visibility"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "posts_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
