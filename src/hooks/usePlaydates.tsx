@@ -47,11 +47,15 @@ export function usePlaydates() {
         .select('*')
         .in('id', Array.from(allDogIds));
 
-      // Fetch profiles
-      const { data: profilesData } = await supabase
-        .from('profiles')
+      // Fetch profiles (use profiles_safe view for authenticated access)
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles_safe')
         .select('*')
         .in('id', Array.from(requesterIds));
+
+      if (profilesError) {
+        console.error('Error fetching profiles (session may have expired):', profilesError);
+      }
 
       const dogMap = new Map<string, Dog>();
       dogsData?.forEach((d: Dog) => dogMap.set(d.id, d));

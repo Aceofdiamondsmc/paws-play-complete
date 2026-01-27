@@ -35,11 +35,15 @@ export function useFriendships() {
         if (f.addressee_id !== user.id) userIds.add(f.addressee_id);
       });
 
-      // Fetch profiles for these users
-      const { data: profiles } = await supabase
-        .from('profiles')
+      // Fetch profiles for these users (use profiles_safe view for authenticated access)
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles_safe')
         .select('*')
         .in('id', Array.from(userIds));
+
+      if (profilesError) {
+        console.error('Error fetching profiles (session may have expired):', profilesError);
+      }
 
       const profileMap = new Map<string, Profile>();
       profiles?.forEach((p: Profile) => profileMap.set(p.id, p));

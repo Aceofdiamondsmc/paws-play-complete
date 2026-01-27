@@ -37,11 +37,15 @@ export function useMessages() {
         otherUserIds.add(otherId);
       });
 
-      // Fetch profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
+      // Fetch profiles (use profiles_safe view for authenticated access)
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles_safe')
         .select('*')
         .in('id', Array.from(otherUserIds));
+
+      if (profilesError) {
+        console.error('Error fetching profiles (session may have expired):', profilesError);
+      }
 
       const profileMap = new Map<string, Profile>();
       profiles?.forEach((p: Profile) => profileMap.set(p.id, p));

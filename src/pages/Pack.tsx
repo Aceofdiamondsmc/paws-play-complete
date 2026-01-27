@@ -124,7 +124,7 @@ export default function Pack() {
       if (dogs && dogs.length > 0) {
         const ownerIds = [...new Set(dogs.map(d => d.owner_id))];
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('profiles_safe')
           .select('*')
           .in('id', ownerIds);
 
