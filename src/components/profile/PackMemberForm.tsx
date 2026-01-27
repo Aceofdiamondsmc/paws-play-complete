@@ -45,12 +45,13 @@ interface PackMemberFormProps {
     name: string;
     breed?: string | null;
     size?: string | null;
-    energy?: string | null;
+    energy_level?: string | null;
     bio?: string | null;
     avatar_url?: string | null;
     age_years?: number | null;
     weight_lbs?: number | null;
     health_notes?: string | null;
+    play_style?: string[] | null;
   };
 }
 
@@ -64,14 +65,14 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   const [name, setName] = useState(editingDog?.name || '');
   const [breed, setBreed] = useState(editingDog?.breed || '');
   const [size, setSize] = useState(editingDog?.size || 'Medium');
-  const [energy, setEnergy] = useState(editingDog?.energy || 'Medium');
+  const [energy, setEnergy] = useState(editingDog?.energy_level || 'Medium');
   const [bio, setBio] = useState(editingDog?.bio || '');
   const [ageYears, setAgeYears] = useState(editingDog?.age_years?.toString() || '');
   const [weightLbs, setWeightLbs] = useState(editingDog?.weight_lbs?.toString() || '');
   const [healthInfo, setHealthInfo] = useState(editingDog?.health_notes || '');
   const [avatarUrl, setAvatarUrl] = useState(editingDog?.avatar_url || '');
   const [selectedPlayStyles, setSelectedPlayStyles] = useState<string[]>(
-    (editingDog as { play_style?: string[] | null })?.play_style || []
+    editingDog?.play_style || []
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
