@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { MapPin, List, Star, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Navigation, Loader2 } from 'lucide-react';
+import { MapPin, List, Star, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useParks } from '@/hooks/useParks';
 import { ParksMap } from '@/components/parks/ParksMap';
 import { cn } from '@/lib/utils';
-import { openNavigation, formatDistanceMiles } from '@/lib/navigation-utils';
+import { openNavigation, calculateDistance, formatDistanceMiles } from '@/lib/navigation-utils';
 import { getCurrentLocation } from '@/lib/spatial-utils';
 import type { ParkFilter, FilterOption, Park } from '@/types';
 
@@ -26,9 +26,10 @@ const iconMap: Record<string, React.ElementType> = {
 
 export default function Parks() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const { parks, loading, activeFilters, toggleFilter } = useParks();
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Request GPS location on mount
+  // Get user location for distance calculations
   useEffect(() => {
     getCurrentLocation().then(location => {
       if (location) {
@@ -37,28 +38,10 @@ export default function Parks() {
     });
   }, []);
 
-  // Pass location to useParks hook for RPC-based fetching
-  const { 
-    parks, 
-    loading, 
-    loadingMore,
-    hasMore,
-    loadMore,
-    activeFilters, 
-    toggleFilter 
-  } = useParks({
-    userLat: userLocation?.lat,
-    userLng: userLocation?.lng,
-    radiusMeters: 10000,
-    pageSize: 50
-  });
-
-  // Format distance from meters to miles
-  const formatDistance = (park: Park): string | undefined => {
-    if (park.distance_meters !== undefined && park.distance_meters !== null) {
-      return formatDistanceMiles(park.distance_meters);
-    }
-    return undefined;
+  // Calculate distance from user to a park
+  const getDistanceToPark = (park: Park): number | undefined => {
+    if (!userLocation || !park.latitude || !park.longitude) return undefined;
+    return calculateDistance(userLocation.lat, userLocation.lng, park.latitude, park.longitude);
   };
 
   // Handle navigation button click
@@ -146,131 +129,108 @@ export default function Parks() {
           ) : parks.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Dog className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">No parks found nearby</p>
-              <p className="text-sm mt-1">Try expanding your search area or removing filters</p>
+              <p className="font-medium">No parks found matching your filters</p>
+              <p className="text-sm mt-1">Try removing some filters to see more parks</p>
             </div>
           ) : (
-            <>
-              {parks.map(park => {
-                const distance = formatDistance(park);
-                return (
-                  <Card key={park.id} className="p-4 card-playful">
-                    <div className="flex gap-4">
-                      {park.image_url ? (
-                        <img
-                          src={park.image_url}
-                          alt={park.name || 'Dog Park'}
-                          className="w-24 h-24 object-cover rounded-xl"
-                        />
-                      ) : (
-                        <div className="w-24 h-24 bg-primary/10 rounded-xl flex items-center justify-center">
-                          <PawPrint className="w-8 h-8 text-primary" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-bold text-lg truncate">{park.name}</h3>
-                          {distance && (
-                            <Badge variant="secondary" className="shrink-0 text-xs">
-                              📍 {distance}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {park.address || 'Dog Park'}
-                        </p>
-                        {park.rating && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <Star className="w-4 h-4 text-warning fill-warning" />
-                            <span className="text-sm font-medium">{park.rating.toFixed(1)}</span>
-                            <span className="text-xs text-muted-foreground">
-                              ({park.user_ratings_total || 0} reviews)
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {park.is_fully_fenced && (
-                            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                              <Fence className="w-3 h-3 mr-1" />
-                              Fenced
-                            </Badge>
-                          )}
-                          {park.has_water_station && (
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                              <Droplets className="w-3 h-3 mr-1" />
-                              Water
-                            </Badge>
-                          )}
-                          {park.has_small_dog_area && (
-                            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                              <Dog className="w-3 h-3 mr-1" />
-                              Small Dogs
-                            </Badge>
-                          )}
-                          {park.has_large_dog_area && (
-                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                              <Dog className="w-3 h-3 mr-1" />
-                              Large Dogs
-                            </Badge>
-                          )}
-                          {park.has_agility_equipment && (
-                            <Badge variant="outline" className="text-xs bg-pink-50 text-pink-700 border-pink-200">
-                              <Dumbbell className="w-3 h-3 mr-1" />
-                              Agility
-                            </Badge>
-                          )}
-                          {park.has_parking && (
-                            <Badge variant="outline" className="text-xs bg-slate-50 text-slate-700 border-slate-200">
-                              <Car className="w-3 h-3 mr-1" />
-                              Parking
-                            </Badge>
-                          )}
-                          {park.has_grass_surface && (
-                            <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
-                              <TreePine className="w-3 h-3 mr-1" />
-                              Grass
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        {/* Navigate Button */}
-                        {park.latitude && park.longitude && (
-                          <Button
-                            size="sm"
-                            className="mt-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full"
-                            onClick={() => handleNavigate(park)}
-                          >
-                            <Navigation className="w-4 h-4 mr-1.5" />
-                            Navigate
-                          </Button>
+            parks.map(park => {
+              const distance = getDistanceToPark(park);
+              return (
+                <Card key={park.id} className="p-4 card-playful">
+                  <div className="flex gap-4">
+                    {park.image_url ? (
+                      <img
+                        src={park.image_url}
+                        alt={park.name || 'Dog Park'}
+                        className="w-24 h-24 object-cover rounded-xl"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <PawPrint className="w-8 h-8 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-bold text-lg truncate">{park.name}</h3>
+                        {distance !== undefined && (
+                          <Badge variant="secondary" className="shrink-0 text-xs">
+                            📍 {formatDistanceMiles(distance)}
+                          </Badge>
                         )}
                       </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {park.address || 'Dog Park'}
+                      </p>
+                      {park.rating && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Star className="w-4 h-4 text-warning fill-warning" />
+                          <span className="text-sm font-medium">{park.rating.toFixed(1)}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({park.user_ratings_total || 0} reviews)
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {park.is_fully_fenced && (
+                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                            <Fence className="w-3 h-3 mr-1" />
+                            Fenced
+                          </Badge>
+                        )}
+                        {park.has_water_station && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            <Droplets className="w-3 h-3 mr-1" />
+                            Water
+                          </Badge>
+                        )}
+                        {park.has_small_dog_area && (
+                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                            <Dog className="w-3 h-3 mr-1" />
+                            Small Dogs
+                          </Badge>
+                        )}
+                        {park.has_large_dog_area && (
+                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                            <Dog className="w-3 h-3 mr-1" />
+                            Large Dogs
+                          </Badge>
+                        )}
+                        {park.has_agility_equipment && (
+                          <Badge variant="outline" className="text-xs bg-pink-50 text-pink-700 border-pink-200">
+                            <Dumbbell className="w-3 h-3 mr-1" />
+                            Agility
+                          </Badge>
+                        )}
+                        {park.has_parking && (
+                          <Badge variant="outline" className="text-xs bg-slate-50 text-slate-700 border-slate-200">
+                            <Car className="w-3 h-3 mr-1" />
+                            Parking
+                          </Badge>
+                        )}
+                        {park.has_grass_surface && (
+                          <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                            <TreePine className="w-3 h-3 mr-1" />
+                            Grass
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {/* Navigate Button */}
+                      {park.latitude && park.longitude && (
+                        <Button
+                          size="sm"
+                          className="mt-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full"
+                          onClick={() => handleNavigate(park)}
+                        >
+                          <Navigation className="w-4 h-4 mr-1.5" />
+                          Navigate
+                        </Button>
+                      )}
                     </div>
-                  </Card>
-                );
-              })}
-              
-              {/* Load More Button */}
-              {hasMore && (
-                <div className="flex justify-center py-4">
-                  <Button
-                    variant="outline"
-                    onClick={loadMore}
-                    disabled={loadingMore}
-                    className="rounded-full"
-                  >
-                    {loadingMore ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      'Load More Parks'
-                    )}
-                  </Button>
-                </div>
-              )}
-            </>
+                  </div>
+                </Card>
+              );
+            })
           )}
         </div>
       )}

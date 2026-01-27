@@ -28,7 +28,6 @@ export interface Park {
   updated_at: string;
   // Distance in meters (populated by nearby queries)
   distance?: number;
-  distance_meters?: number;
 }
 
 export interface Profile {

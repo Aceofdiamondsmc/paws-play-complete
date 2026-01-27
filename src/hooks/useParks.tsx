@@ -10,53 +10,9 @@ interface CachedParks {
   timestamp: number;
 }
 
-interface UseParksOptions {
-  userLat?: number;
-  userLng?: number;
-  radiusMeters?: number;
-  pageSize?: number;
-}
-
-// Map RPC response to Park type
-function mapParksData(data: any[]): Park[] {
-  return (data || []).map((row: any) => ({
-    id: String(row.id),
-    name: row.name,
-    address: row.address,
-    city: row.city,
-    state: row.state,
-    description: row.description,
-    latitude: row.latitude,
-    longitude: row.longitude,
-    geom: row.geom,
-    image_url: row.image_url,
-    rating: row.rating,
-    user_ratings_total: row.user_ratings_total,
-    is_fully_fenced: row.is_fully_fenced,
-    has_water_station: row.has_water_station,
-    has_small_dog_area: row.has_small_dog_area,
-    has_large_dog_area: row.has_large_dog_area,
-    has_agility_equipment: row.has_agility_equipment,
-    has_parking: row.has_parking,
-    has_grass_surface: row.has_grass_surface,
-    is_dog_friendly: row.is_dog_friendly,
-    gemini_summary: row.gemini_summary,
-    place_id: row.place_id,
-    added_by: row.added_by,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    distance_meters: row.distance_meters,
-  }));
-}
-
-export function useParks(options: UseParksOptions = {}) {
-  const { userLat, userLng, radiusMeters = 10000, pageSize = 50 } = options;
-
+export function useParks() {
   const [parks, setParks] = useState<Park[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [pageOffset, setPageOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<ParkFilter[]>([]);
 
@@ -91,86 +47,76 @@ export function useParks(options: UseParksOptions = {}) {
     }
   }, []);
 
-  // Fetch parks using RPC
-  const fetchParks = useCallback(async (offset: number = 0, append: boolean = false) => {
-    // If no location, try to load from cache
-    if (!userLat || !userLng) {
-      const hasCache = loadFromCache();
-      if (hasCache) {
-        setLoading(false);
-      }
-      return;
-    }
-
+  // Fetch parks from Supabase
+  const fetchParks = useCallback(async () => {
     try {
-      if (offset === 0) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
+      setLoading(true);
       setError(null);
 
-      const { data, error: rpcError } = await (supabase.rpc as any)('get_parks_nearby', {
-        user_lat: userLat,
-        user_lng: userLng,
-        radius_meters: radiusMeters,
-        page_size: pageSize,
-        page_offset: offset
-      });
+      const { data, error: fetchError } = await supabase
+        .from('parks')
+        .select('*')
+        .order('rating', { ascending: false, nullsFirst: false });
 
-      if (rpcError) throw rpcError;
+      if (fetchError) throw fetchError;
 
-      const newParks = mapParksData((data as any[]) || []);
-
-      if (append) {
-        setParks(prev => [...prev, ...newParks]);
-      } else {
-        setParks(newParks);
-        // Save first page to cache
-        saveToCache(newParks);
-      }
-
-      setHasMore(newParks.length === pageSize);
-
+      // Map database columns to our Park type
+      // Note: The database uses 'Id' (uppercase I) as the primary key
+      const parksData: Park[] = (data || []).map((row: any) => ({
+        id: String(row.Id), // Database uses uppercase 'Id'
+        name: row.name,
+        address: row.address,
+        city: row.city,
+        state: row.state,
+        description: row.description,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        geom: row.geom, // PostGIS geometry column
+        image_url: row.image_url,
+        rating: row.rating,
+        user_ratings_total: row.user_rating_total, // Note: DB column is user_rating_total (singular)
+        is_fully_fenced: row.is_fully_fenced,
+        has_water_station: row.has_water_station,
+        has_small_dog_area: row.has_small_dog_area,
+        has_large_dog_area: row.has_large_dog_area,
+        has_agility_equipment: row.has_agility_equipment,
+        has_parking: row.has_parking,
+        has_grass_surface: row.has_grass_surface,
+        is_dog_friendly: row.is_dog_friendly,
+        gemini_summary: row.gemini_summary,
+        place_id: row.place_id,
+        added_by: row.added_by,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }));
+      
+      setParks(parksData);
+      saveToCache(parksData);
     } catch (e) {
       console.error('Error fetching parks:', e);
       setError('Failed to load parks. Showing cached data.');
-      // Fall back to cache on error
       loadFromCache();
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
-  }, [userLat, userLng, radiusMeters, pageSize, loadFromCache, saveToCache]);
+  }, [loadFromCache, saveToCache]);
 
-  // Load more parks (pagination) - use functional update to avoid stale state
-  const loadMore = useCallback(() => {
-    if (loadingMore) return; // Prevent double-tapping
-    setPageOffset(prevOffset => {
-      const newOffset = prevOffset + pageSize;
-      fetchParks(newOffset, true);
-      return newOffset;
-    });
-  }, [pageSize, fetchParks, loadingMore]);
-
-  // Initial load and refetch when location changes
+  // Initial load - non-blocking with immediate cache display
   useEffect(() => {
-    // Load cache immediately for fast initial render
+    // Load cache synchronously to show data immediately
     const hasCache = loadFromCache();
     if (hasCache) {
       setLoading(false);
     }
-
-    // Fetch from RPC when we have location
-    if (userLat && userLng) {
-      setPageOffset(0);
-      // Defer fetch to not block render
-      const timeoutId = setTimeout(() => {
-        fetchParks(0, false);
-      }, 0);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [userLat, userLng, fetchParks, loadFromCache]);
+    
+    // Fetch fresh data in the background without blocking navigation
+    // Using setTimeout to defer the network request and allow React to complete initial render
+    const timeoutId = setTimeout(() => {
+      fetchParks();
+    }, 0);
+    
+    return () => clearTimeout(timeoutId);
+  }, [fetchParks, loadFromCache]);
 
   // Filter parks based on active filters
   const filteredParks = parks.filter(park => {
@@ -214,13 +160,10 @@ export function useParks(options: UseParksOptions = {}) {
     parks: filteredParks,
     allParks: parks,
     loading,
-    loadingMore,
-    hasMore,
-    loadMore,
     error,
     activeFilters,
     toggleFilter,
     clearFilters,
-    refresh: () => fetchParks(0, false)
+    refresh: fetchParks
   };
 }
