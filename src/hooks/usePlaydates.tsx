@@ -126,18 +126,76 @@ export function usePlaydates() {
     return { error };
   };
 
+  // Accept playdate and create schedule in one transaction-like flow
+  const acceptPlaydate = async (playdateId: string) => {
+    if (!user) return { error: new Error('Not authenticated') };
+
+    // Find the playdate to get details
+    const playdate = playdates.find(p => p.id === playdateId);
+    if (!playdate) return { error: new Error('Playdate not found') };
+
+    // Step 1: Update status to accepted
+    const { error: updateError } = await supabase
+      .from('playdate_requests')
+      .update({ status: 'accepted', updated_at: new Date().toISOString() })
+      .eq('id', playdateId);
+
+    if (updateError) return { error: updateError };
+
+    // Step 2: Create schedule entry
+    const proposedDate = playdate.requested_date && playdate.requested_time
+      ? new Date(`${playdate.requested_date}T${playdate.requested_time}`)
+      : new Date();
+
+    const { error: scheduleError } = await supabase
+      .from('playdate_schedules')
+      .insert({
+        playdate_request_id: playdateId,
+        proposed_by: user.id,
+        proposed_date: proposedDate.toISOString(),
+        location_name: playdate.location_name || 'TBD',
+        status: 'confirmed'
+      });
+
+    if (scheduleError) {
+      console.error('Error creating schedule:', scheduleError);
+      // Rollback status if schedule fails (best effort)
+      await supabase
+        .from('playdate_requests')
+        .update({ status: 'pending', updated_at: new Date().toISOString() })
+        .eq('id', playdateId);
+      return { error: scheduleError };
+    }
+
+    await fetchPlaydates();
+    return { error: null };
+  };
+
   const pendingPlaydates = playdates.filter(p => p.status === 'pending');
   const acceptedPlaydates = playdates.filter(p => p.status === 'accepted');
   const completedPlaydates = playdates.filter(p => p.status === 'completed');
 
+  // Separate incoming vs outgoing pending requests
+  const incomingPendingPlaydates = pendingPlaydates.filter(p => {
+    // User is the receiver if they own the receiver dog
+    return dogs.some(d => d.id === p.receiver_dog_id);
+  });
+
+  const outgoingPendingPlaydates = pendingPlaydates.filter(p => {
+    return p.requester_id === user?.id;
+  });
+
   return {
     playdates,
     pendingPlaydates,
+    incomingPendingPlaydates,
+    outgoingPendingPlaydates,
     acceptedPlaydates,
     completedPlaydates,
     loading,
     createPlaydate,
     updatePlaydateStatus,
+    acceptPlaydate,
     refresh: fetchPlaydates
   };
 }

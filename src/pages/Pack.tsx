@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { Dog as DogType, Profile, DogWithDistance } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
+import { RequestPlaydateModal } from '@/components/playdate/RequestPlaydateModal';
+import { toast } from 'sonner';
 
 interface DogWithOwner extends DogType {
   owner?: Profile;
@@ -114,13 +116,14 @@ function formatDistanceMiles(meters: number | null | undefined): string {
 }
 
 export default function Pack() {
-  const { user } = useAuth();
+  const { user, dogs: userDogs } = useAuth();
   const [discoveryDogs, setDiscoveryDogs] = useState<DogWithOwner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
+  const [playdateModalOpen, setPlaydateModalOpen] = useState(false);
   
   // Touch/swipe handling
   const touchStartX = useRef<number>(0);
@@ -513,10 +516,44 @@ export default function Pack() {
           </div>
 
           {/* Request Playdate Button */}
-          <Button className="w-full h-14 rounded-2xl bg-[#FFD93D] hover:bg-[#f5cc2f] text-[#1a1f2e] font-bold text-lg shadow-lg">
+          <Button 
+            onClick={() => {
+              if (!user) {
+                toast.error('Please sign in to request a playdate');
+                return;
+              }
+              if (userDogs.length === 0) {
+                toast.error('Add a dog to your pack first');
+                return;
+              }
+              if (currentDog.owner_id === user.id) {
+                toast.info("That's your own pup!");
+                return;
+              }
+              setPlaydateModalOpen(true);
+            }}
+            className="w-full h-14 rounded-2xl bg-[#FFD93D] hover:bg-[#f5cc2f] text-[#1a1f2e] font-bold text-lg shadow-lg"
+          >
             <Heart className="w-5 h-5 mr-2" />
             Request Playdate
           </Button>
+
+          {/* Playdate Modal */}
+          {user && currentDog && (
+            <RequestPlaydateModal
+              open={playdateModalOpen}
+              onOpenChange={setPlaydateModalOpen}
+              targetDog={{
+                id: currentDog.id,
+                name: currentDog.name,
+                avatar_url: currentDog.avatar_url,
+                owner_id: currentDog.owner_id
+              }}
+              userDogs={userDogs}
+              userId={user.id}
+              onSuccess={() => toast.success('Playdate request sent!')}
+            />
+          )}
 
           {/* Divider */}
           <div className="border-t border-[#3a4156]" />
