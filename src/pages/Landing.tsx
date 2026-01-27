@@ -1,11 +1,21 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Play, PawPrint } from 'lucide-react';
 import landingPugGlasses from '@/assets/landing-pug-glasses.jpg';
 import { useStats } from '@/contexts/StatsContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const { prefetchStats } = useStats();
+
+  // Redirect authenticated users to /me
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/me', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleLetsPlay = () => {
     // Start fetching stats immediately (non-blocking)
