@@ -1,255 +1,125 @@
 
+Goal
+- Make the Parks tab work again and keep all navigation (“Navigate” buttons + map popup navigation) while using a working Supabase RPC that supports the requested pagination (page_size=50, page_offset increments) and non-blocking render.
 
-## Update Parks Tab to Use `get_parks_nearby` RPC with Pagination
+What’s broken right now (confirmed)
+- Frontend calls RPC `get_parks_nearby(...)` from `src/hooks/useParks.tsx`, but the database does not have that function.
+- The only similar function in the DB is `public.get_nearby_parks(user_lat, user_lng, radius_meters)` and it is currently broken:
+  - It references columns that don’t exist in `public.parks` (e.g., `p.id` instead of `"Id"`, `p.user_ratings_total` instead of `user_rating_total`, and expects `geom` to be geometry even though the table has `geom` as text).
+  - This means even switching the frontend to `get_nearby_parks` would still fail until the DB function is fixed.
 
-This plan updates the Parks tab to use the new `get_parks_nearby` Supabase RPC function with pagination support, non-blocking rendering, and a "Load More" button.
+High-level fix
+- Implement (via Supabase migration) a correct `public.get_parks_nearby()` RPC with the exact signature the UI needs:
+  - user_lat, user_lng, radius_meters (default 10000), page_size (default 50), page_offset (default 0)
+  - Returns the fields the UI expects plus `distance_meters`
+  - Uses correct column names/types from your existing `parks` table (`"Id"`, `user_rating_total`, `geo` geography and/or lat/lng)
+- Update frontend to use that function reliably (and preserve navigation UI).
 
----
+Step-by-step implementation plan
 
-### Summary of Changes
+1) Supabase DB: create a working paginated RPC: `public.get_parks_nearby`
+- Add a new migration in `supabase/migrations/` that:
+  1. Creates or replaces `public.get_parks_nearby(...)`.
+  2. Computes distance using PostGIS from either:
+     - `parks.geo` (preferred), OR
+     - a computed geography from `parks.longitude/parks.latitude` when geo is null (fallback).
+  3. Filters to radius using `ST_DWithin(...)`
+  4. Sorts by distance ascending
+  5. Applies pagination: `LIMIT page_size OFFSET page_offset`
 
-| Step | Description |
-|------|-------------|
-| 1 | Update `useParks` hook to accept user location and use the new RPC |
-| 2 | Add pagination state (`pageOffset`) and `loadMore` function |
-| 3 | Update Parks.tsx to request GPS location on mount |
-| 4 | Add "Load More" button at the bottom of the list view |
-| 5 | Show a small spinner only during pagination loads |
-| 6 | Ensure initial render is non-blocking (show UI immediately) |
+- Return type: match the frontend mapping and types in `src/types/index.ts` and `useParks.mapParksData`, including:
+  - `id` should be the bigint `"Id"` (aliased as `id` in the RPC) so existing `String(row.id)` mapping works.
+  - `user_ratings_total` should be returned by aliasing from `parks.user_rating_total` to `user_ratings_total` (plural), so existing UI rendering doesn’t break.
 
----
+- Example shape (final SQL will follow your table exactly):
+  - RETURNS TABLE (
+      id bigint,
+      name text,
+      address text,
+      city text,
+      state text,
+      description text,
+      latitude double precision,
+      longitude double precision,
+      geom text,
+      image_url text,
+      rating double precision,
+      user_ratings_total bigint,
+      is_fully_fenced boolean,
+      has_water_station boolean,
+      has_small_dog_area boolean,
+      has_large_dog_area boolean,
+      has_agility_equipment boolean,
+      has_parking boolean,
+      has_grass_surface boolean,
+      is_dog_friendly boolean,
+      gemini_summary text,
+      place_id text,
+      added_by text,
+      created_at text,
+      updated_at text,
+      distance_meters double precision
+    )
 
-### Implementation Details
+- Security:
+  - Keep it `SECURITY DEFINER` + `SET search_path TO 'public'` like your existing functions.
+  - Since `parks` is already public-readable (RLS policy `parks_select_public`), this doesn’t expand access beyond what you already allow, but it provides a stable API for distance sorting/pagination.
 
-#### 1. Update `useParks` Hook (`src/hooks/useParks.tsx`)
+2) (Optional but recommended) Supabase DB: fix or wrap `public.get_nearby_parks`
+- To prevent future confusion and to make `src/lib/spatial-utils.ts` safe again, do one of:
+  Option A (preferred): redefine `get_nearby_parks(user_lat, user_lng, radius_meters)` as a thin wrapper calling `get_parks_nearby(user_lat,user_lng,radius_meters, page_size:=1000, page_offset:=0)`.
+  Option B: update frontend code to stop using `get_nearby_parks` anywhere and leave it as-is (less ideal since it remains broken in the DB).
 
-Refactor the hook to:
-- Accept optional `userLat` and `userLng` parameters
-- Call `get_parks_nearby` RPC instead of a standard `select`
-- Add `pageOffset` state and `loadMore` function
-- Append results on pagination (not replace)
-- Track `hasMore` to know when to hide the button
+3) Frontend: keep navigation logic and make Parks load again
+- Update `src/hooks/useParks.tsx`:
+  - Keep the non-blocking behavior (it already defers the first fetch via `setTimeout(..., 0)`).
+  - Ensure it calls the now-working `get_parks_nearby` RPC with the correct argument names:
+    - user_lat, user_lng, radius_meters, page_size, page_offset
+  - Make pagination more robust:
+    - Change `loadMore` to use a functional state update for `pageOffset` to avoid stale state on rapid taps:
+      - compute nextOffset from previous offset
+      - then call `fetchParks(nextOffset, true)`
+  - Keep existing caching fallback (works well for offline / failure cases).
 
-```typescript
-interface UseParksOptions {
-  userLat?: number;
-  userLng?: number;
-  radiusMeters?: number;
-  pageSize?: number;
-}
+- Update `src/pages/Parks.tsx`:
+  - Ensure the “Navigate” button remains present in list view (currently it is).
+  - Ensure list view keeps the “Load More” button and shows only a small bottom spinner while `loadingMore` is true (currently it does, but we’ll verify it remains minimal and does not block the whole screen).
+  - Ensure map view still renders immediately; it already renders with `ParksMap parks={parks} loading={loading}` and ParksMap separately requests location for its own map centering.
 
-export function useParks(options: UseParksOptions = {}) {
-  const { userLat, userLng, radiusMeters = 10000, pageSize = 50 } = options;
-  
-  const [parks, setParks] = useState<Park[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [pageOffset, setPageOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeFilters, setActiveFilters] = useState<ParkFilter[]>([]);
+4) Verification checklist (to confirm it’s truly fixed)
+- Database:
+  - Run in Supabase SQL Editor (Test):
+    - `select * from public.get_parks_nearby(36.1699, -115.1398, 10000, 50, 0);`
+    - Confirm it returns rows and includes `distance_meters`.
+    - Confirm `id` corresponds to `"Id"` values in `parks`.
+  - Verify pagination:
+    - Offset 0 and offset 50 return different rows (or fewer if dataset smaller).
 
-  const fetchParks = useCallback(async (offset: number = 0, append: boolean = false) => {
-    if (!userLat || !userLng) {
-      // No location - fall back to cache or show empty
-      return;
-    }
+- App behavior (Preview):
+  - Open /parks:
+    - Screen renders immediately (header + tabs show even before data).
+    - GPS prompt appears (browser-level), then parks load.
+  - Switch to List:
+    - “Navigate” button is present per park.
+    - “Load More” appends 50 more without wiping previous list.
+    - During load more, only bottom button shows spinner, not full-page loader.
+  - Switch to Map:
+    - Markers appear once parks are loaded.
+    - Popups still include navigation links.
 
-    try {
-      if (offset === 0) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
+5) “Undo last prompts” safety option (if you still want a rollback)
+- If you decide you’d rather revert to the last known good state instead of applying the fix, use the History panel to restore the project to the message before the Parks/RPC changes, then we can re-apply only the minimal safe changes on top.
 
-      const { data, error: rpcError } = await (supabase.rpc as any)('get_parks_nearby', {
-        user_lat: userLat,
-        user_lng: userLng,
-        radius_meters: radiusMeters,
-        page_size: pageSize,
-        page_offset: offset
-      });
+Files involved (what will change when we implement)
+- Supabase:
+  - New migration SQL in `supabase/migrations/*_get_parks_nearby.sql` (and optionally also fix/wrap `get_nearby_parks` in the same migration)
+- Frontend:
+  - `src/hooks/useParks.tsx` (adjust RPC call + pagination robustness)
+  - `src/lib/spatial-utils.ts` (optional: switch to `get_parks_nearby` or keep wrapper approach)
+  - `src/pages/Parks.tsx` (verify/restore navigation and bottom-spinner behavior; minimal changes expected)
 
-      if (rpcError) throw rpcError;
-
-      const newParks = mapParksData(data || []);
-
-      if (append) {
-        setParks(prev => [...prev, ...newParks]);
-      } else {
-        setParks(newParks);
-      }
-
-      setHasMore(newParks.length === pageSize);
-
-    } catch (e) {
-      console.error('Error fetching parks:', e);
-      setError('Failed to load parks');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [userLat, userLng, radiusMeters, pageSize]);
-
-  const loadMore = useCallback(() => {
-    const newOffset = pageOffset + pageSize;
-    setPageOffset(newOffset);
-    fetchParks(newOffset, true);
-  }, [pageOffset, pageSize, fetchParks]);
-
-  // Fetch when location changes
-  useEffect(() => {
-    if (userLat && userLng) {
-      setPageOffset(0);
-      fetchParks(0, false);
-    }
-  }, [userLat, userLng, fetchParks]);
-
-  return {
-    parks: filteredParks,
-    loading,
-    loadingMore,
-    hasMore,
-    loadMore,
-    // ... rest of existing returns
-  };
-}
-```
-
-#### 2. Update Parks Page (`src/pages/Parks.tsx`)
-
-Request GPS location on mount and pass to hook:
-
-```typescript
-export default function Parks() {
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  
-  // Request GPS location on mount
-  useEffect(() => {
-    getCurrentLocation().then(location => {
-      if (location) {
-        setUserLocation({ lat: location.latitude, lng: location.longitude });
-      }
-    });
-  }, []);
-
-  // Pass location to useParks hook
-  const { 
-    parks, 
-    loading, 
-    loadingMore,
-    hasMore,
-    loadMore,
-    activeFilters, 
-    toggleFilter 
-  } = useParks({
-    userLat: userLocation?.lat,
-    userLng: userLocation?.lng,
-    radiusMeters: 10000,
-    pageSize: 50
-  });
-
-  // ... rest of component
-}
-```
-
-#### 3. Add "Load More" Button to List View
-
-Add at the bottom of the list view, only showing when there are more results:
-
-```tsx
-{/* List View Content */}
-<div className="flex-1 overflow-y-auto p-4 space-y-3">
-  {loading ? (
-    <div className="flex items-center justify-center py-12">
-      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-    </div>
-  ) : parks.length === 0 ? (
-    <div className="text-center py-12 text-muted-foreground">
-      <Dog className="w-12 h-12 mx-auto mb-3 opacity-50" />
-      <p className="font-medium">No parks found nearby</p>
-      <p className="text-sm mt-1">Try expanding your search area</p>
-    </div>
-  ) : (
-    <>
-      {parks.map(park => (
-        <Card key={park.id}>
-          {/* ... existing park card content ... */}
-        </Card>
-      ))}
-      
-      {/* Load More Button */}
-      {hasMore && (
-        <div className="flex justify-center py-4">
-          <Button
-            variant="outline"
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="rounded-full"
-          >
-            {loadingMore ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              'Load More Parks'
-            )}
-          </Button>
-        </div>
-      )}
-    </>
-  )}
-</div>
-```
-
----
-
-### Data Flow
-
-```text
-+------------------+     +-------------------+     +------------------+
-|  Parks.tsx       |     |  useParks Hook    |     |  Supabase RPC    |
-|  Mount           | --> |  userLat/Lng set  | --> |  get_parks_nearby|
-+------------------+     +-------------------+     +------------------+
-        |                         |                        |
-        v                         v                        v
-+------------------+     +-------------------+     +------------------+
-|  getCurrentLoc() |     |  fetchParks(0)    |     |  Returns 50 parks|
-|  GPS request     |     |  offset=0         |     |  sorted by dist  |
-+------------------+     +-------------------+     +------------------+
-                                  |
-                                  v
-                         +-------------------+
-                         |  User taps        |
-                         |  "Load More"      |
-                         +-------------------+
-                                  |
-                                  v
-                         +-------------------+     +------------------+
-                         |  loadMore()       | --> |  RPC offset=50   |
-                         |  fetchParks(50)   |     |  Append results  |
-                         +-------------------+     +------------------+
-```
-
----
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/hooks/useParks.tsx` | Refactor to use RPC with pagination, add `loadMore` function |
-| `src/pages/Parks.tsx` | Pass location to hook, add "Load More" button and spinner |
-
----
-
-### Technical Notes
-
-- **Non-blocking Render**: The UI renders immediately with `loading=true` state. No blocking occurs.
-- **Cache Strategy**: Cache can still be used for offline fallback, but primary data comes from the RPC.
-- **Distance Field**: The RPC should return `distance_meters` which maps to `park.distance` for display.
-- **Pagination Reset**: When location changes, `pageOffset` resets to 0 and parks are replaced (not appended).
-- **hasMore Logic**: If fewer than `pageSize` results return, we know there are no more pages.
-- **Filter Integration**: Client-side filtering continues to work on the fetched results.
-
+Expected outcome
+- Parks tab works again.
+- Navigation buttons remain intact.
+- RPC-based fetching is correct and supports page_size/page_offset pagination.
+- “Load more” appends results with a small bottom spinner only.
