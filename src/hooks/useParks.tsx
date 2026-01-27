@@ -143,12 +143,15 @@ export function useParks(options: UseParksOptions = {}) {
     }
   }, [userLat, userLng, radiusMeters, pageSize, loadFromCache, saveToCache]);
 
-  // Load more parks (pagination)
+  // Load more parks (pagination) - use functional update to avoid stale state
   const loadMore = useCallback(() => {
-    const newOffset = pageOffset + pageSize;
-    setPageOffset(newOffset);
-    fetchParks(newOffset, true);
-  }, [pageOffset, pageSize, fetchParks]);
+    if (loadingMore) return; // Prevent double-tapping
+    setPageOffset(prevOffset => {
+      const newOffset = prevOffset + pageSize;
+      fetchParks(newOffset, true);
+      return newOffset;
+    });
+  }, [pageSize, fetchParks, loadingMore]);
 
   // Initial load and refetch when location changes
   useEffect(() => {
