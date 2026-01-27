@@ -323,6 +323,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           gemini_summary: string | null
+          geo: unknown
           geom: string | null
           has_agility_equipment: boolean | null
           has_grass_surface: boolean | null
@@ -350,6 +351,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           gemini_summary?: string | null
+          geo?: unknown
           geom?: string | null
           has_agility_equipment?: boolean | null
           has_grass_surface?: boolean | null
@@ -377,6 +379,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           gemini_summary?: string | null
+          geo?: unknown
           geom?: string | null
           has_agility_equipment?: boolean | null
           has_grass_surface?: boolean | null
