@@ -1,133 +1,221 @@
 
 
-## Update Pack Tab with User's Dog First and Paw Placeholder Fallbacks
+## Enable iOS Web Push with "Add to Home Screen" Prompt
 
-This plan updates the Pack tab to display the current user's dog as the first card in the discovery stack and adds themed Paw icon fallbacks for missing images.
+This plan adds iOS-specific detection and an instructional prompt that guides Safari users to add the app to their home screen, which is required for web push notifications on iOS.
+
+---
+
+### Background
+
+On iOS, web push notifications only work when:
+1. The app is added to the home screen (runs in "standalone" mode)
+2. The user is on iOS 16.4+ with Safari
+3. A valid Web App Manifest is present
 
 ---
 
 ### Summary of Changes
 
-| Change | Description |
-|--------|-------------|
-| 1 | Remove client-side filtering that excludes user's own dogs (trust the updated RPC ordering) |
-| 2 | Import `PawPrint` icon from lucide-react for image fallbacks |
-| 3 | Update dog avatar to use `PawPrint` fallback instead of text initial |
-| 4 | Update owner avatar to use `PawPrint` fallback when image unavailable |
-| 5 | Add `onError` handler to gracefully handle failed image loads |
+| Step | Description |
+|------|-------------|
+| 1 | Create PWA manifest.json with required iOS properties |
+| 2 | Add manifest link and iOS-specific meta tags to index.html |
+| 3 | Create utility functions for iOS and standalone mode detection |
+| 4 | Update NotificationPrompt to show iOS-specific "Add to Home Screen" instructions |
+| 5 | Add localStorage tracking to not repeatedly show the prompt |
 
 ---
 
-### Implementation Details
+### Step 1: Create PWA Manifest
 
-#### 1. Update Imports (Line 2)
+Create `public/manifest.json` with properties required for iOS PWA support:
 
-Add `PawPrint` to the lucide-react imports:
-
-```typescript
-import { 
-  ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, 
-  CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint 
-} from 'lucide-react';
-```
-
-#### 2. Remove User's Own Dog Filtering (Lines 204-206)
-
-The current code filters out the user's own dogs in the fallback path. Since the RPC now includes the user's dog at the top, we should trust that ordering and not filter:
-
-**Current code:**
-```typescript
-// Filter out current user's dogs
-const filteredDogs = user ? dogs.filter(d => d.owner_id !== user.id) : dogs;
-```
-
-**Updated code:**
-```typescript
-// RPC now includes user's dog first - no filtering needed
-const filteredDogs = dogs;
-```
-
-#### 3. Update Dog Avatar with PawPrint Fallback (Lines 352-357)
-
-Replace the text-based fallback with a themed PawPrint icon:
-
-**Current code:**
-```tsx
-<Avatar className="w-36 h-36 border-4 border-white shadow-xl">
-  <AvatarImage src={currentDog.avatar_url || undefined} className="object-cover" />
-  <AvatarFallback className="bg-gray-600 text-5xl text-white">
-    {currentDog.name?.[0] || 'D'}
-  </AvatarFallback>
-</Avatar>
-```
-
-**Updated code:**
-```tsx
-<Avatar className="w-36 h-36 border-4 border-white shadow-xl">
-  <AvatarImage src={currentDog.avatar_url || undefined} className="object-cover" />
-  <AvatarFallback className="bg-[#7CB69D]/30">
-    <PawPrint className="w-16 h-16 text-white/80" />
-  </AvatarFallback>
-</Avatar>
-```
-
-#### 4. Update Owner Avatar with PawPrint Fallback (Lines 527-532 and 550-551)
-
-Update both owner avatar sections to use PawPrint fallback:
-
-**Current code:**
-```tsx
-<Avatar className="w-12 h-12 border-2 border-[#4ade80]/30">
-  <AvatarImage src={currentDog.owner.avatar_url || undefined} />
-  <AvatarFallback className="bg-[#4ade80] text-white font-bold">
-    {currentDog.owner.display_name?.[0] || 'S'}
-  </AvatarFallback>
-</Avatar>
-```
-
-**Updated code:**
-```tsx
-<Avatar className="w-12 h-12 border-2 border-[#4ade80]/30">
-  <AvatarImage src={currentDog.owner.avatar_url || undefined} />
-  <AvatarFallback className="bg-[#4ade80]/20">
-    <PawPrint className="w-6 h-6 text-[#4ade80]" />
-  </AvatarFallback>
-</Avatar>
+```json
+{
+  "name": "Paws Play Repeat",
+  "short_name": "PawsPlay",
+  "description": "Connect with fellow pet parents",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1f2e",
+  "theme_color": "#4ECDC4",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
 ```
 
 ---
 
-### Visual Flow
+### Step 2: Update index.html
+
+Add manifest link and iOS-specific meta tags:
+
+```html
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json" />
+
+<!-- iOS PWA Support -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="PawsPlay" />
+```
+
+---
+
+### Step 3: Add Detection Utilities
+
+Update `src/lib/navigation-utils.ts` with new helper functions:
+
+```typescript
+/**
+ * Check if running as installed PWA (standalone mode)
+ */
+export function isStandalone(): boolean {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true
+  );
+}
+
+/**
+ * Check if iOS Safari (not Chrome/Firefox on iOS)
+ */
+export function isIOSSafari(): boolean {
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isWebkit = /WebKit/.test(ua);
+  const isChrome = /CriOS/.test(ua);
+  const isFirefox = /FxiOS/.test(ua);
+  return isIOS && isWebkit && !isChrome && !isFirefox;
+}
+```
+
+---
+
+### Step 4: Update NotificationPrompt Component
+
+Modify `NotificationPrompt.tsx` to handle three scenarios:
 
 ```text
-+------------------+     +-------------------+     +------------------+
-|  RPC Returns:    | --> |  Pack.tsx Maps:   | --> |  Card Displays:  |
-|  1. User's dog   |     |  Full list with   |     |  1. "My Pack"    |
-|  2. Nearby dogs  |     |  owner avatars    |     |  2. Others...    |
-|  (sorted)        |     |  from RPC data    |     |                  |
-+------------------+     +-------------------+     +------------------+
-                                  |
-                                  v
-                       +---------------------+
-                       |  Image Missing?     |
-                       |  Show PawPrint icon |
-                       +---------------------+
++------------------+     +---------------------+     +-------------------+
+|  User on iOS     | --> |  Running as PWA?    | --> |  Show normal      |
+|  Safari?         |     |  (standalone mode)  |     |  notification     |
++------------------+     +---------------------+     |  prompt           |
+        |                         |                  +-------------------+
+        | No                      | No
+        v                         v
++------------------+     +---------------------+
+|  Show normal     |     |  Show "Add to       |
+|  notification    |     |  Home Screen"       |
+|  prompt          |     |  instructions       |
++------------------+     +---------------------+
+```
+
+**New prompt UI for iOS Safari users not in standalone mode:**
+
+- Title: "Get Notifications on iPhone"
+- Message: "Add this app to your home screen to receive push notifications"
+- Visual step-by-step instructions:
+  1. Tap the Share button (icon shown)
+  2. Scroll down and tap "Add to Home Screen"
+  3. Tap "Add" to confirm
+- Dismiss button saves to localStorage to not show again for 7 days
+
+---
+
+### Step 5: Component State Logic
+
+```typescript
+// New state to track prompt type
+const [promptType, setPromptType] = useState<'standard' | 'ios-install' | null>(null);
+
+useEffect(() => {
+  if (user && profile && !profile.onesignal_player_id) {
+    const dismissed = localStorage.getItem('ios-install-prompt-dismissed');
+    const dismissedAt = dismissed ? parseInt(dismissed, 10) : 0;
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    
+    // Check if iOS Safari but NOT standalone
+    if (isIOSSafari() && !isStandalone()) {
+      // Don't show if dismissed within 7 days
+      if (Date.now() - dismissedAt > sevenDays) {
+        setTimeout(() => setPromptType('ios-install'), 3000);
+      }
+    } else {
+      // Non-iOS or already standalone - show standard prompt
+      setTimeout(() => setPromptType('standard'), 3000);
+    }
+  }
+}, [user, profile]);
 ```
 
 ---
 
-### Files to Modify
+### iOS Install Prompt UI
 
-| File | Changes |
-|------|---------|
-| `src/pages/Pack.tsx` | Add PawPrint import, remove own-dog filtering, update avatar fallbacks |
+```tsx
+{promptType === 'ios-install' && (
+  <Card className="p-4 shadow-lg border-primary/20 bg-card/95 backdrop-blur-sm">
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+        <Share className="w-5 h-5 text-blue-500" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold text-sm">Get Notifications on iPhone 📲</h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          Add this app to your home screen to receive alerts:
+        </p>
+        <ol className="text-xs text-muted-foreground mt-2 space-y-1.5 list-decimal list-inside">
+          <li>Tap <Share className="inline w-3 h-3 mb-0.5" /> at the bottom of Safari</li>
+          <li>Scroll and tap <span className="font-medium">"Add to Home Screen"</span></li>
+          <li>Tap <span className="font-medium">"Add"</span> to confirm</li>
+        </ol>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="rounded-full text-xs h-8 mt-3"
+          onClick={handleDismissIOSPrompt}
+        >
+          Got it
+        </Button>
+      </div>
+      <button onClick={handleDismissIOSPrompt} className="text-muted-foreground hover:text-foreground">
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  </Card>
+)}
+```
+
+---
+
+### Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `public/manifest.json` | Create | PWA manifest for iOS home screen support |
+| `index.html` | Modify | Add manifest link and iOS meta tags |
+| `src/lib/navigation-utils.ts` | Modify | Add isStandalone() and isIOSSafari() functions |
+| `src/components/notifications/NotificationPrompt.tsx` | Modify | Add iOS detection and install instructions UI |
 
 ---
 
 ### Technical Notes
 
-- The `PawPrint` icon is already used in `src/pages/Social.tsx`, so this follows existing patterns
-- The `AvatarFallback` component from Radix UI automatically displays when the `AvatarImage` fails to load or has no `src`
-- The themed colors (`#7CB69D` for dog avatar, `#4ade80` for owner avatar) match the existing Pack tab design system
-- Since the RPC now handles ordering with user's dog first, no additional sorting is needed client-side
+- The `display: standalone` in manifest is required for iOS to treat it as a PWA
+- `(window.navigator as any).standalone` is iOS-specific and indicates home screen install
+- localStorage tracking prevents annoying users who dismiss the prompt
+- The Share icon from lucide-react matches iOS Safari's share button
+- OneSignal handles the actual push subscription once the PWA is installed
 
