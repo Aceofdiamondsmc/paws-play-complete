@@ -9,6 +9,7 @@ import { StatsProvider } from "@/contexts/StatsContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminRoute } from "@/components/admin/AdminRoute";
+import { NotificationPrompt } from "@/components/notifications/NotificationPrompt";
 import Landing from "./pages/Landing";
 import Parks from "./pages/Parks";
 import Explore from "./pages/Explore";
@@ -35,6 +36,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <NotificationPrompt />
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route element={<AppLayout />}>

@@ -811,6 +811,7 @@ export type Database = {
           id: string
           is_public: boolean
           onboarding_completed: boolean | null
+          onesignal_player_id: string | null
           state: string | null
           updated_at: string | null
           username: string | null
@@ -826,6 +827,7 @@ export type Database = {
           id: string
           is_public?: boolean
           onboarding_completed?: boolean | null
+          onesignal_player_id?: string | null
           state?: string | null
           updated_at?: string | null
           username?: string | null
@@ -841,6 +843,7 @@ export type Database = {
           id?: string
           is_public?: boolean
           onboarding_completed?: boolean | null
+          onesignal_player_id?: string | null
           state?: string | null
           updated_at?: string | null
           username?: string | null
