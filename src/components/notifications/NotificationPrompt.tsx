@@ -35,10 +35,14 @@ export function NotificationPrompt() {
     try {
       // Request notification permission via OneSignal
       if (window.OneSignalDeferred) {
-        window.OneSignalDeferred.push(async (OneSignal: any) => {
+      window.OneSignalDeferred.push(async (OneSignal: any) => {
           try {
             // Request permission
             await OneSignal.Notifications.requestPermission();
+            
+            // CRITICAL: Login with Supabase user ID so Edge Functions can target by UUID
+            await OneSignal.login(user.id);
+            console.log('OneSignal login called with Supabase user ID:', user.id);
             
             // Get the Player ID (Subscription ID in v16+)
             const playerId = await OneSignal.User.PushSubscription.id;
