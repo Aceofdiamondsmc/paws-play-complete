@@ -97,6 +97,7 @@ export interface PlaydateRequest {
 export interface Post {
   id: string;
   author_id: string;
+  dog_id: string | null;
   content: string;
   image_url: string | null;
   visibility: 'public' | 'private';

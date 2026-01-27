@@ -167,7 +167,7 @@ export default function Social() {
               <div className="flex gap-3">
                 {/* Avatar - Clickable */}
                 <button
-                  onClick={() => navigate(`/pack?user=${post.author_id}`)}
+                  onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
                   className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full transition-transform hover:scale-105"
                   aria-label={`View ${post.author?.display_name || 'user'}'s profile`}
                 >
@@ -184,7 +184,7 @@ export default function Social() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <button
-                        onClick={() => navigate(`/pack?user=${post.author_id}`)}
+                        onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
                         className="font-bold text-foreground text-base hover:underline focus:outline-none focus:underline text-left"
                       >
                         {post.author?.display_name || post.author?.username || post.author?.full_name || 'Anonymous'}
@@ -273,7 +273,7 @@ export default function Social() {
                     </button>
                     
                     <button
-                      onClick={() => navigate(`/pack?user=${post.author_id}`)}
+                      onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
                       className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
                       aria-label="Meet the pup"
                     >
