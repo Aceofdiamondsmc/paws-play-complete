@@ -1,119 +1,45 @@
 
-# Fix "record 'old' has no field 'image_path'" Error
 
-## Root Cause
+# Change Default Tab to "Booked" on Dates Page
 
-The `posts` table has three storage cleanup triggers that reference a column called `image_path`, but the actual column in the `posts` table is named `image_url`.
+## Overview
 
-```text
-Trigger Functions Found:
-+--------------------------------------+-------------------+
-| Function Name                        | References        |
-+--------------------------------------+-------------------+
-| posts_delete_storage_trigger         | OLD.image_path    |
-| posts_bulk_delete_storage_trigger    | OLD.image_path    |
-| posts_update_storage_trigger         | OLD.image_path    |
-+--------------------------------------+-------------------+
+Update the Dates page so that when a logged-in user navigates to the `/dates` route, the "Booked" tab is selected by default instead of "Pending", and booked playdates are displayed immediately.
 
-Actual Posts Table Schema:
-- image_url (text) <-- Correct column name
-- image_path does NOT exist
-```
+## Current Behavior
+
+- The Tabs component uses `defaultValue="pending"`
+- Users land on the Pending tab first
+- Booked playdates require an extra tap to view
 
 ## Solution
 
-Create a database migration to update all three trigger functions to use `image_url` instead of `image_path`. The `delete_storage_object` function expects a storage path, so we also need to extract the path from the full URL.
+A single-line change to the `defaultValue` prop of the Tabs component.
 
 ## Implementation
 
-### Database Migration
+### File: `src/pages/Dates.tsx`
 
-Update the three trigger functions to:
-1. Reference `image_url` instead of `image_path`
-2. Extract the storage path from the full URL (the URL format is `https://[project].supabase.co/storage/v1/object/public/[bucket]/[path]`)
+**Change on Line 47:**
 
-```sql
--- Fix posts_delete_storage_trigger to use image_url
-CREATE OR REPLACE FUNCTION public.posts_delete_storage_trigger()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  storage_path TEXT;
-BEGIN
-  IF OLD.image_url IS NOT NULL THEN
-    -- Extract path after '/storage/v1/object/public/'
-    storage_path := regexp_replace(OLD.image_url, '^.*/storage/v1/object/public/', '');
-    IF storage_path IS NOT NULL AND storage_path != OLD.image_url THEN
-      PERFORM public.delete_storage_object(storage_path);
-    END IF;
-  END IF;
-  RETURN OLD;
-END;
-$$;
+```text
+Before:
+<Tabs defaultValue="pending" className="p-4">
 
--- Fix posts_bulk_delete_storage_trigger
-CREATE OR REPLACE FUNCTION public.posts_bulk_delete_storage_trigger()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  img_record RECORD;
-  storage_path TEXT;
-BEGIN
-  -- Delete main image if exists
-  IF OLD.image_url IS NOT NULL THEN
-    storage_path := regexp_replace(OLD.image_url, '^.*/storage/v1/object/public/', '');
-    IF storage_path IS NOT NULL AND storage_path != OLD.image_url THEN
-      PERFORM public.delete_storage_object(storage_path);
-    END IF;
-  END IF;
-
-  -- Delete all images in child table
-  FOR img_record IN SELECT image_path FROM public.post_images WHERE post_id = OLD.id LOOP
-    PERFORM public.delete_storage_object(img_record.image_path);
-  END LOOP;
-  RETURN OLD;
-END;
-$$;
-
--- Fix posts_update_storage_trigger
-CREATE OR REPLACE FUNCTION public.posts_update_storage_trigger()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  old_path TEXT;
-BEGIN
-  IF (OLD.image_url IS DISTINCT FROM NEW.image_url) AND (OLD.image_url IS NOT NULL) THEN
-    old_path := regexp_replace(OLD.image_url, '^.*/storage/v1/object/public/', '');
-    IF old_path IS NOT NULL AND old_path != OLD.image_url THEN
-      PERFORM public.delete_storage_object(old_path);
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$;
+After:
+<Tabs defaultValue="booked" className="p-4">
 ```
 
-## Files to Modify
+## Data Fetching
 
-| File | Action | Purpose |
-|------|--------|---------|
-| New migration file | Create | Fix all three trigger functions |
+No changes needed to the `usePlaydates` hook. It already:
+- Fetches all playdates on component mount via `fetchPlaydates()`
+- Filters them into `pendingPlaydates`, `acceptedPlaydates`, and `completedPlaydates`
+- The `acceptedPlaydates` array (used by the "Booked" tab) is populated immediately when the page loads
 
-## Expected Outcome
+## Summary
 
-After the migration:
-1. Deleting posts from the Admin Social page will work without errors
-2. The storage cleanup will correctly extract paths from URLs and delete orphaned images
-3. Update operations that change images will also clean up old files correctly
+| File | Change |
+|------|--------|
+| `src/pages/Dates.tsx` | Change `defaultValue="pending"` to `defaultValue="booked"` on line 47 |
 
-## Technical Notes
-
-- The `regexp_replace` extracts everything after `/storage/v1/object/public/` from the URL
-- The check `storage_path != OLD.image_url` ensures we only call delete if the regex actually matched (external URLs won't be processed)
-- The `post_images` child table already uses `image_path` (not a URL), so that part of the bulk delete function remains unchanged
