@@ -44,7 +44,7 @@ export default function Dates() {
         </Button>
       </div>
 
-      <Tabs defaultValue="pending" className="p-4">
+      <Tabs defaultValue="booked" className="p-4">
         <TabsList className="grid w-full grid-cols-3 rounded-full h-12">
           <TabsTrigger value="pending" className="rounded-full">
             Pending
