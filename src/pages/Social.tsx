@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -165,21 +165,30 @@ export default function Social() {
               )}
             >
               <div className="flex gap-3">
-                {/* Avatar */}
-                <Avatar className="w-14 h-14 bg-primary border-2 border-primary/30">
-                  <AvatarImage src={post.author?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
-                    {post.author?.display_name?.[0]?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
+                {/* Avatar - Clickable */}
+                <button
+                  onClick={() => navigate(`/pack?user=${post.author_id}`)}
+                  className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full transition-transform hover:scale-105"
+                  aria-label={`View ${post.author?.display_name || 'user'}'s profile`}
+                >
+                  <Avatar className="w-14 h-14 bg-primary border-2 border-primary/30">
+                    <AvatarImage src={post.author?.avatar_url || undefined} />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+                      {post.author?.display_name?.[0]?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
                 
                 <div className="flex-1 min-w-0">
                   {/* Header row */}
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="font-bold text-foreground text-base">
+                      <button
+                        onClick={() => navigate(`/pack?user=${post.author_id}`)}
+                        className="font-bold text-foreground text-base hover:underline focus:outline-none focus:underline text-left"
+                      >
                         {post.author?.display_name || post.author?.username || post.author?.full_name || 'Anonymous'}
-                      </span>
+                      </button>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>
                           {post.timeAgo || (post.created_at && formatDistanceToNow(new Date(post.created_at), { addSuffix: true }))}
@@ -261,6 +270,15 @@ export default function Social() {
                     >
                       <MessageCircle className="w-5 h-5" />
                       <span>{post.commentsCount || 0}</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => navigate(`/pack?user=${post.author_id}`)}
+                      className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
+                      aria-label="Meet the pup"
+                    >
+                      <PawPrint className="w-5 h-5" />
+                      <span className="hidden sm:inline">Meet</span>
                     </button>
                     
                     <button className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors ml-auto">
