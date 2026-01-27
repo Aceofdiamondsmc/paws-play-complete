@@ -1,0 +1,21 @@
+{
+  "name": "Paws Play Repeat",
+  "short_name": "PawsPlay",
+  "description": "Connect with fellow pet parents",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1f2e",
+  "theme_color": "#4ECDC4",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

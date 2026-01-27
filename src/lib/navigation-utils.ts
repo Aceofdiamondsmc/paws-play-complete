@@ -10,6 +10,28 @@ export function isIOS(): boolean {
 }
 
 /**
+ * Check if running as installed PWA (standalone mode)
+ */
+export function isStandalone(): boolean {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true
+  );
+}
+
+/**
+ * Check if iOS Safari (not Chrome/Firefox on iOS)
+ */
+export function isIOSSafari(): boolean {
+  const ua = navigator.userAgent;
+  const isIOSDevice = /iPad|iPhone|iPod/.test(ua);
+  const isWebkit = /WebKit/.test(ua);
+  const isChrome = /CriOS/.test(ua);
+  const isFirefox = /FxiOS/.test(ua);
+  return isIOSDevice && isWebkit && !isChrome && !isFirefox;
+}
+
+/**
  * Detect if the device is running Android
  */
 export function isAndroid(): boolean {
