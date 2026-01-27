@@ -5,7 +5,6 @@ interface DogData {
   name: string;
   breed?: string;
   size?: string;
-  energy?: string;
   energy_level?: string;
   bio?: string;
   avatar_url?: string;
@@ -31,8 +30,7 @@ export function useDogs() {
         name: data.name,
         breed: data.breed || '',
         size: data.size || 'Medium',
-        energy: data.energy || 'Medium',
-        energy_level: data.energy_level || data.energy || 'Medium',
+        energy_level: data.energy_level || 'Medium',
         bio: data.bio || '',
         avatar_url: data.avatar_url || null,
         age_years: data.age_years || null,
@@ -69,7 +67,6 @@ export function useDogs() {
       if (data.name !== undefined) updateData.name = data.name;
       if (data.breed !== undefined) updateData.breed = data.breed;
       if (data.size !== undefined) updateData.size = data.size;
-      if (data.energy !== undefined) updateData.energy = data.energy;
       if (data.energy_level !== undefined) updateData.energy_level = data.energy_level;
       if (data.bio !== undefined) updateData.bio = data.bio;
       if (data.avatar_url !== undefined) updateData.avatar_url = data.avatar_url;

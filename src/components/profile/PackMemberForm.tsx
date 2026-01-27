@@ -140,7 +140,6 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         name: name.trim(),
         breed: breed.trim(),
         size,
-        energy,
         energy_level: energy,
         bio: bio.trim(),
         age_years: ageYears ? parseInt(ageYears) : undefined,
@@ -170,9 +169,11 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
 
       onSuccess?.();
       onClose();
-    } catch (error) {
-      toast.error('Something went wrong');
-      console.error(error);
+    } catch (error: unknown) {
+      const err = error as { message?: string; code?: string };
+      const errorMessage = err?.message || err?.code || 'Unknown error';
+      toast.error(`Failed to save: ${errorMessage}`);
+      console.error('Dog save error:', error);
     } finally {
       setIsSubmitting(false);
     }
