@@ -8,7 +8,6 @@ import type { Dog as DogType, Profile } from '@/types';
 
 interface DogWithOwner extends DogType {
   owner?: Profile;
-  playStyles?: string[];
 }
 
 // Test dogs data for demo
@@ -28,7 +27,6 @@ const testDogs: DogWithOwner[] = [
     weight_lbs: null,
     health_notes: null,
     play_style: ['Fetch', 'Swimming'],
-    playStyles: ['Fetch Fanatic', 'Water Lover'],
     owner: {
       id: 'test-owner-1',
       display_name: 'Sarah Johnson',
@@ -51,7 +49,6 @@ const testDogs: DogWithOwner[] = [
     weight_lbs: null,
     health_notes: null,
     play_style: ['Cuddling', 'Tug-of-war'],
-    playStyles: ['Cuddler', 'Tug Champion'],
     owner: {
       id: 'test-owner-2',
       display_name: 'Mike Chen',
@@ -74,7 +71,6 @@ const testDogs: DogWithOwner[] = [
     weight_lbs: null,
     health_notes: null,
     play_style: ['Chase', 'Fetch'],
-    playStyles: ['Chase Expert', 'Fetch Fanatic'],
     owner: {
       id: 'test-owner-3',
       display_name: 'Emily Davis',
@@ -97,7 +93,6 @@ const testDogs: DogWithOwner[] = [
     weight_lbs: null,
     health_notes: null,
     play_style: ['Cuddling', 'Swimming'],
-    playStyles: ['Cuddler', 'Water Lover'],
     owner: {
       id: 'test-owner-4',
       display_name: 'James Wilson',
@@ -136,13 +131,9 @@ export default function Pack() {
         const profileMap = new Map<string, Profile>();
         profiles?.forEach(p => profileMap.set(p.id, p as Profile));
 
-        // Add mock play styles for demo
-        const playStyleOptions = ['Fetch Fanatic', 'Water Lover', 'Tug Champion', 'Chase Expert', 'Cuddler'];
-        
         setDiscoveryDogs(dogs.map(d => ({
           ...d as DogType,
-          owner: profileMap.get(d.owner_id),
-          playStyles: playStyleOptions.slice(0, Math.floor(Math.random() * 3) + 1)
+          owner: profileMap.get(d.owner_id)
         })));
       } else {
         // Use test dogs when no dogs in database
@@ -335,7 +326,7 @@ export default function Pack() {
           <div>
             <h3 className="font-bold text-white mb-3">Play Style</h3>
             <div className="flex flex-wrap gap-2">
-              {(currentDog.playStyles || ['Fetch Fanatic', 'Water Lover']).map((style, idx) => (
+              {(currentDog.play_style && currentDog.play_style.length > 0 ? currentDog.play_style : ['No play styles set']).map((style, idx) => (
                 <span 
                   key={idx}
                   className={cn(
