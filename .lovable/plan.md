@@ -1,96 +1,71 @@
 
-# Sync Play Style Pills with Add Pack Member Selections
 
-## Problem
+## Update Social Post Navigation to Use `dog_id`
 
-The Play Style pills displayed on the Pack tab are currently **hardcoded mock values** that don't reflect what users actually selected in the "Add Pack Member" form.
+This plan updates the Social page so that clicking on a dog's name, avatar, or the "Meet the Pup" button navigates to the dog's profile using the new `dog_id` column.
 
-**Current behavior:**
-- Form saves: `['Fetch', 'Cuddling', 'Swimming']` → saved correctly to database
-- Pack tab shows: `['Fetch Fanatic', 'Water Lover']` → random mock values, ignoring the database
+---
 
-## Root Cause
+### Summary of Changes
 
-In `src/pages/Pack.tsx`:
-- Lines 139-146: Mock play styles are randomly assigned, **overwriting** the real `play_style` data
-- Line 338: Renders `playStyles` (mock) instead of `play_style` (real database data)
-- Fallback on line 338 defaults to `['Fetch Fanatic', 'Water Lover']` if nothing exists
+1. **Update the `Post` TypeScript interface** to include the new `dog_id` field
+2. **Update navigation links in `Social.tsx`** to use `dog_id` instead of `author_id`
+3. **Add fallback logic** for posts that don't have a `dog_id` set (older posts)
 
-## Solution
+---
 
-Update `Pack.tsx` to use the actual `play_style` array from the database instead of the mock `playStyles` property.
+### Technical Details
 
-## Implementation Details
+#### 1. Update Post Type (`src/types/index.ts`)
 
-### File: `src/pages/Pack.tsx`
+Add the `dog_id` field to the `Post` interface:
 
-**Change 1: Remove mock play style assignment (lines 139-146)**
-
-Replace the mock style generation with the actual database values:
-
-```tsx
-// Before:
-const playStyleOptions = ['Fetch Fanatic', 'Water Lover', 'Tug Champion', 'Chase Expert', 'Cuddler'];
-
-setDiscoveryDogs(dogs.map(d => ({
-  ...d as DogType,
-  owner: profileMap.get(d.owner_id),
-  playStyles: playStyleOptions.slice(0, Math.floor(Math.random() * 3) + 1)  // ❌ Random mock
-})));
-
-// After:
-setDiscoveryDogs(dogs.map(d => ({
-  ...d as DogType,
-  owner: profileMap.get(d.owner_id)
-  // ✅ No mock playStyles - use real play_style from database
-})));
-```
-
-**Change 2: Update rendering to use real data (line 338)**
-
-```tsx
-// Before:
-{(currentDog.playStyles || ['Fetch Fanatic', 'Water Lover']).map((style, idx) => (
-
-// After:
-{(currentDog.play_style && currentDog.play_style.length > 0 
-  ? currentDog.play_style 
-  : ['No play styles set']
-).map((style, idx) => (
-```
-
-**Change 3: Remove playStyles from interface (lines 9-12)**
-
-```tsx
-// Before:
-interface DogWithOwner extends DogType {
-  owner?: Profile;
-  playStyles?: string[];  // ❌ Remove this
-}
-
-// After:
-interface DogWithOwner extends DogType {
-  owner?: Profile;
-  // ✅ Use play_style from DogType instead
+```typescript
+export interface Post {
+  id: string;
+  author_id: string;
+  dog_id: string | null;  // NEW - links post to a specific dog
+  content: string;
+  image_url: string | null;
+  visibility: 'public' | 'private';
+  created_at: string | null;
+  updated_at: string;
 }
 ```
 
-**Change 4: Update test dogs to use play_style only (lines 15-108)**
+#### 2. Update Navigation in Social.tsx (`src/pages/Social.tsx`)
 
-Remove the duplicate `playStyles` property from test dogs since `play_style` already contains the correct values.
+Change all three navigation points to use `dog_id` with a fallback to `author_id`:
 
-## Result
+**Avatar click (line 170):**
+```tsx
+onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
+```
 
-| Before | After |
-|--------|-------|
-| Shows random mock styles like "Fetch Fanatic" | Shows actual selected styles like "Fetch", "Cuddling" |
-| Ignores user selections from Add Pack Member | Respects and displays user's chosen play styles |
-| Uses `playStyles` (mock property) | Uses `play_style` (real database column) |
+**Author name click (line 187):**
+```tsx
+onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
+```
 
-## Visual Impact
+**Meet the Pup button (line 276):**
+```tsx
+onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
+```
 
-The pill labels will now match exactly what users selected in the form:
-- If user selected "Fetch" and "Swimming" → Pills show "Fetch" and "Swimming"
-- If no styles selected → Shows "No play styles set" message
+---
 
-The pill styling (colors, icons) will remain the same beautiful design.
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/types/index.ts` | Add `dog_id: string \| null` to `Post` interface |
+| `src/pages/Social.tsx` | Update 3 navigation handlers to use `dog_id` |
+
+---
+
+### Notes
+
+- The navigation uses `?dog=` query parameter (vs `?user=`) to distinguish between dog-specific and user-specific profile views
+- A fallback to `author_id` ensures older posts without `dog_id` still work
+- The Pack page may need a future update to handle the `?dog=` parameter for direct dog profile viewing
+
