@@ -161,10 +161,13 @@ export function ExploreAssistant() {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
-          className="fixed bottom-24 right-4 z-50 rounded-full h-14 w-14 shadow-lg bg-gradient-to-br from-primary to-accent hover:scale-105 transition-transform"
-          size="icon"
+          className="fixed bottom-24 right-4 z-50 rounded-full h-12 px-5 shadow-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 hover:scale-110 transition-all duration-300 animate-pulse hover:animate-none border-2 border-white/30"
+          style={{
+            boxShadow: '0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(236, 72, 153, 0.3), 0 4px 20px rgba(0,0,0,0.2)'
+          }}
         >
-          <Sparkles className="w-6 h-6" />
+          <Sparkles className="w-5 h-5 mr-2 animate-spin" style={{ animationDuration: '3s' }} />
+          <span className="font-semibold text-sm tracking-wide">Ask AI</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl p-0">
