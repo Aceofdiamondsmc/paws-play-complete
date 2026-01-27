@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Trees, Compass, MessageCircle, CalendarDays, PawPrint, User, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const navItems = [
   { path: '/social', icon: MessageCircle, label: 'Social' },
@@ -15,12 +16,14 @@ const navItems = [
 
 export function BottomNav() {
   const location = useLocation();
+  const { unreadCount } = useNotifications();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border">
       <div className="flex items-center justify-around h-20 px-2 pb-safe">
         {navItems.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
+          const showBadge = path === '/me' && unreadCount > 0;
           
           return (
             <NavLink
@@ -41,6 +44,11 @@ export function BottomNav() {
                       : "text-amber-600 hover:text-[#228B22] active:text-[#1a6b1a]"
                   )} 
                 />
+                {showBadge && (
+                  <span className="absolute -top-1.5 -right-1.5 z-20 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-destructive rounded-full shadow-sm">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
                 {isActive && (
                   <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#228B22] rounded-full" />
                 )}
