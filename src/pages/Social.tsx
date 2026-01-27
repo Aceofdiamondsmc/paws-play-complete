@@ -95,6 +95,42 @@ export default function Social() {
     setIsPosting(false);
   };
 
+  const handleShare = async (postId: string, postContent: string, authorName: string) => {
+    const shareUrl = `${window.location.origin}/social`;
+    
+    const truncatedContent = postContent.length > 100 
+      ? postContent.substring(0, 100) + '...' 
+      : postContent;
+    
+    const shareData = {
+      title: `${authorName} on Paws Play Repeat`,
+      text: truncatedContent,
+      url: shareUrl,
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error sharing:', error);
+          toast.error('Failed to share post');
+        }
+      }
+    } else {
+      try {
+        const shareText = `${truncatedContent}\n\nCheck it out on Paws Play Repeat: ${shareUrl}`;
+        await navigator.clipboard.writeText(shareText);
+        toast.success('Link copied!', {
+          description: 'Post link copied to your clipboard',
+        });
+      } catch (error) {
+        console.error('Failed to copy:', error);
+        toast.error('Failed to copy link');
+      }
+    }
+  };
+
   // Get park name by ID
   const getParkName = (parkId: string) => {
     const park = allParks.find(p => p.id === parkId);
@@ -348,7 +384,15 @@ export default function Social() {
                       <span className="hidden sm:inline">Meet</span>
                     </button>
                     
-                    <button className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors ml-auto">
+                    <button 
+                      onClick={() => handleShare(
+                        post.id, 
+                        post.content || '', 
+                        post.author?.display_name || post.author?.username || 'Someone'
+                      )}
+                      className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors ml-auto"
+                      aria-label="Share post"
+                    >
                       <Share2 className="w-5 h-5" />
                     </button>
                   </div>
