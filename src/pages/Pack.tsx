@@ -241,24 +241,26 @@ export default function Pack() {
   const currentDog = discoveryDogs[currentIndex];
 
   const handleNext = useCallback(() => {
-    if (currentIndex < discoveryDogs.length - 1) {
-      setSwipeDirection('left');
-      setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-        setSwipeDirection(null);
-      }, 200);
-    }
-  }, [currentIndex, discoveryDogs.length]);
+    setSwipeDirection('left');
+    setTimeout(() => {
+      setCurrentIndex(prev => {
+        const nextIndex = prev + 1;
+        return nextIndex < discoveryDogs.length ? nextIndex : prev;
+      });
+      setSwipeDirection(null);
+    }, 200);
+  }, [discoveryDogs.length]);
 
   const handlePrev = useCallback(() => {
-    if (currentIndex > 0) {
-      setSwipeDirection('right');
-      setTimeout(() => {
-        setCurrentIndex(prev => prev - 1);
-        setSwipeDirection(null);
-      }, 200);
-    }
-  }, [currentIndex]);
+    setSwipeDirection('right');
+    setTimeout(() => {
+      setCurrentIndex(prev => {
+        const nextIndex = prev - 1;
+        return nextIndex >= 0 ? nextIndex : prev;
+      });
+      setSwipeDirection(null);
+    }, 200);
+  }, []);
 
   // Touch event handlers
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -371,24 +373,28 @@ export default function Pack() {
         swipeDirection === 'right' && "opacity-0 translate-x-10"
       )}>
         {/* Previous Button */}
-        {currentIndex > 0 && (
-          <button 
-            onClick={handlePrev}
-            className="absolute left-4 top-6 w-12 h-12 bg-[#2a3142] rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-[#3a4156] transition-colors"
-          >
-            <ChevronLeft className="w-6 h-6 text-gray-300" />
-          </button>
-        )}
+        <button 
+          onClick={handlePrev}
+          disabled={currentIndex === 0}
+          className={cn(
+            "absolute left-4 top-6 w-12 h-12 bg-[#2a3142] rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-[#3a4156] transition-colors",
+            currentIndex === 0 && "opacity-0 pointer-events-none"
+          )}
+        >
+          <ChevronLeft className="w-6 h-6 text-gray-300" />
+        </button>
 
         {/* Next Button */}
-        {currentIndex < discoveryDogs.length - 1 && (
-          <button 
-            onClick={handleNext}
-            className="absolute right-4 top-6 w-12 h-12 bg-[#2a3142] rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-[#3a4156] transition-colors"
-          >
-            <ChevronRight className="w-6 h-6 text-gray-300" />
-          </button>
-        )}
+        <button 
+          onClick={handleNext}
+          disabled={currentIndex >= discoveryDogs.length - 1}
+          className={cn(
+            "absolute right-4 top-6 w-12 h-12 bg-[#2a3142] rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-[#3a4156] transition-colors",
+            currentIndex >= discoveryDogs.length - 1 && "opacity-0 pointer-events-none"
+          )}
+        >
+          <ChevronRight className="w-6 h-6 text-gray-300" />
+        </button>
 
         <div className="p-6 pt-8 space-y-5">
           {/* Verified Badge + Distance */}
