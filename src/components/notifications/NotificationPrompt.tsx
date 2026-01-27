@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Bell, X, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useAuth } from '@/hooks/useAuth';
+import { AuthContext } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isIOSSafari, isStandalone } from '@/lib/navigation-utils';
@@ -14,7 +14,9 @@ declare global {
 }
 
 export function NotificationPrompt() {
-  const { user, profile } = useAuth();
+  const context = useContext(AuthContext);
+  const user = context?.user ?? null;
+  const profile = context?.profile ?? null;
   const [promptType, setPromptType] = useState<'standard' | 'ios-install' | null>(null);
   const [loading, setLoading] = useState(false);
 
