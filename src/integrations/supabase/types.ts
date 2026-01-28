@@ -89,7 +89,11 @@ export type Database = {
           id: string
           is_public: boolean | null
           name: string
+          owner_city: string | null
           owner_id: string
+          owner_latitude: number | null
+          owner_longitude: number | null
+          owner_state: string | null
           play_style: string[] | null
           size: string | null
           updated_at: string | null
@@ -106,7 +110,11 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name: string
+          owner_city?: string | null
           owner_id?: string
+          owner_latitude?: number | null
+          owner_longitude?: number | null
+          owner_state?: string | null
           play_style?: string[] | null
           size?: string | null
           updated_at?: string | null
@@ -123,7 +131,11 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name?: string
+          owner_city?: string | null
           owner_id?: string
+          owner_latitude?: number | null
+          owner_longitude?: number | null
+          owner_state?: string | null
           play_style?: string[] | null
           size?: string | null
           updated_at?: string | null

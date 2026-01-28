@@ -7,9 +7,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useServices } from '@/hooks/useServices';
+import { useServices, getServiceImage, Service } from '@/hooks/useServices';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/ui/use-toast';
+
+// Helper to check if a service needs an AI-generated image
+const needsImage = (service: Service): boolean => {
+  if (!service.image_url) return true;
+  if (service.image_url.includes('supabase')) return false;
+  const brokenPatterns = ['petworks.com', 'example.com', 'placeholder', 'via.placeholder', 'dummyimage'];
+  return brokenPatterns.some(p => service.image_url?.toLowerCase().includes(p));
+};
 
 const CATEGORIES = [
   { id: 'Dog Walkers', label: 'Dog Walkers' },
@@ -391,11 +399,11 @@ export default function AdminServices() {
           )}
 
           {/* Generate Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               onClick={() => handleGenerateImages(5)}
               disabled={isGeneratingImages || (imageStatus?.needsImage === 0)}
-              className="flex-1"
+              className="flex-1 min-w-[140px]"
             >
               {isGeneratingImages ? (
                 <>
@@ -405,7 +413,7 @@ export default function AdminServices() {
               ) : (
                 <>
                   <Wand2 className="h-4 w-4 mr-2" />
-                  Generate 5 Images
+                  Generate 5
                 </>
               )}
             </Button>
@@ -415,6 +423,23 @@ export default function AdminServices() {
               disabled={isGeneratingImages || (imageStatus?.needsImage === 0)}
             >
               Generate 10
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const count = imageStatus?.needsImage || 0;
+                if (count > 20) {
+                  const confirmed = window.confirm(
+                    `This will generate ${count} images and may take several minutes. Continue?`
+                  );
+                  if (!confirmed) return;
+                }
+                handleGenerateImages(count);
+              }}
+              disabled={isGeneratingImages || (imageStatus?.needsImage === 0)}
+            >
+              <Wand2 className="h-4 w-4 mr-2" />
+              Generate All ({imageStatus?.needsImage || 0})
             </Button>
           </div>
 
@@ -483,6 +508,22 @@ export default function AdminServices() {
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
+                    {/* Service thumbnail */}
+                    <div className="relative flex-shrink-0">
+                      <img
+                        src={getServiceImage(service)}
+                        alt={service.name}
+                        className="w-12 h-12 rounded-lg object-cover bg-muted"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop';
+                        }}
+                      />
+                      {needsImage(service) && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center">
+                          <AlertCircle className="w-3 h-3 text-destructive-foreground" />
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <div className="font-medium">{service.name}</div>
                       <div className="text-sm text-muted-foreground">
