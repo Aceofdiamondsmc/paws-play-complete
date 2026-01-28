@@ -1,281 +1,173 @@
 
 
-## Add "Find Near Me" Button to Explore Page
+## Populate Service Images for Authenticity
 
-Add a location-based search feature that captures the user's current position and fetches nearby pet services sorted by distance.
+The issue is that many services have broken or generic stock image URLs. There are two main problems:
+
+1. **~25 services use generic Unsplash stock photos** (same image for all services in a category)
+2. **Many "custom" URLs point to non-existent domains** (e.g., `petworks.com/millennial-logo.png`)
+
+Here's a solution to give each service a unique, professional-looking image that matches its category.
 
 ---
 
-### Overview
+### Solution: AI-Generated Service Images
+
+Create an Edge Function that uses Lovable's AI image generation (Gemini) to create unique, high-quality images for each service, then uploads them to Supabase Storage.
+
+---
+
+### Architecture
 
 ```text
-+------------------------------------------------------------+
-|  Explore                              [List] [Map]         |
-+------------------------------------------------------------+
-|  [ 🔍 Search pet services...        ] [ 📍 Near Me ]       |
-+------------------------------------------------------------+
-|  [Dog Walkers] [Daycare] [Vet Clinics] [Trainers] ...      |
-+------------------------------------------------------------+
-|  Nearby Services (12)                                      |
-|  +-------------------------------------------------------+ |
-|  | [img] Happy Paws Grooming          ★ 4.8              | |
-|  |       Groomers    • 0.3 mi away                       | |
-|  +-------------------------------------------------------+ |
+┌─────────────────────┐
+│  Admin Dashboard    │
+│  [Generate Images]  │
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────────────────────┐
+│  Edge Function: generate-service-   │
+│  images                             │
+│  ─────────────────────────────────  │
+│  1. Fetch services missing images   │
+│  2. Generate prompt per category    │
+│  3. Call Gemini image generation    │
+│  4. Upload to Supabase Storage      │
+│  5. Update service.image_url        │
+└─────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────┐
+│  Supabase Storage       │
+│  Bucket: service-images │
+└─────────────────────────┘
 ```
-
-When the "Near Me" button is clicked:
-1. Request location permission using `navigator.geolocation`
-2. Call a new Supabase RPC function `get_nearby_services`
-3. Update the list with results sorted by proximity
-4. Display actual distance on each service card
 
 ---
 
 ### Implementation Steps
 
-#### Step 1: Create Database RPC Function
+#### Step 1: Create Storage Bucket
 
-Create `get_nearby_services` in Supabase to perform spatial proximity queries.
+Create a `service-images` public bucket to store the generated images.
 
 **Migration SQL:**
 ```sql
-CREATE OR REPLACE FUNCTION public.get_nearby_services(
-  user_lat double precision,
-  user_lng double precision,
-  radius_meters double precision DEFAULT 40000,
-  filter_category text DEFAULT NULL
-)
-RETURNS TABLE (
-  id bigint,
-  name text,
-  category text,
-  rating numeric,
-  price text,
-  description text,
-  enriched_description text,
-  image_url text,
-  is_featured boolean,
-  is_verified boolean,
-  is_flagged boolean,
-  latitude double precision,
-  longitude double precision,
-  verified_latitude double precision,
-  verified_longitude double precision,
-  phone text,
-  website text,
-  photo_reference text,
-  enrichment_status text,
-  distance_meters double precision
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  user_point geography;
-BEGIN
-  user_point := ST_SetSRID(ST_MakePoint(user_lng, user_lat), 4326)::geography;
-  
-  RETURN QUERY
-  SELECT 
-    s.id,
-    s.name,
-    s.category,
-    s.rating,
-    s.price,
-    s.description,
-    s.enriched_description,
-    s.image_url,
-    s.is_featured,
-    s.is_verified,
-    s.is_flagged,
-    s.latitude,
-    s.longitude,
-    s.verified_latitude,
-    s.verified_longitude,
-    s.phone,
-    s.website,
-    s.photo_reference,
-    s.enrichment_status,
-    CASE 
-      WHEN s.geo IS NOT NULL THEN ST_Distance(s.geo, user_point)
-      WHEN COALESCE(s.verified_latitude, s.latitude) IS NOT NULL 
-           AND COALESCE(s.verified_longitude, s.longitude) IS NOT NULL THEN 
-        ST_Distance(
-          ST_SetSRID(ST_MakePoint(
-            COALESCE(s.verified_longitude, s.longitude), 
-            COALESCE(s.verified_latitude, s.latitude)
-          ), 4326)::geography,
-          user_point
-        )
-      ELSE NULL
-    END AS distance_meters
-  FROM services s
-  WHERE 
-    (filter_category IS NULL OR s.category = filter_category)
-    AND (
-      (s.geo IS NOT NULL AND ST_DWithin(s.geo, user_point, radius_meters))
-      OR 
-      (s.geo IS NULL 
-       AND COALESCE(s.verified_latitude, s.latitude) IS NOT NULL 
-       AND COALESCE(s.verified_longitude, s.longitude) IS NOT NULL 
-       AND ST_DWithin(
-         ST_SetSRID(ST_MakePoint(
-           COALESCE(s.verified_longitude, s.longitude), 
-           COALESCE(s.verified_latitude, s.latitude)
-         ), 4326)::geography,
-         user_point,
-         radius_meters
-       ))
-    )
-  ORDER BY 
-    s.is_featured DESC,
-    distance_meters ASC NULLS LAST;
-END;
-$$;
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('service-images', 'service-images', true);
+
+-- Allow public read access
+CREATE POLICY "service_images_public_read"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'service-images');
+
+-- Allow service role to upload
+CREATE POLICY "service_images_service_write"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'service-images');
 ```
 
 ---
 
-#### Step 2: Update useServices Hook
+#### Step 2: Create Edge Function
 
-Add a new hook function to fetch nearby services.
+**File:** `supabase/functions/generate-service-images/index.ts`
 
-**File:** `src/hooks/useServices.tsx`
+**Functionality:**
+- Accept `action`: `process_single` (one service) or `process_batch` (multiple services)
+- Generate category-specific prompts for realistic pet service imagery
+- Call Lovable AI Gateway with Gemini image model
+- Upload resulting base64 image to Supabase Storage
+- Update the service record with the new `image_url`
 
-**Changes:**
-- Add `useNearbyServices` hook that accepts coordinates
-- Handle the RPC call to `get_nearby_services`
-- Map distance values to a human-readable format
-
+**Category Prompts:**
 ```typescript
-export function useNearbyServices(
-  coords: { latitude: number; longitude: number } | null,
-  category?: string | null
-) {
-  return useQuery({
-    queryKey: ['nearby-services', coords?.latitude, coords?.longitude, category],
-    queryFn: async () => {
-      if (!coords) return null;
-      
-      const { data, error } = await (supabase.rpc as any)('get_nearby_services', {
-        user_lat: coords.latitude,
-        user_lng: coords.longitude,
-        radius_meters: 40000, // ~25 miles
-        filter_category: category || null
-      });
-
-      if (error) throw error;
-      
-      return (data as any[]).map(row => ({
-        ...row,
-        distance: formatDistanceForDisplay(row.distance_meters)
-      })) as Service[];
-    },
-    enabled: !!coords,
-  });
-}
-```
-
----
-
-#### Step 3: Update Explore Page UI
-
-**File:** `src/pages/Explore.tsx`
-
-**Changes:**
-1. Add state for user coordinates and "near me" mode
-2. Add "Find Near Me" button next to the search bar
-3. Toggle between regular services and nearby services based on mode
-4. Show loading state while fetching location
-5. Display actual calculated distances on service cards
-
-```tsx
-// New state
-const [userCoords, setUserCoords] = useState<{latitude: number; longitude: number} | null>(null);
-const [isLocating, setIsLocating] = useState(false);
-const [nearMeMode, setNearMeMode] = useState(false);
-
-// Use nearby services when in nearMeMode
-const { data: nearbyServices, isLoading: nearbyLoading } = useNearbyServices(
-  nearMeMode ? userCoords : null,
-  selectedCategory
-);
-
-// Find Near Me button handler
-const handleFindNearMe = () => {
-  if (!navigator.geolocation) {
-    toast.error("Geolocation not supported");
-    return;
-  }
-  
-  setIsLocating(true);
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      setUserCoords({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude
-      });
-      setNearMeMode(true);
-      setIsLocating(false);
-      toast.success("Showing services near you!");
-    },
-    (error) => {
-      setIsLocating(false);
-      toast.error("Could not get your location");
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
+const CATEGORY_PROMPTS: Record<string, string> = {
+  'Dog Walkers': 'Professional photo of a friendly person walking multiple happy dogs on leashes in a sunny park, warm natural lighting, authentic candid style',
+  'Groomers': 'Professional pet grooming salon interior, clean and modern, showing a well-groomed fluffy dog on grooming table, spa-like atmosphere',
+  'Vet Clinics': 'Modern veterinary clinic reception area, warm and welcoming, with a friendly veterinarian in scrubs petting a calm dog, professional medical setting',
+  'Trainers': 'Outdoor dog training session, professional trainer working with an attentive dog, positive reinforcement training, natural park setting',
+  'Daycare': 'Bright colorful dog daycare facility with multiple happy dogs playing together, indoor play area, joyful atmosphere',
+  // ... more categories
 };
 ```
 
-**UI Addition (next to search bar):**
-```tsx
-<div className="flex gap-2">
-  <div className="relative flex-1">
-    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" />
-    <Input placeholder="Search pet services..." className="pl-10 rounded-full" />
-  </div>
-  <Button
-    variant={nearMeMode ? "default" : "outline"}
-    size="icon"
-    className="rounded-full shrink-0"
-    onClick={handleFindNearMe}
-    disabled={isLocating}
-  >
-    {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-  </Button>
-</div>
+**Key Code Pattern:**
+```typescript
+const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${LOVABLE_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "google/gemini-2.5-flash-image",
+    messages: [{ role: "user", content: prompt }],
+    modalities: ["image", "text"]
+  })
+});
+
+const data = await response.json();
+const base64Image = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+// Upload to storage and get public URL
+const { data: uploadData } = await supabase.storage
+  .from('service-images')
+  .upload(`${serviceId}.png`, imageBuffer, { contentType: 'image/png' });
 ```
 
 ---
 
-### User Experience Flow
+#### Step 3: Add Admin UI Button
 
-1. User taps the **📍 Near Me** button
-2. Browser prompts for location permission (if not already granted)
-3. Button shows a loading spinner while fetching location
-4. Once location is obtained, services list refreshes with:
-   - Results sorted by distance (closest first)
-   - Distance badge on each card (e.g., "0.3 mi away")
-5. The button stays highlighted to indicate "Near Me" mode is active
-6. Tapping again clears the filter and returns to default view
+**File:** `src/pages/admin/AdminServices.tsx`
 
----
-
-### Technical Summary
-
-| Component | Change |
-|-----------|--------|
-| Database | New `get_nearby_services` RPC function using PostGIS |
-| `src/hooks/useServices.tsx` | Add `useNearbyServices` hook |
-| `src/pages/Explore.tsx` | Add "Near Me" button, location state, toggle logic |
-| `src/lib/spatial-utils.ts` | Reuse existing `formatDistance` helper |
+Add a "Generate Images" button in the admin services panel that:
+- Identifies services with missing/broken images
+- Triggers the edge function in batch mode
+- Shows progress as images are generated
+- Displays success/error feedback
 
 ---
 
-### Files to Modify
+#### Step 4: Add Image Validation
 
-1. **Database migration** - Create `get_nearby_services` RPC
-2. **`src/hooks/useServices.tsx`** - Add `useNearbyServices` hook
-3. **`src/pages/Explore.tsx`** - Add button, state, and conditional rendering
+**File:** `src/hooks/useServices.tsx`
+
+Enhance `getServiceImage()` to:
+- Validate URLs before using them (check for common broken patterns)
+- Prioritize Supabase Storage URLs
+- Fall back gracefully to category-based stock photos
+
+---
+
+### Benefits
+
+| Aspect | Before | After |
+|--------|--------|-------|
+| Image diversity | Same stock photo for entire category | Unique image per service |
+| Broken links | Many 404 errors from fake domains | All images hosted on Supabase |
+| Authenticity | Generic stock photos | Category-specific professional imagery |
+| Load time | External domain dependencies | Fast CDN-backed Supabase Storage |
+
+---
+
+### Files to Create/Modify
+
+1. **Database migration** - Create `service-images` storage bucket
+2. **`supabase/functions/generate-service-images/index.ts`** - New edge function
+3. **`src/pages/admin/AdminServices.tsx`** - Add "Generate Images" button
+4. **`src/hooks/useServices.tsx`** - Improve image fallback logic
+
+---
+
+### Alternative: Quick Fix with Curated Stock Photos
+
+If you prefer not to use AI generation, I can instead:
+- Create a curated set of ~20 high-quality Unsplash images per category
+- Update the database to randomly assign these to services
+- This gives variety without AI generation costs
+
+Would you prefer the AI-generated approach or the curated stock photo approach?
 
