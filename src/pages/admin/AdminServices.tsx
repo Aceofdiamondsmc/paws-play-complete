@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useServices } from '@/hooks/useServices';
 import { useQueryClient } from '@tanstack/react-query';
@@ -30,8 +30,40 @@ export default function AdminServices() {
     errors?: string[];
   } | null>(null);
 
+  // Image generation state
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [imageGenProgress, setImageGenProgress] = useState<{
+    processed: number;
+    successful: number;
+    failed: number;
+    results: Array<{ id: number; name: string; success: boolean; error?: string }>;
+  } | null>(null);
+  const [imageStatus, setImageStatus] = useState<{
+    total: number;
+    hasValidImage: number;
+    needsImage: number;
+  } | null>(null);
+
   const { data: services, isLoading } = useServices();
   const queryClient = useQueryClient();
+
+  // Fetch image status on mount
+  useEffect(() => {
+    fetchImageStatus();
+  }, []);
+
+  const fetchImageStatus = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-service-images', {
+        body: { action: 'get_status' }
+      });
+      if (!error && data) {
+        setImageStatus(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch image status:', e);
+    }
+  };
 
   const handleCategoryToggle = (categoryId: string) => {
     setSelectedCategories(prev =>
@@ -135,6 +167,52 @@ export default function AdminServices() {
         });
       }
     );
+  };
+
+  const handleGenerateImages = async (batchSize: number = 5) => {
+    setIsGeneratingImages(true);
+    setImageGenProgress(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-service-images', {
+        body: { action: 'process_batch', limit: batchSize }
+      });
+
+      if (error) {
+        throw new Error(error.message || "Image generation failed");
+      }
+
+      setImageGenProgress(data);
+      
+      if (data.successful > 0) {
+        toast({
+          title: "Images generated!",
+          description: `Successfully generated ${data.successful} images`,
+        });
+        queryClient.invalidateQueries({ queryKey: ['services'] });
+        fetchImageStatus();
+      } else if (data.processed === 0) {
+        toast({
+          title: "All images up to date",
+          description: "No services need new images",
+        });
+      } else {
+        toast({
+          title: "Generation completed with errors",
+          description: `${data.failed} images failed to generate`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Image generation error:", error);
+      toast({
+        title: "Image generation failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImages(false);
+    }
   };
 
   // Group services by category for stats
@@ -274,6 +352,106 @@ export default function AdminServices() {
                   {importResult.errors.map((error, i) => (
                     <div key={i} className="text-sm text-muted-foreground">• {error}</div>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Generate Service Images Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wand2 className="h-5 w-5" />
+            AI Image Generation
+          </CardTitle>
+          <CardDescription>
+            Generate unique, professional images for services using AI
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Image Status */}
+          {imageStatus && (
+            <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">
+                  <span className="font-medium">{imageStatus.hasValidImage}</span> with images
+                </span>
+              </div>
+              <div className="h-4 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-warning" />
+                <span className="text-sm">
+                  <span className="font-medium">{imageStatus.needsImage}</span> need images
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Generate Buttons */}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => handleGenerateImages(5)}
+              disabled={isGeneratingImages || (imageStatus?.needsImage === 0)}
+              className="flex-1"
+            >
+              {isGeneratingImages ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Generate 5 Images
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleGenerateImages(10)}
+              disabled={isGeneratingImages || (imageStatus?.needsImage === 0)}
+            >
+              Generate 10
+            </Button>
+          </div>
+
+          {/* Generation Progress */}
+          {imageGenProgress && (
+            <div className="mt-4 p-4 bg-muted rounded-lg space-y-3">
+              <div className="flex items-center gap-2">
+                {imageGenProgress.successful > 0 ? (
+                  <CheckCircle className="h-5 w-5 text-success" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-warning" />
+                )}
+                <span className="font-medium">
+                  Generated {imageGenProgress.successful} of {imageGenProgress.processed} images
+                </span>
+              </div>
+
+              {imageGenProgress.results.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">Results:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {imageGenProgress.results.map((result, i) => (
+                      <Badge 
+                        key={i} 
+                        variant={result.success ? "default" : "destructive"}
+                      >
+                        {result.name.slice(0, 20)}{result.name.length > 20 ? '...' : ''}
+                        {result.success ? ' ✓' : ' ✗'}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {imageGenProgress.failed > 0 && (
+                <div className="text-sm text-destructive">
+                  {imageGenProgress.failed} images failed to generate
                 </div>
               )}
             </div>

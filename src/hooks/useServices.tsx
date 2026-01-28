@@ -36,15 +36,42 @@ const FALLBACK_IMAGES: Record<string, string> = {
   'Groomers': 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400&h=300&fit=crop',
 };
 
+// Check if a URL is likely broken or generic
+function isValidImageUrl(url: string | null): boolean {
+  if (!url) return false;
+  
+  // Known broken domain patterns
+  const brokenPatterns = [
+    'petworks.com',
+    'example.com',
+    'placeholder',
+    'via.placeholder',
+    'dummyimage',
+  ];
+  
+  if (brokenPatterns.some(pattern => url.toLowerCase().includes(pattern))) {
+    return false;
+  }
+  
+  return true;
+}
+
 export function getServiceImage(service: Service): string {
-  // Priority 1: Use image_url from database if it exists
-  if (service.image_url) {
+  // Priority 1: Supabase Storage URLs (generated images)
+  if (service.image_url?.includes('supabase')) {
     return service.image_url;
   }
-  // Priority 2: Use Google Places photo_reference if available
-  if (service.photo_reference && !service.photo_reference.startsWith('Aap_uE')) {
+  
+  // Priority 2: Valid external image_url
+  if (isValidImageUrl(service.image_url)) {
+    return service.image_url!;
+  }
+  
+  // Priority 3: Google Places photo_reference if available
+  if (service.photo_reference && !service.photo_reference.startsWith('Aap_uE') && GOOGLE_API_KEY) {
     return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${service.photo_reference}&key=${GOOGLE_API_KEY}`;
   }
+  
   // Fallback: category-based stock photos
   return FALLBACK_IMAGES[service.category] || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop';
 }
