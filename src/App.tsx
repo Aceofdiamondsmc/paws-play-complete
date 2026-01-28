@@ -19,6 +19,8 @@ import Dates from "./pages/Dates";
 import Pack from "./pages/Pack";
 import Me from "./pages/Me";
 import Shop from "./pages/Shop";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import AdminParks from "./pages/admin/AdminParks";
 import AdminServices from "./pages/admin/AdminServices";
@@ -39,6 +41,8 @@ const App = () => (
             <NotificationPrompt />
             <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route element={<AppLayout />}>
                 <Route path="/parks" element={<Parks />} />
                 <Route path="/explore" element={<Explore />} />

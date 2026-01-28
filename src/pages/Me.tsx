@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -182,7 +182,18 @@ export default function Me() {
                 />
               </div>
 
-              <Button 
+              {isLogin && (
+                <div className="text-right -mt-2">
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm text-[hsl(165,40%,45%)] hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+              )}
+
+              <Button
                 type="submit" 
                 className="w-full rounded-xl h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-base" 
                 disabled={isSubmitting}
