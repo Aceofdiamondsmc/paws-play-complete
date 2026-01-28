@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Compass, Search, Dog, Scissors, Stethoscope, Home, MapPin, List, Map as MapIcon, BadgeCheck } from 'lucide-react';
+import { Compass, Search, Dog, Scissors, Stethoscope, Home, MapPin, List, Map as MapIcon, BadgeCheck, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useServices, getServiceImage, Service } from '@/hooks/useServices';
+import { useServices, useNearbyServices, getServiceImage, Service } from '@/hooks/useServices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ServicesMap } from '@/components/explore/ServicesMap';
@@ -23,14 +24,58 @@ export default function Explore() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [searchQuery, setSearchQuery] = useState('');
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [nearMeMode, setNearMeMode] = useState(false);
+
   const { data: services, isLoading } = useServices(selectedCategory);
+  const { data: nearbyServices, isLoading: nearbyLoading } = useNearbyServices(
+    nearMeMode ? userCoords : null,
+    selectedCategory
+  );
 
   const handleCategoryClick = (categoryId: string) => {
     setSelectedCategory(prev => prev === categoryId ? null : categoryId);
   };
 
+  const handleFindNearMe = () => {
+    if (nearMeMode) {
+      // Toggle off near me mode
+      setNearMeMode(false);
+      toast.info("Showing all services");
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      toast.error("Geolocation not supported");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+        setNearMeMode(true);
+        setIsLocating(false);
+        toast.success("Showing services near you!");
+      },
+      () => {
+        setIsLocating(false);
+        toast.error("Could not get your location");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Use nearby services when in nearMeMode, otherwise use regular services
+  const activeServices = nearMeMode ? nearbyServices : services;
+  const activeLoading = nearMeMode ? nearbyLoading : isLoading;
+
   // Filter services by search query
-  const filteredServices = services?.filter(service => 
+  const filteredServices = activeServices?.filter(service => 
     searchQuery === '' || 
     service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     service.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -64,14 +109,26 @@ export default function Explore() {
             </Button>
           </div>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input
-            placeholder="Search pet services..."
-            className="pl-10 rounded-full"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              placeholder="Search pet services..."
+              className="pl-10 rounded-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button
+            variant={nearMeMode ? "default" : "outline"}
+            size="icon"
+            className="rounded-full shrink-0"
+            onClick={handleFindNearMe}
+            disabled={isLocating}
+            title={nearMeMode ? "Show all services" : "Find services near me"}
+          >
+            {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+          </Button>
         </div>
       </div>
 
@@ -111,13 +168,13 @@ export default function Explore() {
         {viewMode === 'list' && (
           <div>
             <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
-              {selectedCategory ? selectedCategory : 'Nearby Services'}
+              {nearMeMode ? 'Near You' : (selectedCategory ? selectedCategory : 'Nearby Services')}
               {filteredServices && (
                 <Badge variant="secondary">{filteredServices.length}</Badge>
               )}
             </h2>
             <div className="space-y-3">
-              {isLoading ? (
+              {activeLoading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <Card key={i} className="p-4">
                     <div className="flex items-start gap-4">
