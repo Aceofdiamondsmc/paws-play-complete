@@ -6,21 +6,130 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const CATEGORY_PROMPTS: Record<string, string> = {
-  'Dog Walkers': 'Professional photo of a friendly person walking multiple happy dogs on leashes in a sunny park, warm natural lighting, authentic candid style, high quality, 4k',
-  'Groomers': 'Professional pet grooming salon interior, clean and modern, showing a well-groomed fluffy dog on grooming table, spa-like atmosphere, high quality, 4k',
-  'Vet Clinics': 'Modern veterinary clinic reception area, warm and welcoming, with a friendly veterinarian in scrubs petting a calm dog, professional medical setting, high quality, 4k',
-  'Trainers': 'Outdoor dog training session, professional trainer working with an attentive dog, positive reinforcement training, natural park setting, high quality, 4k',
-  'Daycare': 'Bright colorful dog daycare facility with multiple happy dogs playing together, indoor play area, joyful atmosphere, high quality, 4k',
+// Variety elements for unique image generation
+const DOG_BREEDS = [
+  'Golden Retriever', 'Labrador', 'German Shepherd', 'French Bulldog', 'Poodle',
+  'Beagle', 'Corgi', 'Husky', 'Border Collie', 'Australian Shepherd',
+  'Dachshund', 'Shiba Inu', 'Bernese Mountain Dog', 'Cavalier King Charles Spaniel',
+  'Boston Terrier', 'Boxer', 'Great Dane', 'Maltese', 'Pomeranian', 'Samoyed'
+];
+
+const TIMES_OF_DAY = [
+  'golden hour morning light', 'bright midday sunshine', 'warm afternoon glow',
+  'soft overcast daylight', 'early morning sunrise', 'late afternoon golden light'
+];
+
+const SETTINGS = {
+  'Dog Walkers': [
+    'urban city park with modern skyline', 'leafy suburban neighborhood street',
+    'scenic hiking trail in nature', 'beachfront boardwalk', 'tree-lined boulevard',
+    'quiet residential area with gardens', 'riverside walking path', 'botanical garden'
+  ],
+  'Groomers': [
+    'modern minimalist salon with white walls', 'cozy boutique grooming studio',
+    'bright airy space with large windows', 'upscale spa-like environment',
+    'rustic chic grooming parlor', 'contemporary pet salon with plants'
+  ],
+  'Vet Clinics': [
+    'modern clinical space with warm touches', 'friendly neighborhood veterinary office',
+    'state-of-the-art medical facility', 'cozy family veterinary practice',
+    'bright welcoming animal hospital', 'professional medical examination room'
+  ],
+  'Trainers': [
+    'open grassy training field', 'indoor training facility with equipment',
+    'fenced backyard training area', 'agility course setup', 'park training session',
+    'beach training environment', 'forest clearing training spot'
+  ],
+  'Daycare': [
+    'spacious indoor play area with colorful toys', 'outdoor play yard with shade structures',
+    'modern facility with climbing equipment', 'cozy nap room with dog beds',
+    'splash pad water play area', 'supervised group play space'
+  ]
 };
 
-const DEFAULT_PROMPT = 'Professional photo of a happy dog at a pet care facility, warm lighting, high quality, 4k';
+const CAMERA_ANGLES = [
+  'eye-level perspective', 'slight low angle looking up', 'overhead three-quarter view',
+  'candid side profile', 'dynamic action shot', 'intimate close-up portrait'
+];
+
+const MOODS = [
+  'joyful and energetic', 'calm and peaceful', 'playful and fun',
+  'professional and trustworthy', 'warm and welcoming', 'friendly and approachable'
+];
+
+// Pick random element from array
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Pick multiple random unique elements
+function pickMultiple<T>(arr: T[], count: number): T[] {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, arr.length));
+}
+
+// Generate a unique, varied prompt for a service
+function generateUniquePrompt(service: {
+  name: string;
+  category: string;
+  description?: string | null;
+  enriched_description?: string | null;
+  verified_address?: string | null;
+}): string {
+  const breeds = pickMultiple(DOG_BREEDS, 2);
+  const timeOfDay = pickRandom(TIMES_OF_DAY);
+  const categorySettings = SETTINGS[service.category as keyof typeof SETTINGS] || SETTINGS['Daycare'];
+  const setting = pickRandom(categorySettings);
+  const angle = pickRandom(CAMERA_ANGLES);
+  const mood = pickRandom(MOODS);
+
+  // Extract useful details from description
+  let descriptionDetails = '';
+  const desc = service.enriched_description || service.description || '';
+  if (desc) {
+    // Extract key adjectives or features (first 100 chars, cleaned)
+    const cleanDesc = desc.slice(0, 100).replace(/[^\w\s,]/g, '').trim();
+    if (cleanDesc.length > 20) {
+      descriptionDetails = `, inspired by: ${cleanDesc}`;
+    }
+  }
+
+  // Add location flavor if available
+  let locationFlavor = '';
+  if (service.verified_address) {
+    const addressParts = service.verified_address.split(',');
+    const city = addressParts.length > 1 ? addressParts[addressParts.length - 2]?.trim() : '';
+    if (city && city.length > 2) {
+      locationFlavor = `, ${city} local style`;
+    }
+  }
+
+  const categoryPrompts: Record<string, string> = {
+    'Dog Walkers': `Professional candid photo of a friendly dog walker with a ${breeds[0]} and a ${breeds[1]} on leashes, ${setting}, ${timeOfDay}, ${angle}, ${mood} atmosphere${descriptionDetails}${locationFlavor}, authentic lifestyle photography, high quality, 4k, unique composition`,
+    
+    'Groomers': `Professional photo of a skilled groomer carefully styling a beautiful ${breeds[0]}, ${setting}, ${timeOfDay}, ${angle}, ${mood} atmosphere${descriptionDetails}${locationFlavor}, spa-like quality, authentic candid moment, high quality, 4k`,
+    
+    'Vet Clinics': `Professional photo of a caring veterinarian gently examining a ${breeds[0]}, ${setting}, ${timeOfDay}, ${angle}, ${mood} atmosphere${descriptionDetails}${locationFlavor}, medical professionalism with warmth, high quality, 4k`,
+    
+    'Trainers': `Professional action photo of an experienced dog trainer working with an attentive ${breeds[0]}, ${setting}, ${timeOfDay}, ${angle}, ${mood} atmosphere${descriptionDetails}${locationFlavor}, dynamic training moment, positive reinforcement visible, high quality, 4k`,
+    
+    'Daycare': `Professional photo of happy ${breeds[0]} and ${breeds[1]} playing together, ${setting}, ${timeOfDay}, ${angle}, ${mood} atmosphere${descriptionDetails}${locationFlavor}, joyful dogs at play, supervised environment, high quality, 4k`,
+  };
+
+  const basePrompt = categoryPrompts[service.category] || categoryPrompts['Daycare'];
+  
+  // Add service name for uniqueness
+  return `${basePrompt}. For "${service.name}" pet service business. Make this image distinctly unique.`;
+}
 
 interface Service {
   id: number;
   name: string;
   category: string;
   image_url: string | null;
+  description?: string | null;
+  enriched_description?: string | null;
+  verified_address?: string | null;
 }
 
 async function generateImageForService(
@@ -29,10 +138,10 @@ async function generateImageForService(
   lovableApiKey: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const prompt = CATEGORY_PROMPTS[service.category] || DEFAULT_PROMPT;
-    const uniquePrompt = `${prompt}. This is for "${service.name}", a ${service.category.toLowerCase()} business.`;
+    const uniquePrompt = generateUniquePrompt(service);
 
-    console.log(`Generating image for service ${service.id}: ${service.name}`);
+    console.log(`Generating unique image for service ${service.id}: ${service.name}`);
+    console.log(`Prompt: ${uniquePrompt.slice(0, 200)}...`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -65,8 +174,9 @@ async function generateImageForService(
     const base64Data = base64ImageUrl.replace(/^data:image\/\w+;base64,/, '');
     const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
-    // Upload to Supabase Storage
-    const fileName = `service-${service.id}-${Date.now()}.png`;
+    // Upload to Supabase Storage with unique filename including timestamp and random suffix
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const fileName = `service-${service.id}-${Date.now()}-${randomSuffix}.png`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('service-images')
       .upload(fileName, imageBuffer, {
@@ -97,7 +207,7 @@ async function generateImageForService(
       return { success: false, error: `Database update failed: ${updateError.message}` };
     }
 
-    console.log(`Successfully generated image for service ${service.id}: ${publicUrl}`);
+    console.log(`Successfully generated unique image for service ${service.id}: ${publicUrl}`);
     return { success: true };
   } catch (error) {
     console.error(`Error processing service ${service.id}:`, error);
@@ -109,7 +219,6 @@ async function generateImageForService(
 function isLikelyBrokenUrl(url: string | null): boolean {
   if (!url) return true;
   
-  // Known broken domain patterns
   const brokenPatterns = [
     'petworks.com',
     'example.com',
@@ -139,10 +248,10 @@ serve(async (req) => {
     const { action, serviceId, limit = 5 } = await req.json();
 
     if (action === "process_single" && serviceId) {
-      // Process a single service
+      // Process a single service - fetch with description fields
       const { data: service, error } = await supabase
         .from('services')
-        .select('id, name, category, image_url')
+        .select('id, name, category, image_url, description, enriched_description, verified_address')
         .eq('id', serviceId)
         .single();
 
@@ -156,10 +265,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else if (action === "process_batch") {
-      // Fetch services that need images
+      // Fetch services that need images - include description fields for variety
       const { data: services, error } = await supabase
         .from('services')
-        .select('id, name, category, image_url')
+        .select('id, name, category, image_url, description, enriched_description, verified_address')
         .order('id', { ascending: true })
         .limit(100);
 
