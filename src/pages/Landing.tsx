@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Play, PawPrint } from 'lucide-react';
-import landingPugGlasses from '@/assets/landing-pug-glasses.jpg';
+import landingHero from '@/assets/landing-hero.avif';
 import { useStats } from '@/contexts/StatsContext';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -26,7 +26,7 @@ export default function Landing() {
   return <div className="relative min-h-[100dvh] flex flex-col items-center overflow-y-auto overflow-x-hidden">
       {/* Background Image - Full screen with object-fit cover for proper proportions */}
       <div className="absolute inset-0">
-        <img src={landingPugGlasses} alt="Paws Play Repeat" className="w-full h-full object-cover" style={{
+        <img src={landingHero} alt="Paws Play Repeat" className="w-full h-full object-cover" style={{
         objectPosition: 'center 30%'
       }} />
       </div>
