@@ -71,6 +71,46 @@ export function useServices(category?: string | null) {
   });
 }
 
+// Format distance in meters to human-readable format
+function formatDistanceForDisplay(meters: number | null | undefined): string | null {
+  if (meters == null) return null;
+  const miles = meters / 1609.34;
+  if (miles < 0.1) {
+    return `${Math.round(meters)}m away`;
+  }
+  if (miles < 10) {
+    return `${miles.toFixed(1)} mi away`;
+  }
+  return `${Math.round(miles)} mi away`;
+}
+
+export function useNearbyServices(
+  coords: { latitude: number; longitude: number } | null,
+  category?: string | null
+) {
+  return useQuery({
+    queryKey: ['nearby-services', coords?.latitude, coords?.longitude, category],
+    queryFn: async () => {
+      if (!coords) return null;
+
+      const { data, error } = await (supabase.rpc as any)('get_nearby_services', {
+        user_lat: coords.latitude,
+        user_lng: coords.longitude,
+        radius_meters: 40000,
+        filter_category: category || null
+      });
+
+      if (error) throw error;
+
+      return (data as any[]).map(row => ({
+        ...row,
+        distance: formatDistanceForDisplay(row.distance_meters)
+      })) as Service[];
+    },
+    enabled: !!coords,
+  });
+}
+
 export function useService(id: string | undefined) {
   return useQuery({
     queryKey: ['service', id],

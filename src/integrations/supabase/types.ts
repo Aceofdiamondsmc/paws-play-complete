@@ -1630,6 +1630,36 @@ export type Database = {
           user_ratings_total: number
         }[]
       }
+      get_nearby_services: {
+        Args: {
+          filter_category?: string
+          radius_meters?: number
+          user_lat: number
+          user_lng: number
+        }
+        Returns: {
+          category: string
+          description: string
+          distance_meters: number
+          enriched_description: string
+          enrichment_status: string
+          id: number
+          image_url: string
+          is_featured: boolean
+          is_flagged: boolean
+          is_verified: boolean
+          latitude: number
+          longitude: number
+          name: string
+          phone: string
+          photo_reference: string
+          price: string
+          rating: number
+          verified_latitude: number
+          verified_longitude: number
+          website: string
+        }[]
+      }
       get_parks_nearby: {
         Args: {
           page_offset?: number
