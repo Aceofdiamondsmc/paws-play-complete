@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.explore-assistant]
 verify_jwt = false
+
+[functions.generate-service-images]
+verify_jwt = false
