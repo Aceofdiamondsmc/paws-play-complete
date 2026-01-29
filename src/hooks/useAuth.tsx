@@ -86,6 +86,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(() => {
             fetchProfile(session.user.id);
             fetchDogs(session.user.id);
+            
+            // Link OneSignal identity on every auth state change
+            if ((window as any).OneSignalDeferred) {
+              (window as any).OneSignalDeferred.push(async (OneSignal: any) => {
+                try {
+                  await OneSignal.login(session.user.id);
+                  console.log('OneSignal identity linked on auth');
+                } catch (e) {
+                  console.log('OneSignal login skipped (not initialized or declined)');
+                }
+              });
+            }
           }, 0);
         } else {
           setProfile(null);
