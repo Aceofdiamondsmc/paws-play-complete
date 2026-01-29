@@ -44,13 +44,13 @@ export function useProfile() {
       const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('post-images')
+        .from('user-profiles')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('post-images')
+        .from('user-profiles')
         .getPublicUrl(filePath);
 
       // Update profile avatar

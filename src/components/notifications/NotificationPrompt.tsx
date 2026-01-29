@@ -46,6 +46,13 @@ export function NotificationPrompt() {
     if (!user) return;
 
     setLoading(true);
+    
+    // Timeout fallback to prevent permanent "Enabling..." state
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+      toast.error('Request timed out. Please try again.');
+    }, 15000);
+    
     try {
       // Request notification permission via OneSignal
       if (window.OneSignalDeferred) {
@@ -86,14 +93,17 @@ export function NotificationPrompt() {
             console.error('OneSignal error:', err);
             toast.error('Could not enable notifications');
           } finally {
+            clearTimeout(timeoutId);
             setLoading(false);
           }
         });
       } else {
+        clearTimeout(timeoutId);
         toast.error('Notification service unavailable');
         setLoading(false);
       }
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Error enabling notifications:', error);
       toast.error('Failed to enable notifications');
       setLoading(false);
