@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { AuthContext } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { isIOSSafari, isStandalone } from '@/lib/navigation-utils';
+import { isIOS, isStandalone } from '@/lib/navigation-utils';
 
 declare global {
   interface Window {
@@ -27,8 +27,8 @@ export function NotificationPrompt() {
       const dismissedAt = dismissed ? parseInt(dismissed, 10) : 0;
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
 
-      // Check if iOS Safari but NOT standalone
-      if (isIOSSafari() && !isStandalone()) {
+      // On iOS, web push requires installing the PWA (standalone mode)
+      if (isIOS() && !isStandalone()) {
         // Don't show if dismissed within 7 days
         if (Date.now() - dismissedAt > sevenDays) {
           const timer = setTimeout(() => setPromptType('ios-install'), 3000);
@@ -166,8 +166,8 @@ export function NotificationPrompt() {
       {promptType === 'ios-install' && (
         <Card className="p-4 shadow-lg border-primary/20 bg-card/95 backdrop-blur-sm">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-              <Share className="w-5 h-5 text-blue-500" />
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Share className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-sm">Get Notifications on iPhone 📲</h3>
