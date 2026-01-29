@@ -6,7 +6,16 @@
  * Detect if the device is running iOS
  */
 export function isIOS(): boolean {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  const ua = navigator.userAgent;
+  const platform = navigator.platform;
+
+  // iPhone/iPad/iPod (classic)
+  const classicIOS = /iPad|iPhone|iPod/.test(ua);
+
+  // iPadOS 13+ reports itself as Mac; detect via touch points
+  const iPadOS = platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1;
+
+  return (classicIOS || iPadOS) && !(window as any).MSStream;
 }
 
 /**
