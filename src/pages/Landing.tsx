@@ -46,7 +46,26 @@ export default function Landing() {
         </div>
         
         {/* Colorful Title */}
-        
+        <h1 className="text-4xl font-extrabold italic mb-2 text-center">
+          <span 
+            className="text-[#FF6B6B]" 
+            style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.3)' }}
+          >
+            Paws
+          </span>
+          <span 
+            className="text-[#4ECDC4]" 
+            style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.3)' }}
+          >
+            Play
+          </span>
+          <span 
+            className="text-[#95D44A]" 
+            style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.3)' }}
+          >
+            Repeat
+          </span>
+        </h1>
         
         {/* Tagline */}
         <p className="text-white/90 text-base font-medium mb-8 text-center">
