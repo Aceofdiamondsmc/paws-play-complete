@@ -904,7 +904,7 @@ export type Database = {
           geo: unknown
           google_place_id: string | null
           id: number
-          image_url: string | null
+          image_url: string
           is_featured: boolean
           is_flagged: boolean | null
           is_verified: boolean | null
@@ -934,7 +934,7 @@ export type Database = {
           geo?: unknown
           google_place_id?: string | null
           id?: number
-          image_url?: string | null
+          image_url: string
           is_featured?: boolean
           is_flagged?: boolean | null
           is_verified?: boolean | null
@@ -964,7 +964,7 @@ export type Database = {
           geo?: unknown
           google_place_id?: string | null
           id?: number
-          image_url?: string | null
+          image_url?: string
           is_featured?: boolean
           is_flagged?: boolean | null
           is_verified?: boolean | null
@@ -1324,6 +1324,50 @@ export type Database = {
           verified_longitude?: number | null
         }
         Relationships: []
+      }
+      view_post_comment_counts: {
+        Row: {
+          comment_count: number | null
+          post_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      view_post_like_counts: {
+        Row: {
+          like_count: number | null
+          post_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
