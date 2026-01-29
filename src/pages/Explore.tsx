@@ -156,6 +156,9 @@ export default function Explore() {
           })}
         </div>
 
+        {/* Add Service CTA - moved to top */}
+        <AddServiceCTA />
+
 {/* Map View */}
         {viewMode === 'map' && (
           <ServicesMap 
@@ -205,10 +208,6 @@ export default function Explore() {
               )}
             </div>
 
-            {/* Add Service CTA */}
-            <div className="mt-6">
-              <AddServiceCTA />
-            </div>
           </div>
         )}
       </div>
