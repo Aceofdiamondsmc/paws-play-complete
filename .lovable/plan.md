@@ -1,38 +1,99 @@
 
+# Fix Plan: Profile Avatar Upload and Notification Hang
 
-## Move "Own a Pet Business" CTA to Top of Explore Page
+## Overview
 
-### Current State
-The `AddServiceCTA` component is currently positioned at the bottom of the list view in `src/pages/Explore.tsx`, appearing after all the service cards.
+Based on my analysis, the **Edit Profile form structure already matches the reference image exactly**. No structural changes are needed. The issues are:
 
-### Proposed Change
-Move the `AddServiceCTA` component to appear at the top of the content area, right after the category pills and before the services list/map.
+1. **Profile avatar uploads fail** because they target the wrong storage bucket
+2. **Notifications get stuck on "Enabling..."** due to missing timeout fallback
 
-### Implementation
+---
 
-**File: `src/pages/Explore.tsx`**
+## Changes Required
 
-1. **Remove** the current placement at the bottom (lines 157-160):
-   ```tsx
-   {/* Add Service CTA */}
-   <div className="mt-6">
-     <AddServiceCTA />
-   </div>
-   ```
+### 1. Fix Profile Avatar Upload Bucket
 
-2. **Add** the component at the top of the content area, right after the category pills section (after line 127):
-   ```tsx
-   {/* Category Pills */}
-   <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-     {/* ... existing pills code ... */}
-   </div>
+**File: `src/hooks/useProfileManagement.tsx`**
 
-   {/* Add Service CTA - moved to top */}
-   <AddServiceCTA />
+The `uploadAvatar` function currently uploads to `'post-images'` but should use `'user-profiles'`:
 
-   {/* Map View */}
-   {viewMode === 'map' && (
-   ```
+| Line | Current | Fixed |
+|------|---------|-------|
+| 47 | `.from('post-images')` | `.from('user-profiles')` |
+| 53 | `.from('post-images')` | `.from('user-profiles')` |
 
-This ensures the CTA is visible immediately when users visit the Explore tab, regardless of whether they're in list or map view.
+This ensures profile photos are stored in the correct bucket (`user-profiles`) which has the proper RLS policies for user avatar storage.
 
+---
+
+### 2. Fix Notification "Enabling" Hang
+
+**File: `src/components/notifications/NotificationPrompt.tsx`**
+
+Add a timeout fallback to prevent the button from getting stuck if OneSignal fails to respond:
+
+**Changes:**
+- Add a 15-second timeout that resets `loading` state if OneSignal callback never completes
+- Clear the timeout if the callback succeeds or fails normally
+- This ensures the UI never gets stuck in a permanent loading state
+
+```text
+// Add timeout fallback at the start of handleEnableNotifications:
+const timeoutId = setTimeout(() => {
+  setLoading(false);
+  toast.error('Request timed out. Please try again.');
+}, 15000);
+
+// Clear timeout in the callback's finally block and catch block
+clearTimeout(timeoutId);
+```
+
+---
+
+### 3. Pack Member Form (No Changes Needed)
+
+The `useDogs.tsx` hook already correctly inserts into the `dogs` table (not the view):
+
+```typescript
+const { data: dog, error } = await supabase
+  .from('dogs')  // ✅ Correct - inserts into table, not view
+  .insert(insertData)
+```
+
+If the "cannot insert into view" error persists, it may be due to cached TypeScript types. Regenerating Supabase types should resolve this.
+
+---
+
+### 4. Edit Profile Form (No Changes Needed)
+
+The form structure already matches the reference image:
+
+| Feature | Status |
+|---------|--------|
+| "Edit Profile" title with X button | ✅ Matches |
+| Large centered avatar with orange ring | ✅ Matches |
+| Camera button overlay | ✅ Matches |
+| Display Name field (full width) | ✅ Matches |
+| Username field (full width) | ✅ Matches |
+| City / State side by side | ✅ Matches |
+| Bio textarea | ✅ Matches |
+| Cancel / Save Changes buttons | ✅ Matches |
+
+---
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/hooks/useProfileManagement.tsx` | Change bucket from `'post-images'` to `'user-profiles'` (2 locations) |
+| `src/components/notifications/NotificationPrompt.tsx` | Add 15-second timeout fallback to prevent "Enabling..." hang |
+
+---
+
+## What This Fixes
+
+- ✅ Profile avatar uploads will work correctly with the `user-profiles` bucket
+- ✅ Notification enable button won't get stuck in loading state
+- ✅ Pack member insertion should work (code is already correct)
+- ✅ Edit Profile form structure remains unchanged (already matches design)
