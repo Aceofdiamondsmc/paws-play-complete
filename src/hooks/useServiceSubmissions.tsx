@@ -159,10 +159,34 @@ export function useApproveSubmission() {
       if (error) throw error;
       return data as ServiceSubmission;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['all-service-submissions'] });
       queryClient.invalidateQueries({ queryKey: ['services'] });
       toast.success('Submission approved', { description: 'The service has been added to the directory' });
+
+      // Trigger AI image generation for the new service
+      try {
+        // Find the newly created service by matching business_name
+        const { data: newService } = await supabase
+          .from('services')
+          .select('id')
+          .eq('name', data.business_name)
+          .order('id', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (newService) {
+          toast.info('Generating AI image...', { description: 'This may take a moment' });
+          await supabase.functions.invoke('generate-service-images', {
+            body: { action: 'process_single', serviceId: newService.id }
+          });
+          queryClient.invalidateQueries({ queryKey: ['services'] });
+          toast.success('Image generated', { description: 'AI image has been added to the service' });
+        }
+      } catch (imageError) {
+        console.error('Image generation failed:', imageError);
+        toast.warning('Image generation failed', { description: 'You can manually generate an image later' });
+      }
     },
     onError: (error) => {
       toast.error('Approval failed', { description: error.message });

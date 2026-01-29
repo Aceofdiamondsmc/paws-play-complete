@@ -163,7 +163,7 @@ export default function SubmitService() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate('/')} className="w-full">
+            <Button onClick={() => navigate('/me')} className="w-full">
               Go to Sign In
             </Button>
           </CardContent>
