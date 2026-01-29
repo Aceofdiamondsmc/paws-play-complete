@@ -892,6 +892,96 @@ export type Database = {
         }
         Relationships: []
       }
+      service_submissions: {
+        Row: {
+          address: string
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          business_name: string
+          category: string
+          city: string
+          created_at: string | null
+          description: string | null
+          email: string
+          id: string
+          image_url: string | null
+          latitude: number | null
+          longitude: number | null
+          payment_status: string
+          phone: string | null
+          rejection_reason: string | null
+          state: string
+          stripe_customer_id: string | null
+          stripe_session_id: string | null
+          stripe_subscription_id: string | null
+          submitter_id: string | null
+          submitter_name: string
+          subscription_tier: string | null
+          subscription_valid_until: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          business_name: string
+          category: string
+          city: string
+          created_at?: string | null
+          description?: string | null
+          email: string
+          id?: string
+          image_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          payment_status?: string
+          phone?: string | null
+          rejection_reason?: string | null
+          state: string
+          stripe_customer_id?: string | null
+          stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          submitter_id?: string | null
+          submitter_name: string
+          subscription_tier?: string | null
+          subscription_valid_until?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          business_name?: string
+          category?: string
+          city?: string
+          created_at?: string | null
+          description?: string | null
+          email?: string
+          id?: string
+          image_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          payment_status?: string
+          phone?: string | null
+          rejection_reason?: string | null
+          state?: string
+          stripe_customer_id?: string | null
+          stripe_session_id?: string | null
+          stripe_subscription_id?: string | null
+          submitter_id?: string | null
+          submitter_name?: string
+          subscription_tier?: string | null
+          subscription_valid_until?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           category: string

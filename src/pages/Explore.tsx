@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ServicesMap } from '@/components/explore/ServicesMap';
 import { ExploreAssistant } from '@/components/explore/ExploreAssistant';
+import { AddServiceCTA } from '@/components/explore/AddServiceCTA';
 
 const serviceCategories = [
   { id: 'Dog Walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]' },
@@ -202,6 +203,11 @@ export default function Explore() {
                   </p>
                 </Card>
               )}
+            </div>
+
+            {/* Add Service CTA */}
+            <div className="mt-6">
+              <AddServiceCTA />
             </div>
           </div>
         )}

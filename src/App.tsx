@@ -22,6 +22,8 @@ import Shop from "./pages/Shop";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import SubmitService from "./pages/SubmitService";
+import SubmissionSuccess from "./pages/SubmissionSuccess";
 import AdminParks from "./pages/admin/AdminParks";
 import AdminServices from "./pages/admin/AdminServices";
 import AdminSocial from "./pages/admin/AdminSocial";
@@ -43,6 +45,8 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/submit-service" element={<SubmitService />} />
+              <Route path="/submission-success" element={<SubmissionSuccess />} />
               <Route element={<AppLayout />}>
                 <Route path="/parks" element={<Parks />} />
                 <Route path="/explore" element={<Explore />} />
