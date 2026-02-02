@@ -1,4 +1,5 @@
 import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox } from 'lucide-react';
+import { CareScheduleSection } from '@/components/dates/CareScheduleSection';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -166,6 +167,11 @@ export default function Dates() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Care Schedule Section */}
+      <div className="px-4 pb-4">
+        <CareScheduleSection />
+      </div>
     </div>
   );
 }

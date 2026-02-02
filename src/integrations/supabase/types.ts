@@ -29,6 +29,83 @@ export type Database = {
         }
         Relationships: []
       }
+      care_history: {
+        Row: {
+          category: string | null
+          completed_at: string | null
+          id: string
+          notes: string | null
+          reminder_id: string | null
+          status: string | null
+          task_details: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          completed_at?: string | null
+          id?: string
+          notes?: string | null
+          reminder_id?: string | null
+          status?: string | null
+          task_details?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          completed_at?: string | null
+          id?: string
+          notes?: string | null
+          reminder_id?: string | null
+          status?: string | null
+          task_details?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "walk_history_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "care_reminders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_reminders: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          is_recurring: boolean | null
+          recurrence_pattern: string
+          reminder_time: string
+          task_details: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          is_recurring?: boolean | null
+          recurrence_pattern?: string
+          reminder_time: string
+          task_details?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          is_recurring?: boolean | null
+          recurrence_pattern?: string
+          reminder_time?: string
+          task_details?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       cleanup_logs: {
         Row: {
           detected_at: string
