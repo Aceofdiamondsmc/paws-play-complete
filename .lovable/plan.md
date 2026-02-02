@@ -1,105 +1,201 @@
 
 
-# Fix Plan: Dog Profile Save Error ("cannot insert into view dogs_discovery")
+## Care Schedule Feature Implementation
 
-## Problem Summary
-
-When adding a new dog on the **published** site (pawsplayrepeat.app), clicking Save fails with:
-> "Failed to save: cannot insert into view dogs_discovery"
-
-The frontend code correctly targets the `dogs` table, but the auto-generated Supabase types file contains an incorrect foreign key reference that can influence the Supabase client behavior.
+This plan implements a complete "Care Schedule" section on the Dates tab with support for walks, medications, and feeding reminders.
 
 ---
 
-## Root Cause Analysis
+### What You'll Get
 
-The file `src/integrations/supabase/types.ts` is auto-generated from the database schema. It contains this incorrect reference:
+1. **Care Schedule Card** - A new section on the Dates page with:
+   - Dropdown to select category: Walk, Medication, or Feeding
+   - Time picker (30-minute intervals from 6 AM to 9 PM)
+   - Daily/Weekly recurrence toggle
+   - Conditional input field for task details:
+     - Medication: "Medication Name/Dosage" input
+     - Feeding: "Food Amount" input
+   - "Save Reminder" button
+
+2. **Active Reminders List** - Shows your saved reminders with:
+   - Category icon (paw for walks, pill for meds, bowl for feeding)
+   - Time and recurrence info
+   - Delete button
+
+3. **History Log with Icons** - Last 5 completed activities showing:
+   - Paw icon for walks
+   - Pill icon for medications
+   - Bowl icon for feedings (using `UtensilsCrossed` from lucide-react)
+   - Relative timestamps ("2 hours ago", "Yesterday")
+
+4. **Browser Notifications** - Alerts when reminder time matches with "Log Activity" button
+
+---
+
+### Implementation Steps
+
+**1. Create useCareReminders Hook** (`src/hooks/useCareReminders.tsx`)
+
+CRUD operations for care reminders:
+- Fetch all reminders for current user from `care_reminders` table
+- Add new reminder with category ('walk', 'medication', 'feeding') and task_details
+- Delete reminder
+- Toggle `is_enabled` status
+
+**2. Create useCareHistory Hook** (`src/hooks/useCareHistory.tsx`)
+
+History logging operations:
+- Fetch last 5 entries from `care_history` ordered by `completed_at` desc
+- Log new activity (insert with category and notes)
+- Accept optional `reminder_id` to link to specific reminder
+
+**3. Create useCareNotifications Hook** (`src/hooks/useCareNotifications.tsx`)
+
+Browser notification management:
+- Track `Notification.permission` status
+- Provide `requestPermission()` function
+- Run `setInterval` every 60 seconds checking current HH:MM against enabled reminders
+- Track `activeReminder` when time matches (for showing "Log Activity" button)
+- Trigger browser notification with category-specific message
+
+**4. Create CareScheduleSection Component** (`src/components/dates/CareScheduleSection.tsx`)
 
 ```text
-File: src/integrations/supabase/types.ts (lines 787-793)
-
-{
-  foreignKeyName: "posts_dog_id_fkey"
-  columns: ["dog_id"]
-  isOneToOne: false
-  referencedRelation: "dogs_discovery"  <-- WRONG
-  referencedColumns: ["id"]
-}
+Card Layout:
++------------------------------------------+
+| Heart + Clock icon   "Care Schedule"     |
++------------------------------------------+
+| [Enable Notifications button if needed]  |
++------------------------------------------+
+| Category: [Walk v] [Medication] [Feeding]|
++------------------------------------------+
+| Time: [Select dropdown - 30min intervals]|
++------------------------------------------+
+| Recurrence: [Daily] [Weekly]             |
++------------------------------------------+
+| [Medication Name/Dosage input]  <- shown |
+| [Food Amount input]             <- when  |
+|                                  relevant|
++------------------------------------------+
+| [Save Reminder] button                   |
++------------------------------------------+
+| Active Reminders:                        |
+| - Paw 8:00 AM Daily              [X]     |
+| - Pill 9:00 AM Apoquel 16mg      [X]     |
++------------------------------------------+
+| [Log Activity] button <- when triggered  |
++------------------------------------------+
+| Recent Activity:                         |
+| - Paw  Walked           2 hours ago      |
+| - Pill Apoquel 16mg     Yesterday        |
+| - Bowl 1 cup kibble     2 days ago       |
++------------------------------------------+
 ```
 
-The `posts_dog_id_fkey` foreign key should reference the `dogs` **table**, not the `dogs_discovery` **view**.
+**5. Update Dates Page** (`src/pages/Dates.tsx`)
 
-This happens because when PostgreSQL introspects the schema, views that expose the same `id` column as the base table can sometimes be picked up as the referenced relation. The Supabase type generator then propagates this incorrect reference.
+- Import and add `CareScheduleSection` below the Tabs component
+- Only render for authenticated users (already handled)
 
 ---
 
-## Solution
+### Technical Details
 
-### Step 1: Add INSTEAD OF Trigger to Make View Insertable (Database Migration)
+**Database Tables (Already Exist):**
 
-Create an `INSTEAD OF INSERT` trigger on the `dogs_discovery` view that redirects any accidental insert attempts to the base `dogs` table. This is a safeguard that prevents the error even if the client somehow targets the view.
+```text
+care_reminders:
+- id (UUID, PK)
+- user_id (UUID)
+- reminder_time (TIME)
+- is_recurring (BOOLEAN)
+- recurrence_pattern (TEXT: 'none'/'daily'/'weekly')
+- is_enabled (BOOLEAN)
+- category (TEXT: 'walk'/'medication'/'feeding')
+- task_details (TEXT: medication name/dosage or food amount)
+- created_at (TIMESTAMPTZ)
 
-```sql
-CREATE OR REPLACE FUNCTION redirect_dogs_discovery_insert()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO dogs (
-    owner_id, name, breed, size, energy_level, bio, 
-    avatar_url, age_years, weight_lbs, health_notes, play_style
-  ) VALUES (
-    NEW.owner_id, NEW.name, NEW.breed, NEW.size, NEW.energy_level, NEW.bio,
-    NEW.avatar_url, NEW.age_years, NULL, NULL, NEW.play_style
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+care_history:
+- id (UUID, PK)
+- reminder_id (UUID, nullable)
+- user_id (UUID)
+- completed_at (TIMESTAMPTZ)
+- status (TEXT)
+- notes (TEXT: copied from task_details)
+- category (TEXT: 'walk'/'medication'/'feeding')
 
-CREATE TRIGGER dogs_discovery_insert_redirect
-INSTEAD OF INSERT ON dogs_discovery
-FOR EACH ROW EXECUTE FUNCTION redirect_dogs_discovery_insert();
+Both have RLS: user_id = auth.uid()
 ```
 
-### Step 2: Regenerate Supabase Types
+**Icon Mapping (using lucide-react):**
 
-After the migration, the Supabase types will be regenerated. The new types should correctly reference the `dogs` table if the foreign key is properly defined.
+```typescript
+import { PawPrint, Pill, UtensilsCrossed } from 'lucide-react';
 
-If the types still show `dogs_discovery`, we can manually correct the generated types file (though this is a temporary fix since the file gets regenerated).
+const getCategoryIcon = (category: string) => {
+  switch (category) {
+    case 'medication':
+      return <Pill className="w-4 h-4 text-purple-500" />;
+    case 'feeding':
+      return <UtensilsCrossed className="w-4 h-4 text-orange-500" />;
+    default: // 'walk'
+      return <PawPrint className="w-4 h-4 text-primary" />;
+  }
+};
+```
+
+**Conditional Details Input:**
+
+```typescript
+{(category === 'medication' || category === 'feeding') && (
+  <div className="space-y-2">
+    <Label>
+      {category === 'medication' ? 'Medication Name & Dosage' : 'Food Amount'}
+    </Label>
+    <Input
+      placeholder={category === 'medication' 
+        ? 'e.g., Apoquel 16mg' 
+        : 'e.g., 1 cup kibble'}
+      value={taskDetails}
+      onChange={(e) => setTaskDetails(e.target.value)}
+    />
+  </div>
+)}
+```
+
+**Notification Trigger Flow:**
+
+1. `useCareNotifications` runs interval every 60 seconds
+2. Gets current time as HH:MM and compares to enabled reminders
+3. When match found:
+   - Shows browser `Notification` with category-specific message
+   - Sets `triggeredReminder` state
+4. UI shows "Log Activity" button when `triggeredReminder` is set
+5. Clicking logs to `care_history` and clears state
 
 ---
 
-## Technical Details
+### Files to Create/Modify
 
-### Why This Works
-
-1. **INSTEAD OF Trigger**: PostgreSQL allows triggers on views to intercept INSERT/UPDATE/DELETE operations. By adding an `INSTEAD OF INSERT` trigger, any insert to `dogs_discovery` will be silently redirected to the `dogs` table.
-
-2. **No Frontend Changes Required**: The existing code in `useDogs.tsx` already correctly targets the `dogs` table. This fix is purely a database-level safeguard.
-
-3. **Backward Compatible**: This change does not affect any existing read operations on the view.
-
-### Files Affected
-
-| Location | Change |
-|----------|--------|
-| Database | Add INSTEAD OF INSERT trigger on `dogs_discovery` view |
-| `src/integrations/supabase/types.ts` | Will be auto-regenerated after migration |
+| File | Action | Description |
+|------|--------|-------------|
+| `src/hooks/useCareReminders.tsx` | Create | CRUD for care_reminders table |
+| `src/hooks/useCareHistory.tsx` | Create | CRUD for care_history table |
+| `src/hooks/useCareNotifications.tsx` | Create | Browser notification scheduler |
+| `src/components/dates/CareScheduleSection.tsx` | Create | Main UI component |
+| `src/pages/Dates.tsx` | Modify | Add CareScheduleSection below tabs |
 
 ---
 
-## Alternative Approach (If Trigger Fails)
+### UI Design Notes
 
-If the INSTEAD OF trigger approach doesn't work (some PostgreSQL configurations may not support it on views with security_invoker), we can:
-
-1. Drop and recreate the view without the `security_invoker` option
-2. Add explicit RLS policies to the base table that replicate the view's filtering logic
-
----
-
-## Post-Implementation
-
-After applying this fix:
-1. The "cannot insert into view" error will no longer occur
-2. Dog profiles will save correctly to the `dogs` table
-3. The `dogs_discovery` view will continue to work for reading/discovery
-4. **User should republish the app** to ensure the published site uses the latest code
+The component will match the existing app theme:
+- Uses `Card` with `bg-card` background
+- Primary color for walk icons, purple for medication, orange for feeding
+- `rounded-full` buttons matching playdate UI
+- `Select` dropdown for category (Walk/Medication/Feeding)
+- `ToggleGroup` with outline variant for recurrence selection
+- Clean `space-y-4` spacing
+- Muted foreground for secondary text and timestamps
+- `formatDistanceToNow` from date-fns for relative times
 
