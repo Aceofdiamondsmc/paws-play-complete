@@ -246,6 +246,20 @@
   .bounce-tap {
     @apply active:scale-95 transition-transform duration-150;
   }
+
+  /* Urgent pulse animation for missed doses */
+  .animate-pulse-urgent {
+    animation: pulse-urgent 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-urgent {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 hsl(0 72% 55% / 0.7); 
+  }
+  50% { 
+    box-shadow: 0 0 0 8px hsl(0 72% 55% / 0); 
+  }
 }
 
 /* Import Nunito font */

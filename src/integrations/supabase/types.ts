@@ -68,6 +68,13 @@ export type Database = {
             referencedRelation: "care_reminders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "walk_history_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "missed_medications"
+            referencedColumns: ["reminder_id"]
+          },
         ]
       }
       care_reminders: {
@@ -79,6 +86,7 @@ export type Database = {
           is_recurring: boolean | null
           recurrence_pattern: string
           reminder_time: string
+          snoozed_until: string | null
           task_details: string | null
           user_id: string | null
         }
@@ -90,6 +98,7 @@ export type Database = {
           is_recurring?: boolean | null
           recurrence_pattern?: string
           reminder_time: string
+          snoozed_until?: string | null
           task_details?: string | null
           user_id?: string | null
         }
@@ -101,6 +110,7 @@ export type Database = {
           is_recurring?: boolean | null
           recurrence_pattern?: string
           reminder_time?: string
+          snoozed_until?: string | null
           task_details?: string | null
           user_id?: string | null
         }
@@ -645,6 +655,7 @@ export type Database = {
           created_at: string | null
           id: string
           post_id: string
+          updated_at: string | null
         }
         Insert: {
           author_id: string
@@ -652,6 +663,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           post_id: string
+          updated_at?: string | null
         }
         Update: {
           author_id?: string
@@ -659,6 +671,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           post_id?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -1333,6 +1346,27 @@ export type Database = {
           f_table_schema?: unknown
           srid?: number | null
           type?: string | null
+        }
+        Relationships: []
+      }
+      missed_medications: {
+        Row: {
+          reminder_id: string | null
+          reminder_time: string | null
+          task_details: string | null
+          user_id: string | null
+        }
+        Insert: {
+          reminder_id?: string | null
+          reminder_time?: string | null
+          task_details?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          reminder_id?: string | null
+          reminder_time?: string | null
+          task_details?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

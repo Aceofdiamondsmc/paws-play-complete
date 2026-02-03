@@ -17,6 +17,7 @@ interface Comment {
   author_id: string;
   body: string;
   created_at: string | null;
+  updated_at: string | null;
   author?: Partial<Profile>;
 }
 
@@ -394,10 +395,27 @@ export function usePostComments(postId: string | null) {
     return { error };
   };
 
+  const updateComment = async (commentId: string, body: string) => {
+    if (!user || !postId) return { error: new Error('Not ready') };
+
+    const { error } = await supabase
+      .from('post_comments')
+      .update({ body, updated_at: new Date().toISOString() })
+      .eq('id', commentId)
+      .eq('author_id', user.id);
+
+    if (!error) {
+      await fetchComments();
+    }
+
+    return { error };
+  };
+
   return {
     comments,
     loading,
     addComment,
+    updateComment,
     refresh: fetchComments
   };
 }

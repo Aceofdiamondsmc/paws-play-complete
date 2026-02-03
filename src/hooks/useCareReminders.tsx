@@ -12,6 +12,7 @@ export interface CareReminder {
   category: string;
   task_details: string | null;
   created_at: string;
+  snoozed_until: string | null;
 }
 
 export function useCareReminders() {
@@ -102,12 +103,29 @@ export function useCareReminders() {
     return { error };
   };
 
+  const snoozeReminder = async (id: string) => {
+    const snoozedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+    const { error } = await supabase
+      .from('care_reminders')
+      .update({ snoozed_until: snoozedUntil.toISOString() })
+      .eq('id', id);
+
+    if (!error) {
+      setReminders((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, snoozed_until: snoozedUntil.toISOString() } : r))
+      );
+    }
+
+    return { error };
+  };
+
   return {
     reminders,
     loading,
     addReminder,
     deleteReminder,
     toggleEnabled,
+    snoozeReminder,
     refetch: fetchReminders,
   };
 }

@@ -3,9 +3,10 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Trash2, Plus, CheckCircle } from 'lucide-react';
+import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Trash2, Plus, CheckCircle, AlertTriangle, Timer } from 'lucide-react';
 import { useCareReminders } from '@/hooks/useCareReminders';
 import { useCareHistory } from '@/hooks/useCareHistory';
 import { useCareNotifications } from '@/hooks/useCareNotifications';
@@ -41,10 +42,23 @@ function formatTime(time24: string): string {
   return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 }
 
+function isReminderSnoozed(snoozedUntil: string | null): boolean {
+  if (!snoozedUntil) return false;
+  return new Date(snoozedUntil) > new Date();
+}
+
 export function CareScheduleSection() {
-  const { reminders, loading: remindersLoading, addReminder, deleteReminder } = useCareReminders();
+  const { reminders, loading: remindersLoading, addReminder, deleteReminder, snoozeReminder } = useCareReminders();
   const { history, loading: historyLoading, logActivity } = useCareHistory();
-  const { permissionStatus, requestPermission, triggeredReminder, clearTriggeredReminder } = useCareNotifications(reminders);
+  const { 
+    permissionStatus, 
+    requestPermission, 
+    triggeredReminder, 
+    clearTriggeredReminder,
+    missedMedications,
+    hasMissedDose,
+    clearMissedMedication 
+  } = useCareNotifications(reminders);
 
   const [category, setCategory] = useState('walk');
   const [selectedTime, setSelectedTime] = useState('08:00');
@@ -80,6 +94,19 @@ export function CareScheduleSection() {
     }
   };
 
+  const handleSnoozeReminder = async (id: string) => {
+    const { error } = await snoozeReminder(id);
+    if (error) {
+      toast.error('Failed to snooze reminder');
+    } else {
+      toast.success('Snoozed for 15 minutes');
+      // Also clear the triggered reminder if it matches
+      if (triggeredReminder?.id === id) {
+        clearTriggeredReminder();
+      }
+    }
+  };
+
   const handleLogActivity = async () => {
     if (!triggeredReminder) return;
 
@@ -95,6 +122,32 @@ export function CareScheduleSection() {
     } else {
       toast.success('Activity logged!');
       clearTriggeredReminder();
+    }
+  };
+
+  const handleLogMissedMedication = async (reminderId: string, taskDetails: string | null) => {
+    const { error } = await logActivity({
+      category: 'medication',
+      task_details: taskDetails || undefined,
+      notes: taskDetails || undefined,
+      reminder_id: reminderId,
+    });
+
+    if (error) {
+      toast.error('Failed to log activity');
+    } else {
+      toast.success('Medication logged!');
+      clearMissedMedication(reminderId);
+    }
+  };
+
+  const handleSnoozeMissed = async (reminderId: string) => {
+    const { error } = await snoozeReminder(reminderId);
+    if (error) {
+      toast.error('Failed to snooze');
+    } else {
+      toast.success('Snoozed for 15 minutes');
+      clearMissedMedication(reminderId);
     }
   };
 
@@ -134,10 +187,45 @@ export function CareScheduleSection() {
         </div>
       )}
 
+      {/* Missed Dose Alerts */}
+      {missedMedications.map((missed) => (
+        <div 
+          key={missed.reminder_id} 
+          className="mb-4 p-3 rounded-lg bg-destructive/10 border-2 border-destructive animate-pulse-urgent"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-5 h-5 text-destructive" />
+            <span className="font-bold text-destructive">⚠️ Urgent: Missed Medication</span>
+          </div>
+          <p className="text-sm text-foreground mb-3">
+            {missed.task_details || 'Medication'} was due 30 minutes ago!
+          </p>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              className="rounded-full animate-pulse-urgent" 
+              onClick={() => handleLogMissedMedication(missed.reminder_id, missed.task_details)}
+            >
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Log Activity
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="rounded-full" 
+              onClick={() => handleSnoozeMissed(missed.reminder_id)}
+            >
+              <Timer className="w-4 h-4 mr-1" />
+              Snooze 15m
+            </Button>
+          </div>
+        </div>
+      ))}
+
       {/* Triggered Reminder Alert */}
       {triggeredReminder && (
-        <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary">
+          <div className="flex items-center gap-2 mb-2">
             {getCategoryIcon(triggeredReminder.category)}
             <span className="font-medium">
               {triggeredReminder.category === 'walk' && 'Time for a walk!'}
@@ -145,10 +233,21 @@ export function CareScheduleSection() {
               {triggeredReminder.category === 'feeding' && `Time to feed: ${triggeredReminder.task_details || 'your pup'}`}
             </span>
           </div>
-          <Button size="sm" className="rounded-full" onClick={handleLogActivity}>
-            <CheckCircle className="w-4 h-4 mr-1" />
-            Log Activity
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" className="rounded-full" onClick={handleLogActivity}>
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Log Activity
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="rounded-full" 
+              onClick={() => handleSnoozeReminder(triggeredReminder.id)}
+            >
+              <Timer className="w-4 h-4 mr-1" />
+              Snooze 15m
+            </Button>
+          </div>
         </div>
       )}
 
@@ -235,32 +334,41 @@ export function CareScheduleSection() {
         <div className="mb-6">
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">Active Reminders</h3>
           <div className="space-y-2">
-            {reminders.map((reminder) => (
-              <div key={reminder.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-3">
-                  {getCategoryIcon(reminder.category)}
-                  <div>
-                    <div className="font-medium">
-                      {formatTime(reminder.reminder_time)}
-                      <span className="ml-2 text-xs text-muted-foreground capitalize">
-                        {reminder.recurrence_pattern}
-                      </span>
+            {reminders.map((reminder) => {
+              const snoozed = isReminderSnoozed(reminder.snoozed_until);
+              return (
+                <div key={reminder.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    {getCategoryIcon(reminder.category)}
+                    <div>
+                      <div className="font-medium flex items-center gap-2">
+                        {formatTime(reminder.reminder_time)}
+                        <span className="text-xs text-muted-foreground capitalize">
+                          {reminder.recurrence_pattern}
+                        </span>
+                        {snoozed && (
+                          <Badge variant="outline" className="text-xs bg-warning/20 text-warning border-warning/30">
+                            <Timer className="w-3 h-3 mr-1" />
+                            Snoozed
+                          </Badge>
+                        )}
+                      </div>
+                      {reminder.task_details && (
+                        <div className="text-sm text-muted-foreground">{reminder.task_details}</div>
+                      )}
                     </div>
-                    {reminder.task_details && (
-                      <div className="text-sm text-muted-foreground">{reminder.task_details}</div>
-                    )}
                   </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeleteReminder(reminder.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={() => handleDeleteReminder(reminder.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
