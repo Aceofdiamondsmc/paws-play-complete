@@ -1,177 +1,211 @@
 
 
-## Care Schedule Feature Implementation
+## Care Schedule Enhancements: Missed Dose Alerts, Snooze, and Comments UI Fix
 
-This plan implements a complete "Care Schedule" section on the Dates tab with support for walks, medications, and feeding reminders.
+This plan implements four major features: missed medication alerts, snooze functionality for reminders, and fixes for the Social tab's comment section.
 
 ---
 
 ### What You'll Get
 
-1. **Care Schedule Card** - A new section on the Dates page with:
-   - Dropdown to select category: Walk, Medication, or Feeding
-   - Time picker (30-minute intervals from 6 AM to 9 PM)
-   - Daily/Weekly recurrence toggle
-   - Conditional input field for task details:
-     - Medication: "Medication Name/Dosage" input
-     - Feeding: "Food Amount" input
-   - "Save Reminder" button
+1. **Missed Dose Alerts**
+   - Checks `missed_medications` view every 60 seconds
+   - Triggers high-priority browser notification: "⚠️ Urgent: [Medication Name] was due 30 minutes ago!"
+   - Red pulse effect on the "Log Activity" button when a dose is missed
+   - Each `reminder_id` treated as a separate task (morning/evening meds get separate alerts)
 
-2. **Active Reminders List** - Shows your saved reminders with:
-   - Category icon (paw for walks, pill for meds, bowl for feeding)
-   - Time and recurrence info
-   - Delete button
+2. **Snooze 15m Button**
+   - "Snooze 15m" button on notification alert cards
+   - Updates `snoozed_until` column in `care_reminders` to 15 minutes from now
+   - Hides notification and pulse effect until snooze expires
+   - Shows "Snoozed" badge on reminders in the list
 
-3. **History Log with Icons** - Last 5 completed activities showing:
-   - Paw icon for walks
-   - Pill icon for medications
-   - Bowl icon for feedings (using `UtensilsCrossed` from lucide-react)
-   - Relative timestamps ("2 hours ago", "Yesterday")
-
-4. **Browser Notifications** - Alerts when reminder time matches with "Log Activity" button
+3. **Fixed Comments UI**
+   - Sticky header with post info at top
+   - Sticky comment input at bottom
+   - Scrollable comments list in the middle
+   - Edit button for own comments (`auth.uid() == author_id`)
+   - Inline editing with save functionality
+   - "(edited)" label when `updated_at > created_at`
 
 ---
 
 ### Implementation Steps
 
-**1. Create useCareReminders Hook** (`src/hooks/useCareReminders.tsx`)
+**1. Enhance useCareNotifications Hook**
 
-CRUD operations for care reminders:
-- Fetch all reminders for current user from `care_reminders` table
-- Add new reminder with category ('walk', 'medication', 'feeding') and task_details
-- Delete reminder
-- Toggle `is_enabled` status
-
-**2. Create useCareHistory Hook** (`src/hooks/useCareHistory.tsx`)
-
-History logging operations:
-- Fetch last 5 entries from `care_history` ordered by `completed_at` desc
-- Log new activity (insert with category and notes)
-- Accept optional `reminder_id` to link to specific reminder
-
-**3. Create useCareNotifications Hook** (`src/hooks/useCareNotifications.tsx`)
-
-Browser notification management:
-- Track `Notification.permission` status
-- Provide `requestPermission()` function
-- Run `setInterval` every 60 seconds checking current HH:MM against enabled reminders
-- Track `activeReminder` when time matches (for showing "Log Activity" button)
-- Trigger browser notification with category-specific message
-
-**4. Create CareScheduleSection Component** (`src/components/dates/CareScheduleSection.tsx`)
+Update the notification hook to:
+- Check `missed_medications` view every 60 seconds
+- Track missed medications with separate state
+- Filter out reminders where `snoozed_until > now()`
+- Return `missedMedications` array and `hasMissedDose` boolean
 
 ```text
-Card Layout:
+New State:
+- missedMedications: array of missed medication records
+- hasMissedDose: boolean flag for UI styling
+
+New Logic:
+- Query missed_medications view for current user
+- Each reminder_id is treated independently
+- Skip reminders where snoozed_until > current timestamp
+- Trigger high-priority notification with requireInteraction: true
+```
+
+**2. Add Snooze Functionality to useCareReminders Hook**
+
+Add a new `snoozeReminder` function:
+```typescript
+const snoozeReminder = async (id: string) => {
+  const snoozedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+  await supabase
+    .from('care_reminders')
+    .update({ snoozed_until: snoozedUntil.toISOString() })
+    .eq('id', id);
+  await fetchReminders();
+};
+```
+
+Also update the `CareReminder` interface to include `snoozed_until: string | null`.
+
+**3. Update CareScheduleSection Component**
+
+Add UI elements:
+
+```text
+Updated Card Layout:
 +------------------------------------------+
 | Heart + Clock icon   "Care Schedule"     |
 +------------------------------------------+
 | [Enable Notifications button if needed]  |
 +------------------------------------------+
+| MISSED DOSE ALERT (red border + pulse)   |  <- NEW
+| ⚠️ Apoquel 16mg was due 30 min ago!      |
+| [Log Activity] [Snooze 15m]              |  <- NEW
++------------------------------------------+
+| TRIGGERED REMINDER (normal alert)        |
+| Time for medication!                     |
+| [Log Activity] [Snooze 15m]              |  <- NEW
++------------------------------------------+
 | Category: [Walk v] [Medication] [Feeding]|
 +------------------------------------------+
-| Time: [Select dropdown - 30min intervals]|
-+------------------------------------------+
-| Recurrence: [Daily] [Weekly]             |
-+------------------------------------------+
-| [Medication Name/Dosage input]  <- shown |
-| [Food Amount input]             <- when  |
-|                                  relevant|
-+------------------------------------------+
-| [Save Reminder] button                   |
-+------------------------------------------+
 | Active Reminders:                        |
-| - Paw 8:00 AM Daily              [X]     |
-| - Pill 9:00 AM Apoquel 16mg      [X]     |
-+------------------------------------------+
-| [Log Activity] button <- when triggered  |
-+------------------------------------------+
-| Recent Activity:                         |
-| - Paw  Walked           2 hours ago      |
-| - Pill Apoquel 16mg     Yesterday        |
-| - Bowl 1 cup kibble     2 days ago       |
+| - Pill 8:00 AM Daily [Snoozed] [X]       |  <- NEW badge
+| - Paw 9:00 AM Daily              [X]     |
 +------------------------------------------+
 ```
 
-**5. Update Dates Page** (`src/pages/Dates.tsx`)
+Styling for missed dose alert:
+- Red border: `border-red-500`
+- Pulse animation: `animate-pulse` on button or custom CSS
+- High-contrast background: `bg-red-100 dark:bg-red-900/20`
 
-- Import and add `CareScheduleSection` below the Tabs component
-- Only render for authenticated users (already handled)
+**4. Fix CommentsDrawer Component**
+
+Restructure layout with flexbox:
+
+```text
+Updated Drawer Layout:
++------------------------------------------+
+| STICKY HEADER                            |
+| Comments                                 |
++------------------------------------------+
+|                                          |
+| SCROLLABLE COMMENTS AREA (overflow-y)    |
+| - Avatar | Name | Comment body           |
+|          | timestamp (edited)  [Edit]    |  <- NEW
+| - Avatar | Name | Comment body           |
+|          | [Input field for editing]     |  <- Inline edit
+|                                          |
++------------------------------------------+
+| STICKY INPUT                             |
+| [Write a comment...] [Send]              |
++------------------------------------------+
+```
+
+**5. Add Edit Comment Function to usePostComments Hook**
+
+```typescript
+const updateComment = async (commentId: string, body: string) => {
+  const { error } = await supabase
+    .from('post_comments')
+    .update({ body, updated_at: new Date().toISOString() })
+    .eq('id', commentId)
+    .eq('author_id', user.id);
+  
+  if (!error) await fetchComments();
+  return { error };
+};
+```
 
 ---
 
 ### Technical Details
 
-**Database Tables (Already Exist):**
-
-```text
-care_reminders:
-- id (UUID, PK)
-- user_id (UUID)
-- reminder_time (TIME)
-- is_recurring (BOOLEAN)
-- recurrence_pattern (TEXT: 'none'/'daily'/'weekly')
-- is_enabled (BOOLEAN)
-- category (TEXT: 'walk'/'medication'/'feeding')
-- task_details (TEXT: medication name/dosage or food amount)
-- created_at (TIMESTAMPTZ)
-
-care_history:
-- id (UUID, PK)
-- reminder_id (UUID, nullable)
-- user_id (UUID)
-- completed_at (TIMESTAMPTZ)
-- status (TEXT)
-- notes (TEXT: copied from task_details)
-- category (TEXT: 'walk'/'medication'/'feeding')
-
-Both have RLS: user_id = auth.uid()
+**Missed Medications View Query:**
+```typescript
+const { data: missed } = await supabase
+  .from('missed_medications')
+  .select('*')
+  .eq('user_id', user.id);
 ```
 
-**Icon Mapping (using lucide-react):**
+The view returns:
+- `reminder_id` (UUID) - unique per reminder
+- `user_id` (UUID)
+- `task_details` (TEXT) - medication name/dosage
+- `reminder_time` (TIME) - when it was due
 
+**Snooze Check Logic:**
 ```typescript
-import { PawPrint, Pill, UtensilsCrossed } from 'lucide-react';
-
-const getCategoryIcon = (category: string) => {
-  switch (category) {
-    case 'medication':
-      return <Pill className="w-4 h-4 text-purple-500" />;
-    case 'feeding':
-      return <UtensilsCrossed className="w-4 h-4 text-orange-500" />;
-    default: // 'walk'
-      return <PawPrint className="w-4 h-4 text-primary" />;
+reminders.forEach((reminder) => {
+  // Skip if snoozed and snooze hasn't expired
+  if (reminder.snoozed_until) {
+    const snoozeExpiry = new Date(reminder.snoozed_until);
+    if (snoozeExpiry > new Date()) return; // Still snoozed
   }
+  
+  // Continue with normal notification logic...
+});
+```
+
+**High-Priority Notification:**
+```typescript
+new Notification('⚠️ Urgent: Missed Medication', {
+  body: `${taskDetails} was due 30 minutes ago!`,
+  icon: '/favicon.png',
+  tag: `missed-${reminder_id}`,
+  requireInteraction: true, // Stays until dismissed
+});
+```
+
+**Comments Edit UI State:**
+```typescript
+const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+const [editText, setEditText] = useState('');
+
+const handleEditClick = (comment: Comment) => {
+  setEditingCommentId(comment.id);
+  setEditText(comment.body);
+};
+
+const handleSaveEdit = async () => {
+  await updateComment(editingCommentId, editText);
+  setEditingCommentId(null);
 };
 ```
 
-**Conditional Details Input:**
+**Pulse Animation CSS:**
+```css
+@keyframes pulse-urgent {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
 
-```typescript
-{(category === 'medication' || category === 'feeding') && (
-  <div className="space-y-2">
-    <Label>
-      {category === 'medication' ? 'Medication Name & Dosage' : 'Food Amount'}
-    </Label>
-    <Input
-      placeholder={category === 'medication' 
-        ? 'e.g., Apoquel 16mg' 
-        : 'e.g., 1 cup kibble'}
-      value={taskDetails}
-      onChange={(e) => setTaskDetails(e.target.value)}
-    />
-  </div>
-)}
+.animate-pulse-urgent {
+  animation: pulse-urgent 2s ease-in-out infinite;
+}
 ```
-
-**Notification Trigger Flow:**
-
-1. `useCareNotifications` runs interval every 60 seconds
-2. Gets current time as HH:MM and compares to enabled reminders
-3. When match found:
-   - Shows browser `Notification` with category-specific message
-   - Sets `triggeredReminder` state
-4. UI shows "Log Activity" button when `triggeredReminder` is set
-5. Clicking logs to `care_history` and clears state
 
 ---
 
@@ -179,23 +213,33 @@ const getCategoryIcon = (category: string) => {
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/hooks/useCareReminders.tsx` | Create | CRUD for care_reminders table |
-| `src/hooks/useCareHistory.tsx` | Create | CRUD for care_history table |
-| `src/hooks/useCareNotifications.tsx` | Create | Browser notification scheduler |
-| `src/components/dates/CareScheduleSection.tsx` | Create | Main UI component |
-| `src/pages/Dates.tsx` | Modify | Add CareScheduleSection below tabs |
+| `src/hooks/useCareReminders.tsx` | Modify | Add `snoozed_until` to interface, add `snoozeReminder` function |
+| `src/hooks/useCareNotifications.tsx` | Modify | Add missed dose checking, snooze filtering, `hasMissedDose` state |
+| `src/components/dates/CareScheduleSection.tsx` | Modify | Add missed dose alert UI, snooze button, snoozed badge |
+| `src/index.css` | Modify | Add `animate-pulse-urgent` animation |
+| `src/hooks/usePosts.tsx` | Modify | Add `updateComment` function to `usePostComments` |
+| `src/components/social/CommentsDrawer.tsx` | Modify | Fix layout, add edit button, inline editing, "(edited)" label |
 
 ---
 
 ### UI Design Notes
 
-The component will match the existing app theme:
-- Uses `Card` with `bg-card` background
-- Primary color for walk icons, purple for medication, orange for feeding
-- `rounded-full` buttons matching playdate UI
-- `Select` dropdown for category (Walk/Medication/Feeding)
-- `ToggleGroup` with outline variant for recurrence selection
-- Clean `space-y-4` spacing
-- Muted foreground for secondary text and timestamps
-- `formatDistanceToNow` from date-fns for relative times
+**Missed Dose Alert:**
+- Red border with pulse effect to grab attention
+- Warning emoji ⚠️ in the message
+- High contrast background for urgency
+- Both "Log Activity" and "Snooze 15m" buttons
+
+**Snoozed Badge:**
+- Small yellow/amber badge next to snoozed reminders
+- Icon: Clock with arrows or similar
+- Text: "Snoozed" or time remaining
+
+**Comments Drawer:**
+- Uses flexbox with `flex-col h-full`
+- Header: `shrink-0` to stay fixed
+- Comments: `flex-1 overflow-y-auto` for scrolling
+- Input: `shrink-0` to stay at bottom
+- Edit button only visible on own comments
+- Inline editing replaces text with input field
 
