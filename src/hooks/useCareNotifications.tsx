@@ -1,13 +1,27 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import type { CareReminder } from './useCareReminders';
 
+interface MissedMedication {
+  reminder_id: string;
+  user_id: string;
+  task_details: string | null;
+  reminder_time: string;
+}
+
 export function useCareNotifications(reminders: CareReminder[]) {
+  const { user } = useAuth();
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
   const [triggeredReminder, setTriggeredReminder] = useState<CareReminder | null>(null);
+  const [missedMedications, setMissedMedications] = useState<MissedMedication[]>([]);
   const triggeredIdsRef = useRef<Set<string>>(new Set());
+  const missedNotifiedIdsRef = useRef<Set<string>>(new Set());
+
+  const hasMissedDose = missedMedications.length > 0;
 
   const requestPermission = useCallback(async () => {
     if (typeof Notification === 'undefined') {
@@ -24,6 +38,76 @@ export function useCareNotifications(reminders: CareReminder[]) {
     setTriggeredReminder(null);
   }, []);
 
+  const clearMissedMedication = useCallback((reminderId: string) => {
+    setMissedMedications(prev => prev.filter(m => m.reminder_id !== reminderId));
+    missedNotifiedIdsRef.current.delete(reminderId);
+  }, []);
+
+  // Check for missed medications
+  useEffect(() => {
+    if (!user) return;
+
+    const checkMissedMedications = async () => {
+      const { data, error } = await supabase
+        .from('missed_medications')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error checking missed medications:', error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setMissedMedications([]);
+        return;
+      }
+
+      // Filter out snoozed reminders
+      const now = new Date();
+      const activeMissed = (data as MissedMedication[]).filter(missed => {
+        const reminder = reminders.find(r => r.id === missed.reminder_id);
+        if (reminder?.snoozed_until) {
+          const snoozeExpiry = new Date(reminder.snoozed_until);
+          if (snoozeExpiry > now) return false;
+        }
+        return true;
+      });
+
+      setMissedMedications(activeMissed);
+
+      // Trigger high-priority notifications for each missed medication
+      if (permissionStatus === 'granted') {
+        activeMissed.forEach((missed) => {
+          if (!missedNotifiedIdsRef.current.has(missed.reminder_id)) {
+            missedNotifiedIdsRef.current.add(missed.reminder_id);
+
+            const title = '⚠️ Urgent: Missed Medication';
+            const body = missed.task_details
+              ? `${missed.task_details} was due 30 minutes ago!`
+              : 'A medication was due 30 minutes ago!';
+
+            new Notification(title, {
+              body,
+              icon: '/favicon.png',
+              tag: `missed-${missed.reminder_id}`,
+              requireInteraction: true,
+            });
+          }
+        });
+      }
+    };
+
+    // Check immediately
+    checkMissedMedications();
+
+    // Check every 60 seconds
+    const interval = setInterval(checkMissedMedications, 60000);
+
+    return () => clearInterval(interval);
+  }, [user, permissionStatus, reminders]);
+
+  // Check for triggered reminders (existing logic)
   useEffect(() => {
     if (permissionStatus !== 'granted' || reminders.length === 0) return;
 
@@ -33,6 +117,12 @@ export function useCareNotifications(reminders: CareReminder[]) {
 
       reminders.forEach((reminder) => {
         if (!reminder.is_enabled) return;
+
+        // Skip if snoozed and snooze hasn't expired
+        if (reminder.snoozed_until) {
+          const snoozeExpiry = new Date(reminder.snoozed_until);
+          if (snoozeExpiry > now) return;
+        }
 
         // Extract HH:MM from reminder_time (which is "HH:mm:ss" format)
         const reminderHHMM = reminder.reminder_time.slice(0, 5);
@@ -79,6 +169,9 @@ export function useCareNotifications(reminders: CareReminder[]) {
     requestPermission,
     triggeredReminder,
     clearTriggeredReminder,
+    missedMedications,
+    hasMissedDose,
+    clearMissedMedication,
   };
 }
 

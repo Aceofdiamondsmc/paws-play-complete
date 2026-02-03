@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Send, Loader2, MessageCircle } from 'lucide-react';
+import { Send, Loader2, MessageCircle, Pencil, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Drawer,
@@ -9,7 +10,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePostComments } from '@/hooks/usePosts';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -23,9 +23,12 @@ interface CommentsDrawerProps {
 
 export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsDrawerProps) {
   const { user } = useAuth();
-  const { comments, loading, addComment } = usePostComments(postId);
+  const { comments, loading, addComment, updateComment } = usePostComments(postId);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,17 +59,53 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
     }
   };
 
+  const handleEditClick = (commentId: string, body: string) => {
+    setEditingCommentId(commentId);
+    setEditText(body);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditText('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCommentId || !editText.trim()) return;
+
+    setSaving(true);
+    const { error } = await updateComment(editingCommentId, editText.trim());
+    setSaving(false);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Could not update comment. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      setEditingCommentId(null);
+      setEditText('');
+    }
+  };
+
+  const isEdited = (createdAt: string | null, updatedAt: string | null) => {
+    if (!createdAt || !updatedAt) return false;
+    return new Date(updatedAt) > new Date(createdAt);
+  };
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh]">
-        <DrawerHeader className="border-b border-border pb-4">
+      <DrawerContent className="max-h-[85vh] flex flex-col">
+        {/* Sticky Header */}
+        <DrawerHeader className="border-b border-border pb-4 shrink-0">
           <DrawerTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
             <MessageCircle className="w-5 h-5 text-primary" />
             Comments
           </DrawerTitle>
         </DrawerHeader>
 
-        <ScrollArea className="flex-1 p-4 max-h-[50vh]">
+        {/* Scrollable Comments Area */}
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {loading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -81,35 +120,94 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
             <div className="space-y-4">
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3">
-                  <Avatar className="w-9 h-9 border border-primary/20">
+                  <Avatar className="w-9 h-9 border border-primary/20 shrink-0">
                     <AvatarImage src={comment.author?.avatar_url || undefined} />
                     <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
                       {comment.author?.display_name?.[0]?.toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="bg-muted/50 rounded-2xl px-4 py-2.5">
-                      <span className="font-semibold text-foreground text-sm">
-                        {comment.author?.display_name || 'Anonymous'}
-                      </span>
-                      <p className="text-foreground text-sm mt-0.5 whitespace-pre-wrap">
-                        {comment.body}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground ml-2 mt-1 block">
-                      {comment.created_at 
-                        ? formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })
-                        : 'Just now'}
-                    </span>
+                    {editingCommentId === comment.id ? (
+                      // Inline Editing Mode
+                      <div className="space-y-2">
+                        <Textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          disabled={saving}
+                          className="min-h-[60px] text-sm"
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={handleSaveEdit}
+                            disabled={saving || !editText.trim()}
+                            className="rounded-full"
+                          >
+                            {saving ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Check className="w-3 h-3 mr-1" />
+                            )}
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleCancelEdit}
+                            disabled={saving}
+                            className="rounded-full"
+                          >
+                            <X className="w-3 h-3 mr-1" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Display Mode
+                      <>
+                        <div className="bg-muted/50 rounded-2xl px-4 py-2.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold text-foreground text-sm">
+                              {comment.author?.display_name || 'Anonymous'}
+                            </span>
+                            {user && user.id === comment.author_id && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                onClick={() => handleEditClick(comment.id, comment.body)}
+                              >
+                                <Pencil className="w-3 h-3 mr-1" />
+                                Edit
+                              </Button>
+                            )}
+                          </div>
+                          <p className="text-foreground text-sm mt-0.5 whitespace-pre-wrap">
+                            {comment.body}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-2 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {comment.created_at 
+                              ? formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })
+                              : 'Just now'}
+                          </span>
+                          {isEdited(comment.created_at, (comment as any).updated_at) && (
+                            <span className="text-xs text-muted-foreground/70 italic">(edited)</span>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        {/* Comment Input */}
-        <div className="p-4 border-t border-border bg-background">
+        {/* Sticky Comment Input */}
+        <div className="p-4 border-t border-border bg-background shrink-0">
           {user ? (
             <form onSubmit={handleSubmit} className="flex gap-2">
               <Input
