@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Trash2, Plus, CheckCircle, AlertTriangle, Timer } from 'lucide-react';
+import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Trash2, Plus, CheckCircle, AlertTriangle, Timer, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCareReminders } from '@/hooks/useCareReminders';
 import { useCareHistory } from '@/hooks/useCareHistory';
 import { useCareNotifications } from '@/hooks/useCareNotifications';
@@ -173,14 +174,50 @@ export function CareScheduleSection() {
         <h2 className="text-lg font-bold">Care Schedule</h2>
       </div>
 
-      {/* Notification Permission */}
-      {permissionStatus !== 'granted' && (
+      {/* Notification Permission Status */}
+      {permissionStatus === 'granted' ? (
+        <div className="mb-4 p-3 rounded-lg bg-primary/10 flex items-center gap-2">
+          <Bell className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium text-primary">
+            🔔 Notifications Active
+          </span>
+        </div>
+      ) : permissionStatus === 'denied' ? (
+        <div className="mb-4 p-3 rounded-lg bg-destructive/10 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <BellOff className="w-4 h-4" />
+            <span>Notifications Blocked</span>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-4 h-4 text-destructive cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Enable in browser settings: Settings → Site Settings → Notifications</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      ) : (
         <div className="mb-4 p-3 rounded-lg bg-muted flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <BellOff className="w-4 h-4" />
             <span>Enable notifications for reminders</span>
           </div>
-          <Button size="sm" variant="outline" className="rounded-full" onClick={requestPermission}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="rounded-full" 
+            onClick={async () => {
+              const granted = await requestPermission();
+              if (granted) {
+                toast.success('Notifications enabled! You will be reminded for walks, meals, and medications.');
+              } else {
+                toast.error('Notifications were not enabled. You can enable them in browser settings.');
+              }
+            }}
+          >
             <Bell className="w-4 h-4 mr-1" />
             Enable
           </Button>

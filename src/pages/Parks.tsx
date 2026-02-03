@@ -46,8 +46,8 @@ export default function Parks() {
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Header - always accessible, never blocked */}
-      <div className="bg-card border-b border-border p-4 space-y-3 z-10 shrink-0">
+      {/* Sticky Header with backdrop blur */}
+      <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border p-4 space-y-3 shrink-0">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <PawPrint className="w-6 h-6 text-primary" />
