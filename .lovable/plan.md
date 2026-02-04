@@ -1,139 +1,112 @@
 
 
-## Fix Apple Maps Navigation & Coordinate Validation
+## Fix Parks List Sorting After Filter Selection
 
-This plan fixes two critical issues: Apple Maps showing incorrect locations and parks with invalid coordinates displaying navigate buttons.
-
----
-
-### Issues Identified
-
-| Problem | Root Cause | Impact |
-|---------|------------|--------|
-| Apple Maps goes to wrong location | Using outdated `maps://` protocol instead of `https://` | iOS users get navigation errors |
-| Navigate button shows for invalid parks | `"NaN"` string coordinates pass truthy check | Users can't navigate to parks with bad data |
-| Parks list sorting broken | Invalid coordinates break distance calculation | List order is wrong |
+The current implementation filters parks but does not re-sort the filtered results by distance. This causes parks to appear in an inconsistent order when filters are applied.
 
 ---
 
-### Solution 1: Fix Apple Maps URL
+### Root Cause
 
-Update `getAppleMapsUrl()` in `navigation-utils.ts`:
+The `filteredParks` variable (lines 240-263) uses `.filter()` to remove non-matching parks, but the result maintains the original array order. It should re-sort filtered results by distance after every filter change.
 
+**Current Code (broken):**
 ```typescript
-// BEFORE (broken)
-export function getAppleMapsUrl(lat: number, lng: number): string {
-  return `maps://maps.apple.com/?daddr=${lat},${lng}`;
-}
-
-// AFTER (correct)
-export function getAppleMapsUrl(lat: number, lng: number): string {
-  return `https://maps.apple.com/?daddr=${lat},${lng}`;
-}
+const filteredParks = parks.filter(park => {
+  // Filter logic only - no sorting
+});
 ```
 
-The `maps://` protocol is deprecated and causes inconsistent behavior. Apple recommends using `https://maps.apple.com/` for web links.
-
 ---
 
-### Solution 2: Add Coordinate Validation Helper
+### Solution
 
-Add a reusable validation function to `navigation-utils.ts`:
+Convert `filteredParks` to a `useMemo` that:
+1. Filters parks based on active filters
+2. Re-sorts by distance (nearest first) with valid coordinates at top
+3. Falls back to rating for parks without valid coordinates
+4. Depends on `activeFilters`, `parks`, and `userLocation`
 
+**Fixed Code:**
 ```typescript
-/**
- * Check if a coordinate value is valid (not null, NaN, or out of range)
- */
-export function isValidCoordinate(value: unknown): value is number {
-  if (typeof value === 'number') {
-    return !isNaN(value) && isFinite(value);
+const filteredParks = useMemo(() => {
+  // Step 1: Filter parks based on active filters
+  let result = parks.filter(park => {
+    if (activeFilters.length === 0) return true;
+    return activeFilters.every(filter => {
+      switch (filter) {
+        case 'fenced': return park.is_fully_fenced;
+        case 'water': return park.has_water_station;
+        case 'small-dogs': return park.has_small_dog_area;
+        case 'large-dogs': return park.has_large_dog_area;
+        case 'agility': return park.has_agility_equipment;
+        case 'parking': return park.has_parking;
+        case 'grass': return park.has_grass_surface;
+        default: return true;
+      }
+    });
+  });
+
+  // Step 2: Recalculate distance and re-sort by proximity
+  if (userLocation) {
+    result = result.map(park => ({
+      ...park,
+      distance: hasValidCoords(park.latitude, park.longitude)
+        ? calculateDistance(userLocation.lat, userLocation.lng, park.latitude!, park.longitude!)
+        : undefined
+    })).sort((a, b) => {
+      // Parks without valid coordinates go to bottom
+      if (a.distance === undefined && b.distance === undefined) {
+        return (b.rating || 0) - (a.rating || 0);
+      }
+      if (a.distance === undefined) return 1;
+      if (b.distance === undefined) return -1;
+      // Sort by distance ascending (nearest first)
+      return a.distance - b.distance;
+    });
+  } else {
+    // No location - sort by rating descending
+    result = result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
-  if (typeof value === 'string') {
-    const num = parseFloat(value);
-    return !isNaN(num) && isFinite(num);
-  }
-  return false;
-}
 
-/**
- * Check if a park has valid navigable coordinates
- */
-export function hasValidCoords(lat: unknown, lng: unknown): boolean {
-  return (
-    isValidCoordinate(lat) && 
-    isValidCoordinate(lng) &&
-    (lat as number) >= -90 && (lat as number) <= 90 &&
-    (lng as number) >= -180 && (lng as number) <= 180
-  );
-}
+  return result;
+}, [parks, activeFilters, userLocation]);
 ```
 
 ---
 
-### Solution 3: Update ParkCard Navigate Button
+### Key Changes
 
-Update `ParkCard.tsx` to use proper validation:
-
-```typescript
-import { hasValidCoords, openNavigation } from '@/lib/navigation-utils';
-
-// Helper to get validated coordinates
-const coords = useMemo(() => {
-  if (hasValidCoords(park.latitude, park.longitude)) {
-    return { lat: park.latitude as number, lng: park.longitude as number };
-  }
-  return null;
-}, [park.latitude, park.longitude]);
-
-// Only show Navigate button if coordinates are valid
-{coords && (
-  <Button onClick={() => openNavigation(coords.lat, coords.lng, park.name)}>
-    <Navigation className="w-4 h-4 mr-1.5" />
-    Navigate
-  </Button>
-)}
-```
+| Change | Purpose |
+|--------|---------|
+| Convert to `useMemo` | Re-compute filtered + sorted list when dependencies change |
+| Add `userLocation` dependency | Re-sort when user location updates |
+| Recalculate distance in filter | Ensure distance is always current with user location |
+| Sort after filtering | Guarantee nearest parks appear first after filter |
+| Handle undefined distance | Push parks with NaN/missing coords to bottom |
 
 ---
 
-### Solution 4: Update useParksPaginated Distance Calculation
+### Hook Signature Update
 
-Update distance calculation to properly validate coordinates:
-
-```typescript
-// In mapRowToPark function
-if (location && hasValidCoords(row.latitude, row.longitude)) {
-  const lat = typeof row.latitude === 'string' ? parseFloat(row.latitude) : row.latitude;
-  const lng = typeof row.longitude === 'string' ? parseFloat(row.longitude) : row.longitude;
-  park.distance = calculateDistance(location.lat, location.lng, lat, lng);
-}
-```
+The hook needs access to `userLocation` inside the memoization. Since `userLocation` is already passed to the hook, we just need to use it in the `useMemo` dependencies.
 
 ---
 
-### Files to Modify
+### File to Modify
 
 | File | Changes |
 |------|---------|
-| `src/lib/navigation-utils.ts` | Fix Apple Maps URL format, add `isValidCoordinate()` and `hasValidCoords()` helpers |
-| `src/components/parks/ParkCard.tsx` | Use `hasValidCoords()` to validate before showing Navigate button |
-| `src/hooks/useParksPaginated.tsx` | Use `hasValidCoords()` in distance calculation to handle "NaN" strings |
+| `src/hooks/useParksPaginated.tsx` | Refactor `filteredParks` from plain filter to `useMemo` with distance recalculation and proximity sorting |
 
 ---
 
-### Technical Notes
+### Result
 
-**Why `https://` instead of `maps://`?**
-- The `maps://` URL scheme is a legacy protocol that may not work on all iOS versions
-- Apple's documentation recommends using `https://maps.apple.com/` for web-based links
-- The `https://` format works universally across browsers and PWAs
-
-**Why coordinate validation matters?**
-- Database has parks with `latitude: "NaN"` and `longitude: "NaN"` as strings
-- JavaScript's truthy check passes for non-empty strings like `"NaN"`
-- Passing NaN to map URLs causes navigation to random/default locations
-
-**Distance Sorting After Fix:**
-- Parks with valid coordinates: sorted by distance (nearest first)
-- Parks with invalid coordinates: pushed to bottom, sorted by rating
+| Scenario | Before | After |
+|----------|--------|-------|
+| No filters active | Sorted by distance | Sorted by distance (no change) |
+| Filter "Fully Fenced" selected | Random order after filter | Re-sorted by distance (nearest fenced parks first) |
+| Filter changed while moving | Stale distance values | Fresh distance from current location |
+| Parks with NaN coordinates | Mixed in with valid parks | Always at bottom of list |
 
