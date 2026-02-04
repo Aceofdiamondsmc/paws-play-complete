@@ -434,6 +434,7 @@ export type Database = {
           image_url: string | null
           is_dog_friendly: boolean | null
           is_fully_fenced: boolean | null
+          last_image_check: string | null
           latitude: number | null
           longitude: number | null
           name: string | null
@@ -462,6 +463,7 @@ export type Database = {
           image_url?: string | null
           is_dog_friendly?: boolean | null
           is_fully_fenced?: boolean | null
+          last_image_check?: string | null
           latitude?: number | null
           longitude?: number | null
           name?: string | null
@@ -490,6 +492,7 @@ export type Database = {
           image_url?: string | null
           is_dog_friendly?: boolean | null
           is_fully_fenced?: boolean | null
+          last_image_check?: string | null
           latitude?: number | null
           longitude?: number | null
           name?: string | null
