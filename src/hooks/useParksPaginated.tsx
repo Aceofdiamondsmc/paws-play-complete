@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Park, ParkFilter } from '@/types';
 
@@ -11,7 +11,25 @@ interface CachedParks {
   timestamp: number;
 }
 
-export function useParksPaginated() {
+interface UserLocation {
+  lat: number;
+  lng: number;
+}
+
+// Haversine formula to calculate distance between two points in meters
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+export function useParksPaginated(userLocation?: UserLocation | null) {
   const [parks, setParks] = useState<Park[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -20,35 +38,50 @@ export function useParksPaginated() {
   const [error, setError] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<ParkFilter[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const hasLocationRef = useRef<boolean>(!!userLocation);
 
-  // Map database row to Park type
-  const mapRowToPark = (row: any): Park => ({
-    id: String(row.Id),
-    name: row.name,
-    address: row.address,
-    city: row.city,
-    state: row.state,
-    description: row.description,
-    latitude: row.latitude,
-    longitude: row.longitude,
-    geom: row.geom,
-    image_url: row.image_url,
-    rating: row.rating,
-    user_ratings_total: row.user_rating_total,
-    is_fully_fenced: row.is_fully_fenced,
-    has_water_station: row.has_water_station,
-    has_small_dog_area: row.has_small_dog_area,
-    has_large_dog_area: row.has_large_dog_area,
-    has_agility_equipment: row.has_agility_equipment,
-    has_parking: row.has_parking,
-    has_grass_surface: row.has_grass_surface,
-    is_dog_friendly: row.is_dog_friendly,
-    gemini_summary: row.gemini_summary,
-    place_id: row.place_id,
-    added_by: row.added_by,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  });
+  // Track if location changed to trigger re-sort
+  useEffect(() => {
+    hasLocationRef.current = !!userLocation;
+  }, [userLocation]);
+
+  // Map database row to Park type with distance calculation
+  const mapRowToPark = useCallback((row: any, location?: UserLocation | null): Park => {
+    const park: Park = {
+      id: String(row.Id),
+      name: row.name,
+      address: row.address,
+      city: row.city,
+      state: row.state,
+      description: row.description,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      geom: row.geom,
+      image_url: row.image_url,
+      rating: row.rating,
+      user_ratings_total: row.user_rating_total,
+      is_fully_fenced: row.is_fully_fenced,
+      has_water_station: row.has_water_station,
+      has_small_dog_area: row.has_small_dog_area,
+      has_large_dog_area: row.has_large_dog_area,
+      has_agility_equipment: row.has_agility_equipment,
+      has_parking: row.has_parking,
+      has_grass_surface: row.has_grass_surface,
+      is_dog_friendly: row.is_dog_friendly,
+      gemini_summary: row.gemini_summary,
+      place_id: row.place_id,
+      added_by: row.added_by,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    };
+    
+    // Calculate distance if location available
+    if (location && row.latitude && row.longitude) {
+      park.distance = calculateDistance(location.lat, location.lng, row.latitude, row.longitude);
+    }
+    
+    return park;
+  }, []);
 
   // Load from cache for immediate display
   const loadFromCache = useCallback((): Park[] => {
@@ -80,21 +113,18 @@ export function useParksPaginated() {
     }
   }, []);
 
-  // Fetch a specific page
-  const fetchPage = useCallback(async (pageNum: number, append = false) => {
+  // Fetch all parks and sort by proximity (or rating if no location)
+  const fetchParks = useCallback(async (location?: UserLocation | null) => {
     // Cancel any in-flight request
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
 
-    const from = (pageNum - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-
     try {
+      // Fetch all parks (we'll paginate client-side after sorting)
       const { data, error: fetchError } = await supabase
         .from('parks')
         .select('*')
         .order('rating', { ascending: false, nullsFirst: false })
-        .range(from, to)
         .abortSignal(abortControllerRef.current.signal);
 
       if (fetchError) {
@@ -105,65 +135,106 @@ export function useParksPaginated() {
         throw fetchError;
       }
 
-      const mappedData = (data || []).map(mapRowToPark);
-      setHasMore((data?.length || 0) === PAGE_SIZE);
+      // Map and calculate distances
+      let mappedData = (data || []).map(row => mapRowToPark(row, location));
       
-      setParks(prev => {
-        const newParks = append ? [...prev, ...mappedData] : mappedData;
-        // Cache all fetched parks when loading initial page
-        if (!append && pageNum === 1) {
-          saveToCache(newParks);
-        }
-        return newParks;
-      });
+      // Sort by proximity if location available, otherwise keep rating sort
+      if (location) {
+        mappedData = mappedData.sort((a, b) => {
+          // Parks without coordinates go to the end
+          if (!a.distance && !b.distance) return 0;
+          if (!a.distance) return 1;
+          if (!b.distance) return -1;
+          return a.distance - b.distance;
+        });
+      }
       
+      // Cache all parks
+      saveToCache(mappedData);
+      
+      // Set initial page of parks
+      setParks(mappedData.slice(0, PAGE_SIZE));
+      setHasMore(mappedData.length > PAGE_SIZE);
       setError(null);
+      
+      return mappedData;
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       console.error('Error fetching parks:', e);
       setError('Failed to load parks');
+      return [];
     }
-  }, [saveToCache]);
+  }, [mapRowToPark, saveToCache]);
+
+  // Store all fetched parks for client-side pagination
+  const allParksRef = useRef<Park[]>([]);
 
   // Initial load with cache-first strategy
   useEffect(() => {
     // Show cached data immediately for instant UX
     const cached = loadFromCache();
     if (cached.length > 0) {
-      setParks(cached.slice(0, PAGE_SIZE));
+      // Re-sort cached data by proximity if location available
+      let sortedCache = cached;
+      if (userLocation) {
+        sortedCache = cached.map(park => ({
+          ...park,
+          distance: park.latitude && park.longitude 
+            ? calculateDistance(userLocation.lat, userLocation.lng, park.latitude, park.longitude)
+            : undefined
+        })).sort((a, b) => {
+          if (!a.distance && !b.distance) return 0;
+          if (!a.distance) return 1;
+          if (!b.distance) return -1;
+          return a.distance - b.distance;
+        });
+      }
+      allParksRef.current = sortedCache;
+      setParks(sortedCache.slice(0, PAGE_SIZE));
       setLoading(false);
-      setHasMore(cached.length > PAGE_SIZE);
+      setHasMore(sortedCache.length > PAGE_SIZE);
     }
 
     // Fetch fresh data in background
-    fetchPage(1).finally(() => setLoading(false));
+    fetchParks(userLocation).then(data => {
+      if (data) {
+        allParksRef.current = data;
+      }
+    }).finally(() => setLoading(false));
 
     // Cleanup: cancel on unmount
     return () => {
       abortControllerRef.current?.abort();
     };
-  }, [fetchPage, loadFromCache]);
+  }, [fetchParks, loadFromCache, userLocation]);
 
-  // Load more pages
+  // Load more pages (client-side pagination from already-fetched data)
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return;
 
     setLoadingMore(true);
     const nextPage = page + 1;
+    const start = 0;
+    const end = nextPage * PAGE_SIZE;
     
-    fetchPage(nextPage, true).finally(() => {
-      setPage(nextPage);
-      setLoadingMore(false);
-    });
-  }, [loadingMore, hasMore, page, fetchPage]);
+    // Slice from all fetched parks
+    const nextParks = allParksRef.current.slice(start, end);
+    setParks(nextParks);
+    setPage(nextPage);
+    setHasMore(end < allParksRef.current.length);
+    setLoadingMore(false);
+  }, [loadingMore, hasMore, page]);
 
   // Refresh data
   const refresh = useCallback(async () => {
     setPage(1);
     setLoading(true);
-    await fetchPage(1);
+    const data = await fetchParks(userLocation);
+    if (data) {
+      allParksRef.current = data;
+    }
     setLoading(false);
-  }, [fetchPage]);
+  }, [fetchParks, userLocation]);
 
   // Filter parks based on active filters
   const filteredParks = parks.filter(park => {
