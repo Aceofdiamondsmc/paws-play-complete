@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { hasValidCoords, calculateDistance } from '@/lib/navigation-utils';
 import type { Park, ParkFilter } from '@/types';
 
 const PAGE_SIZE = 20;
@@ -14,19 +15,6 @@ interface CachedParks {
 interface UserLocation {
   lat: number;
   lng: number;
-}
-
-// Haversine formula to calculate distance between two points in meters
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000; // Earth's radius in meters
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
 }
 
 export function useParksPaginated(userLocation?: UserLocation | null) {
@@ -47,6 +35,10 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
 
   // Map database row to Park type with distance calculation
   const mapRowToPark = useCallback((row: any, location?: UserLocation | null): Park => {
+    // Parse coordinates safely, handling "NaN" strings
+    const parsedLat = typeof row.latitude === 'string' ? parseFloat(row.latitude) : row.latitude;
+    const parsedLng = typeof row.longitude === 'string' ? parseFloat(row.longitude) : row.longitude;
+    
     const park: Park = {
       id: String(row.Id),
       name: row.name,
@@ -54,8 +46,8 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
       city: row.city,
       state: row.state,
       description: row.description,
-      latitude: row.latitude,
-      longitude: row.longitude,
+      latitude: hasValidCoords(parsedLat, parsedLng) ? parsedLat : undefined,
+      longitude: hasValidCoords(parsedLat, parsedLng) ? parsedLng : undefined,
       geom: row.geom,
       image_url: row.image_url,
       rating: row.rating,
@@ -75,9 +67,9 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
       updated_at: row.updated_at,
     };
     
-    // Calculate distance if location available
-    if (location && row.latitude && row.longitude) {
-      park.distance = calculateDistance(location.lat, location.lng, row.latitude, row.longitude);
+    // Calculate distance if location available and coordinates are valid
+    if (location && hasValidCoords(parsedLat, parsedLng)) {
+      park.distance = calculateDistance(location.lat, location.lng, parsedLat, parsedLng);
     }
     
     return park;
@@ -187,11 +179,11 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
       if (userLocation) {
         sortedCache = cached.map(park => ({
           ...park,
-          distance: park.latitude && park.longitude 
-            ? calculateDistance(userLocation.lat, userLocation.lng, park.latitude, park.longitude)
+          distance: hasValidCoords(park.latitude, park.longitude)
+            ? calculateDistance(userLocation.lat, userLocation.lng, park.latitude as number, park.longitude as number)
             : undefined
         })).sort((a, b) => {
-          if (!a.distance && !b.distance) return 0;
+          if (!a.distance && !b.distance) return (b.rating || 0) - (a.rating || 0);
           if (!a.distance) return 1;
           if (!b.distance) return -1;
           return a.distance - b.distance;
