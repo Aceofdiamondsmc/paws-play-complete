@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { calculateDistance, formatDistanceMiles, openNavigation } from '@/lib/navigation-utils';
+import { calculateDistance, formatDistanceMiles, openNavigation, getValidCoords, hasValidCoords } from '@/lib/navigation-utils';
 import { cn } from '@/lib/utils';
 import type { Park } from '@/types';
 
@@ -17,20 +17,25 @@ export const ParkCard = memo(function ParkCard({ park, userLocation }: ParkCardP
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
+  // Get validated coordinates for navigation (handles "NaN" strings and null values)
+  const coords = useMemo(() => {
+    return getValidCoords(park.latitude, park.longitude);
+  }, [park.latitude, park.longitude]);
+
   // Calculate distance - prefer pre-calculated from hook, fallback to calculating here
   const distance = useMemo(() => {
     // First, use pre-calculated distance from the hook (already in meters)
-    if (park.distance !== undefined) {
+    if (park.distance !== undefined && !isNaN(park.distance)) {
       return park.distance;
     }
-    // Fallback: calculate if userLocation is available but park.distance wasn't set
-    if (!userLocation || !park.latitude || !park.longitude) return undefined;
-    return calculateDistance(userLocation.lat, userLocation.lng, park.latitude, park.longitude);
-  }, [park.distance, userLocation, park.latitude, park.longitude]);
+    // Fallback: calculate if userLocation is available and park has valid coordinates
+    if (!userLocation || !coords) return undefined;
+    return calculateDistance(userLocation.lat, userLocation.lng, coords.lat, coords.lng);
+  }, [park.distance, userLocation, coords]);
 
   const handleNavigate = () => {
-    if (park.latitude && park.longitude) {
-      openNavigation(park.latitude, park.longitude, park.name || 'Dog Park');
+    if (coords) {
+      openNavigation(coords.lat, coords.lng, park.name || 'Dog Park');
     }
   };
 
