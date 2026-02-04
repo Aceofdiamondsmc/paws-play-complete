@@ -1,60 +1,139 @@
 
 
-## Fix Missing Distance Badge on ParkCard
+## Fix Apple Maps Navigation & Coordinate Validation
 
-The distance badge (e.g., "📍 0.3 mi") is not showing because the `ParkCard` component recalculates distance internally but the `userLocation` prop may not be available on initial render.
-
----
-
-### Root Cause
-
-There are two issues:
-
-1. **Redundant Calculation**: The `useParksPaginated` hook already calculates and stores `distance` on each `Park` object, but `ParkCard` ignores this and recalculates using `userLocation` prop
-2. **Timing Issue**: If `userLocation` is `null` on first render (before geolocation resolves), the distance shows as `undefined` even after location becomes available
+This plan fixes two critical issues: Apple Maps showing incorrect locations and parks with invalid coordinates displaying navigate buttons.
 
 ---
 
-### Solution
+### Issues Identified
 
-Update `ParkCard` to use the pre-calculated `park.distance` field as the primary source, with `userLocation` recalculation as a fallback:
+| Problem | Root Cause | Impact |
+|---------|------------|--------|
+| Apple Maps goes to wrong location | Using outdated `maps://` protocol instead of `https://` | iOS users get navigation errors |
+| Navigate button shows for invalid parks | `"NaN"` string coordinates pass truthy check | Users can't navigate to parks with bad data |
+| Parks list sorting broken | Invalid coordinates break distance calculation | List order is wrong |
+
+---
+
+### Solution 1: Fix Apple Maps URL
+
+Update `getAppleMapsUrl()` in `navigation-utils.ts`:
 
 ```typescript
-// Calculate distance - prefer pre-calculated from hook, fallback to calculating here
-const distance = useMemo(() => {
-  // First, use pre-calculated distance from the hook (already in meters)
-  if (park.distance !== undefined) {
-    return park.distance;
+// BEFORE (broken)
+export function getAppleMapsUrl(lat: number, lng: number): string {
+  return `maps://maps.apple.com/?daddr=${lat},${lng}`;
+}
+
+// AFTER (correct)
+export function getAppleMapsUrl(lat: number, lng: number): string {
+  return `https://maps.apple.com/?daddr=${lat},${lng}`;
+}
+```
+
+The `maps://` protocol is deprecated and causes inconsistent behavior. Apple recommends using `https://maps.apple.com/` for web links.
+
+---
+
+### Solution 2: Add Coordinate Validation Helper
+
+Add a reusable validation function to `navigation-utils.ts`:
+
+```typescript
+/**
+ * Check if a coordinate value is valid (not null, NaN, or out of range)
+ */
+export function isValidCoordinate(value: unknown): value is number {
+  if (typeof value === 'number') {
+    return !isNaN(value) && isFinite(value);
   }
-  // Fallback: calculate if userLocation is available but park.distance wasn't set
-  if (!userLocation || !park.latitude || !park.longitude) return undefined;
-  return calculateDistance(userLocation.lat, userLocation.lng, park.latitude, park.longitude);
-}, [park.distance, userLocation, park.latitude, park.longitude]);
+  if (typeof value === 'string') {
+    const num = parseFloat(value);
+    return !isNaN(num) && isFinite(num);
+  }
+  return false;
+}
+
+/**
+ * Check if a park has valid navigable coordinates
+ */
+export function hasValidCoords(lat: unknown, lng: unknown): boolean {
+  return (
+    isValidCoordinate(lat) && 
+    isValidCoordinate(lng) &&
+    (lat as number) >= -90 && (lat as number) <= 90 &&
+    (lng as number) >= -180 && (lng as number) <= 180
+  );
+}
 ```
 
 ---
 
-### Why This Works
+### Solution 3: Update ParkCard Navigate Button
 
-| Scenario | Result |
-|----------|--------|
-| Parks fetched with location | `park.distance` is set, badge shows immediately |
-| Parks from cache with location | `park.distance` is recalculated in hook, badge shows |
-| Parks loaded before location | Fallback calculation kicks in when `userLocation` prop arrives |
+Update `ParkCard.tsx` to use proper validation:
+
+```typescript
+import { hasValidCoords, openNavigation } from '@/lib/navigation-utils';
+
+// Helper to get validated coordinates
+const coords = useMemo(() => {
+  if (hasValidCoords(park.latitude, park.longitude)) {
+    return { lat: park.latitude as number, lng: park.longitude as number };
+  }
+  return null;
+}, [park.latitude, park.longitude]);
+
+// Only show Navigate button if coordinates are valid
+{coords && (
+  <Button onClick={() => openNavigation(coords.lat, coords.lng, park.name)}>
+    <Navigation className="w-4 h-4 mr-1.5" />
+    Navigate
+  </Button>
+)}
+```
 
 ---
 
-### File to Modify
+### Solution 4: Update useParksPaginated Distance Calculation
 
-| File | Change |
-|------|--------|
-| `src/components/parks/ParkCard.tsx` | Update distance calculation to use `park.distance` first, then fallback to `userLocation` calculation |
+Update distance calculation to properly validate coordinates:
+
+```typescript
+// In mapRowToPark function
+if (location && hasValidCoords(row.latitude, row.longitude)) {
+  const lat = typeof row.latitude === 'string' ? parseFloat(row.latitude) : row.latitude;
+  const lng = typeof row.longitude === 'string' ? parseFloat(row.longitude) : row.longitude;
+  park.distance = calculateDistance(location.lat, location.lng, lat, lng);
+}
+```
+
+---
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/lib/navigation-utils.ts` | Fix Apple Maps URL format, add `isValidCoordinate()` and `hasValidCoords()` helpers |
+| `src/components/parks/ParkCard.tsx` | Use `hasValidCoords()` to validate before showing Navigate button |
+| `src/hooks/useParksPaginated.tsx` | Use `hasValidCoords()` in distance calculation to handle "NaN" strings |
 
 ---
 
 ### Technical Notes
 
-- `park.distance` is stored in **meters** (from Haversine formula in `useParksPaginated`)
-- `formatDistanceMiles()` from `navigation-utils` expects meters and converts to miles/feet
-- No changes needed to `useParksPaginated.tsx` - it already calculates and stores distance correctly
+**Why `https://` instead of `maps://`?**
+- The `maps://` URL scheme is a legacy protocol that may not work on all iOS versions
+- Apple's documentation recommends using `https://maps.apple.com/` for web-based links
+- The `https://` format works universally across browsers and PWAs
+
+**Why coordinate validation matters?**
+- Database has parks with `latitude: "NaN"` and `longitude: "NaN"` as strings
+- JavaScript's truthy check passes for non-empty strings like `"NaN"`
+- Passing NaN to map URLs causes navigation to random/default locations
+
+**Distance Sorting After Fix:**
+- Parks with valid coordinates: sorted by distance (nearest first)
+- Parks with invalid coordinates: pushed to bottom, sorted by rating
 
