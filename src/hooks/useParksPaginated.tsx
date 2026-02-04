@@ -236,31 +236,57 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
     setLoading(false);
   }, [fetchParks, userLocation]);
 
-  // Filter parks based on active filters
-  const filteredParks = parks.filter(park => {
-    if (activeFilters.length === 0) return true;
-
-    return activeFilters.every(filter => {
-      switch (filter) {
-        case 'fenced':
-          return park.is_fully_fenced;
-        case 'water':
-          return park.has_water_station;
-        case 'small-dogs':
-          return park.has_small_dog_area;
-        case 'large-dogs':
-          return park.has_large_dog_area;
-        case 'agility':
-          return park.has_agility_equipment;
-        case 'parking':
-          return park.has_parking;
-        case 'grass':
-          return park.has_grass_surface;
-        default:
-          return true;
-      }
+  // Filter parks and re-sort by distance after every filter change
+  const filteredParks = useMemo(() => {
+    // Step 1: Filter parks based on active filters
+    let result = parks.filter(park => {
+      if (activeFilters.length === 0) return true;
+      return activeFilters.every(filter => {
+        switch (filter) {
+          case 'fenced':
+            return park.is_fully_fenced;
+          case 'water':
+            return park.has_water_station;
+          case 'small-dogs':
+            return park.has_small_dog_area;
+          case 'large-dogs':
+            return park.has_large_dog_area;
+          case 'agility':
+            return park.has_agility_equipment;
+          case 'parking':
+            return park.has_parking;
+          case 'grass':
+            return park.has_grass_surface;
+          default:
+            return true;
+        }
+      });
     });
-  });
+
+    // Step 2: Recalculate distance and re-sort by proximity
+    if (userLocation) {
+      result = result.map(park => ({
+        ...park,
+        distance: hasValidCoords(park.latitude, park.longitude)
+          ? calculateDistance(userLocation.lat, userLocation.lng, park.latitude!, park.longitude!)
+          : undefined
+      })).sort((a, b) => {
+        // Parks without valid coordinates go to bottom
+        if (a.distance === undefined && b.distance === undefined) {
+          return (b.rating || 0) - (a.rating || 0);
+        }
+        if (a.distance === undefined) return 1;
+        if (b.distance === undefined) return -1;
+        // Sort by distance ascending (nearest first)
+        return a.distance - b.distance;
+      });
+    } else {
+      // No location - sort by rating descending
+      result = result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }
+
+    return result;
+  }, [parks, activeFilters, userLocation]);
 
   const toggleFilter = (filter: ParkFilter) => {
     setActiveFilters(prev =>
