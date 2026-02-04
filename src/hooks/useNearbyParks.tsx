@@ -165,37 +165,41 @@ export function useNearbyParks(): UseNearbyParksReturn {
       });
     });
 
-    // Step 2: Calculate distance and validate coordinates
+    // Step 2: Check coords INDEPENDENTLY, calculate distance only when userLocation available
     const withDistance = filtered.map(park => {
       const coords = getValidCoords(park.latitude, park.longitude);
+      const hasCoords = coords !== null;
       
-      if (!coords || !userLocation) {
-        return { park, distance: undefined, hasValidCoords: false };
+      let distance: number | undefined = undefined;
+      if (coords && userLocation) {
+        distance = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          coords.lat,
+          coords.lng
+        );
       }
 
-      const distance = calculateDistance(
-        userLocation.lat,
-        userLocation.lng,
-        coords.lat,
-        coords.lng
-      );
-
-      return { park, distance, hasValidCoords: true };
+      return { park, distance, hasValidCoords: hasCoords };
     });
 
-    // Step 3: STRICT sort - distance ascending, invalid coords at bottom
+    // Step 3: Sort with proper priority
     withDistance.sort((a, b) => {
-      // Parks without valid coordinates go to the very bottom
+      // Both have invalid coords -> sort by rating
       if (!a.hasValidCoords && !b.hasValidCoords) {
         return (b.park.rating || 0) - (a.park.rating || 0);
       }
+      // Invalid coords go to bottom
       if (!a.hasValidCoords) return 1;
       if (!b.hasValidCoords) return -1;
 
-      // Both have valid coords - sort strictly by distance
-      const aDist = a.distance ?? Infinity;
-      const bDist = b.distance ?? Infinity;
-      return aDist - bDist;
+      // Both have valid coords
+      if (a.distance !== undefined && b.distance !== undefined) {
+        // Both have distances -> sort strictly by distance
+        return a.distance - b.distance;
+      }
+      // If no userLocation yet, sort valid-coord parks by rating
+      return (b.park.rating || 0) - (a.park.rating || 0);
     });
 
     // Return parks with distance attached
