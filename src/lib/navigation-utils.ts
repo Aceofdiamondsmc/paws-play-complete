@@ -70,9 +70,50 @@ export function getGoogleMapsUrl(lat: number, lng: number): string {
 
 /**
  * Get Apple Maps URL specifically
+ * Using https:// format for universal compatibility across iOS versions and PWAs
  */
 export function getAppleMapsUrl(lat: number, lng: number): string {
-  return `maps://maps.apple.com/?daddr=${lat},${lng}`;
+  return `https://maps.apple.com/?daddr=${lat},${lng}`;
+}
+
+/**
+ * Check if a coordinate value is valid (not null, NaN, or out of range)
+ * Handles both number and string types since database may return "NaN" strings
+ */
+export function isValidCoordinate(value: unknown): value is number {
+  if (typeof value === 'number') {
+    return !isNaN(value) && isFinite(value);
+  }
+  if (typeof value === 'string') {
+    const num = parseFloat(value);
+    return !isNaN(num) && isFinite(num);
+  }
+  return false;
+}
+
+/**
+ * Check if a park has valid navigable coordinates
+ * Validates both values are numbers within valid geographic ranges
+ */
+export function hasValidCoords(lat: unknown, lng: unknown): boolean {
+  if (!isValidCoordinate(lat) || !isValidCoordinate(lng)) {
+    return false;
+  }
+  const latNum = typeof lat === 'string' ? parseFloat(lat) : lat;
+  const lngNum = typeof lng === 'string' ? parseFloat(lng) : lng;
+  return latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180;
+}
+
+/**
+ * Get validated numeric coordinates from potentially string/mixed values
+ * Returns null if coordinates are invalid
+ */
+export function getValidCoords(lat: unknown, lng: unknown): { lat: number; lng: number } | null {
+  if (!hasValidCoords(lat, lng)) return null;
+  return {
+    lat: typeof lat === 'string' ? parseFloat(lat) : lat as number,
+    lng: typeof lng === 'string' ? parseFloat(lng) : lng as number
+  };
 }
 
 /**

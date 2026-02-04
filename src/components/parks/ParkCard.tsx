@@ -137,8 +137,8 @@ export const ParkCard = memo(function ParkCard({ park, userLocation }: ParkCardP
             )}
           </div>
           
-          {/* Navigate Button */}
-          {park.latitude && park.longitude && (
+          {/* Navigate Button - only show if coordinates are valid */}
+          {coords && (
             <Button
               size="sm"
               className="mt-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full"

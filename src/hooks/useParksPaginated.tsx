@@ -179,11 +179,11 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
       if (userLocation) {
         sortedCache = cached.map(park => ({
           ...park,
-          distance: park.latitude && park.longitude 
-            ? calculateDistance(userLocation.lat, userLocation.lng, park.latitude, park.longitude)
+          distance: hasValidCoords(park.latitude, park.longitude)
+            ? calculateDistance(userLocation.lat, userLocation.lng, park.latitude as number, park.longitude as number)
             : undefined
         })).sort((a, b) => {
-          if (!a.distance && !b.distance) return 0;
+          if (!a.distance && !b.distance) return (b.rating || 0) - (a.rating || 0);
           if (!a.distance) return 1;
           if (!b.distance) return -1;
           return a.distance - b.distance;
