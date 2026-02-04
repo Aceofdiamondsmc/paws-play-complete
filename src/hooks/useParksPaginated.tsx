@@ -120,11 +120,10 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
     abortControllerRef.current = new AbortController();
 
     try {
-      // Fetch all parks (we'll paginate client-side after sorting)
+      // Fetch all parks
       const { data, error: fetchError } = await supabase
         .from('parks')
         .select('*')
-        .order('rating', { ascending: false, nullsFirst: false })
         .abortSignal(abortControllerRef.current.signal);
 
       if (fetchError) {
@@ -135,24 +134,33 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
         throw fetchError;
       }
 
-      // Map and calculate distances
+      // Map all parks and calculate distances
       let mappedData = (data || []).map(row => mapRowToPark(row, location));
       
-      // Sort by proximity if location available, otherwise keep rating sort
+      // ALWAYS sort by distance if location available (nearest first)
+      // Parks without distance go to end, then sort by rating as tiebreaker
       if (location) {
         mappedData = mappedData.sort((a, b) => {
-          // Parks without coordinates go to the end
-          if (!a.distance && !b.distance) return 0;
-          if (!a.distance) return 1;
-          if (!b.distance) return -1;
+          // Parks without coordinates go to the very end
+          if (a.distance === undefined && b.distance === undefined) {
+            // Sort by rating as fallback
+            return (b.rating || 0) - (a.rating || 0);
+          }
+          if (a.distance === undefined) return 1;
+          if (b.distance === undefined) return -1;
+          
+          // Sort by distance ascending (nearest first)
           return a.distance - b.distance;
         });
+      } else {
+        // No location - sort by rating descending
+        mappedData = mappedData.sort((a, b) => (b.rating || 0) - (a.rating || 0));
       }
       
       // Cache all parks
       saveToCache(mappedData);
       
-      // Set initial page of parks
+      // Set initial page of parks (20 nearest)
       setParks(mappedData.slice(0, PAGE_SIZE));
       setHasMore(mappedData.length > PAGE_SIZE);
       setError(null);
