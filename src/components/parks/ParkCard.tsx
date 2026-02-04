@@ -1,9 +1,11 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Star, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Navigation } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { calculateDistance, formatDistanceMiles, openNavigation } from '@/lib/navigation-utils';
+import { cn } from '@/lib/utils';
 import type { Park } from '@/types';
 
 interface ParkCardProps {
@@ -12,6 +14,9 @@ interface ParkCardProps {
 }
 
 export const ParkCard = memo(function ParkCard({ park, userLocation }: ParkCardProps) {
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
   // Calculate distance only when location or park changes
   const distance = useMemo(() => {
     if (!userLocation || !park.latitude || !park.longitude) return undefined;
@@ -24,16 +29,31 @@ export const ParkCard = memo(function ParkCard({ park, userLocation }: ParkCardP
     }
   };
 
+  const showImage = park.image_url && !imageError;
+
   return (
     <Card className="p-4 card-playful">
       <div className="flex gap-4">
-        {park.image_url ? (
-          <img
-            src={park.image_url}
-            alt={park.name || 'Dog Park'}
-            className="w-24 h-24 object-cover rounded-xl"
-            loading="lazy"
-          />
+        {showImage ? (
+          <div className="relative w-24 h-24 shrink-0">
+            {imageLoading && (
+              <Skeleton className="absolute inset-0 rounded-xl" />
+            )}
+            <img
+              src={park.image_url}
+              alt={park.name || 'Dog Park'}
+              className={cn(
+                "w-24 h-24 object-cover rounded-xl transition-opacity duration-200",
+                imageLoading ? "opacity-0" : "opacity-100"
+              )}
+              loading="lazy"
+              onLoad={() => setImageLoading(false)}
+              onError={() => {
+                setImageError(true);
+                setImageLoading(false);
+              }}
+            />
+          </div>
         ) : (
           <div className="w-24 h-24 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
             <PawPrint className="w-8 h-8 text-primary" />
