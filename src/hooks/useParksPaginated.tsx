@@ -67,9 +67,9 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
       updated_at: row.updated_at,
     };
     
-    // Calculate distance if location available
-    if (location && row.latitude && row.longitude) {
-      park.distance = calculateDistance(location.lat, location.lng, row.latitude, row.longitude);
+    // Calculate distance if location available and coordinates are valid
+    if (location && hasValidCoords(parsedLat, parsedLng)) {
+      park.distance = calculateDistance(location.lat, location.lng, parsedLat, parsedLng);
     }
     
     return park;
