@@ -1,112 +1,108 @@
 
 
-## Fix Parks List Sorting After Filter Selection
+## Fix Parks List Proximity Sorting
 
-The current implementation filters parks but does not re-sort the filtered results by distance. This causes parks to appear in an inconsistent order when filters are applied.
+The list is showing parks 582 miles away first because of a logic flaw in how coordinate validation interacts with user location availability.
 
 ---
 
 ### Root Cause
 
-The `filteredParks` variable (lines 240-263) uses `.filter()` to remove non-matching parks, but the result maintains the original array order. It should re-sort filtered results by distance after every filter change.
+In `useNearbyParks.tsx` (lines 168-184), the sorting logic conflates two separate concepts:
 
-**Current Code (broken):**
 ```typescript
-const filteredParks = parks.filter(park => {
-  // Filter logic only - no sorting
-});
+// CURRENT (BROKEN)
+if (!coords || !userLocation) {
+  return { park, distance: undefined, hasValidCoords: false };
+}
 ```
+
+**The Problem**: When `userLocation` is `null`, **ALL parks** are marked as `hasValidCoords: false` - even parks that DO have valid coordinates. This causes:
+1. All parks get sorted by rating (not distance)
+2. Parks 582 miles away with high ratings appear above parks 2 miles away
 
 ---
 
 ### Solution
 
-Convert `filteredParks` to a `useMemo` that:
-1. Filters parks based on active filters
-2. Re-sorts by distance (nearest first) with valid coordinates at top
-3. Falls back to rating for parks without valid coordinates
-4. Depends on `activeFilters`, `parks`, and `userLocation`
+Separate coordinate validation from distance calculation:
 
-**Fixed Code:**
 ```typescript
-const filteredParks = useMemo(() => {
-  // Step 1: Filter parks based on active filters
-  let result = parks.filter(park => {
-    if (activeFilters.length === 0) return true;
-    return activeFilters.every(filter => {
-      switch (filter) {
-        case 'fenced': return park.is_fully_fenced;
-        case 'water': return park.has_water_station;
-        case 'small-dogs': return park.has_small_dog_area;
-        case 'large-dogs': return park.has_large_dog_area;
-        case 'agility': return park.has_agility_equipment;
-        case 'parking': return park.has_parking;
-        case 'grass': return park.has_grass_surface;
-        default: return true;
-      }
-    });
+// FIXED
+const sortedFilteredParks = useMemo(() => {
+  let filtered = allParks.filter(/* ... */);
+
+  const withDistance = filtered.map(park => {
+    // Step 1: Check if park has valid coords (INDEPENDENT of userLocation)
+    const coords = getValidCoords(park.latitude, park.longitude);
+    const hasCoords = coords !== null;
+    
+    // Step 2: Calculate distance ONLY if we have both coords and userLocation
+    let distance: number | undefined = undefined;
+    if (coords && userLocation) {
+      distance = calculateDistance(
+        userLocation.lat,
+        userLocation.lng,
+        coords.lat,
+        coords.lng
+      );
+    }
+
+    return { park, distance, hasValidCoords: hasCoords };
   });
 
-  // Step 2: Recalculate distance and re-sort by proximity
-  if (userLocation) {
-    result = result.map(park => ({
-      ...park,
-      distance: hasValidCoords(park.latitude, park.longitude)
-        ? calculateDistance(userLocation.lat, userLocation.lng, park.latitude!, park.longitude!)
-        : undefined
-    })).sort((a, b) => {
-      // Parks without valid coordinates go to bottom
-      if (a.distance === undefined && b.distance === undefined) {
-        return (b.rating || 0) - (a.rating || 0);
-      }
-      if (a.distance === undefined) return 1;
-      if (b.distance === undefined) return -1;
-      // Sort by distance ascending (nearest first)
-      return a.distance - b.distance;
-    });
-  } else {
-    // No location - sort by rating descending
-    result = result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-  }
+  // Step 3: Sort with proper priority
+  withDistance.sort((a, b) => {
+    // Both have invalid coords -> sort by rating
+    if (!a.hasValidCoords && !b.hasValidCoords) {
+      return (b.park.rating || 0) - (a.park.rating || 0);
+    }
+    // Invalid coords go to bottom
+    if (!a.hasValidCoords) return 1;
+    if (!b.hasValidCoords) return -1;
 
-  return result;
-}, [parks, activeFilters, userLocation]);
+    // Both have valid coords
+    if (a.distance !== undefined && b.distance !== undefined) {
+      // Both have distances -> sort by distance
+      return a.distance - b.distance;
+    }
+    // If no userLocation yet, parks with valid coords still appear first
+    // sorted by rating until distances are calculated
+    return (b.park.rating || 0) - (a.park.rating || 0);
+  });
+
+  return withDistance.map(({ park, distance }) => ({
+    ...park,
+    distance,
+  }));
+}, [allParks, activeFilters, userLocation]);
 ```
 
 ---
 
 ### Key Changes
 
-| Change | Purpose |
-|--------|---------|
-| Convert to `useMemo` | Re-compute filtered + sorted list when dependencies change |
-| Add `userLocation` dependency | Re-sort when user location updates |
-| Recalculate distance in filter | Ensure distance is always current with user location |
-| Sort after filtering | Guarantee nearest parks appear first after filter |
-| Handle undefined distance | Push parks with NaN/missing coords to bottom |
+| Before | After |
+|--------|-------|
+| `hasValidCoords` depends on `userLocation` | `hasValidCoords` checked independently |
+| No userLocation = all parks equal | Parks with coords always ranked higher |
+| Sorts by rating when waiting for location | Groups valid-coord parks at top |
 
 ---
 
-### Hook Signature Update
+### Expected Behavior After Fix
 
-The hook needs access to `userLocation` inside the memoization. Since `userLocation` is already passed to the hook, we just need to use it in the `useMemo` dependencies.
+| State | Sort Order |
+|-------|------------|
+| Location loading | Parks with valid coords (sorted by rating) at top, NaN coords at bottom |
+| Location available | Parks with valid coords sorted by distance (nearest first), NaN at bottom |
+| Filter applied | Same logic, but on filtered subset |
 
 ---
 
 ### File to Modify
 
-| File | Changes |
-|------|---------|
-| `src/hooks/useParksPaginated.tsx` | Refactor `filteredParks` from plain filter to `useMemo` with distance recalculation and proximity sorting |
-
----
-
-### Result
-
-| Scenario | Before | After |
-|----------|--------|-------|
-| No filters active | Sorted by distance | Sorted by distance (no change) |
-| Filter "Fully Fenced" selected | Random order after filter | Re-sorted by distance (nearest fenced parks first) |
-| Filter changed while moving | Stale distance values | Fresh distance from current location |
-| Parks with NaN coordinates | Mixed in with valid parks | Always at bottom of list |
+| File | Change |
+|------|--------|
+| `src/hooks/useNearbyParks.tsx` | Separate `hasValidCoords` from `userLocation` check in `sortedFilteredParks` useMemo |
 
