@@ -149,7 +149,7 @@ export function useNearbyParks(): UseNearbyParksReturn {
   // Calculate distances and sort - STRICT proximity sorting
   const sortedFilteredParks = useMemo(() => {
     // Step 1: Filter by active filters
-    let result = allParks.filter(park => {
+    let filtered = allParks.filter(park => {
       if (activeFilters.length === 0) return true;
       return activeFilters.every(filter => {
         switch (filter) {
@@ -166,11 +166,11 @@ export function useNearbyParks(): UseNearbyParksReturn {
     });
 
     // Step 2: Calculate distance and validate coordinates
-    result = result.map(park => {
+    const withDistance = filtered.map(park => {
       const coords = getValidCoords(park.latitude, park.longitude);
       
       if (!coords || !userLocation) {
-        return { ...park, distance: undefined, _hasValidCoords: false };
+        return { park, distance: undefined, hasValidCoords: false };
       }
 
       const distance = calculateDistance(
@@ -180,20 +180,17 @@ export function useNearbyParks(): UseNearbyParksReturn {
         coords.lng
       );
 
-      return { ...park, distance, _hasValidCoords: true };
+      return { park, distance, hasValidCoords: true };
     });
 
     // Step 3: STRICT sort - distance ascending, invalid coords at bottom
-    result = result.sort((a, b) => {
-      const aValid = (a as any)._hasValidCoords;
-      const bValid = (b as any)._hasValidCoords;
-
+    withDistance.sort((a, b) => {
       // Parks without valid coordinates go to the very bottom
-      if (!aValid && !bValid) {
-        return (b.rating || 0) - (a.rating || 0);
+      if (!a.hasValidCoords && !b.hasValidCoords) {
+        return (b.park.rating || 0) - (a.park.rating || 0);
       }
-      if (!aValid) return 1;
-      if (!bValid) return -1;
+      if (!a.hasValidCoords) return 1;
+      if (!b.hasValidCoords) return -1;
 
       // Both have valid coords - sort strictly by distance
       const aDist = a.distance ?? Infinity;
@@ -201,8 +198,11 @@ export function useNearbyParks(): UseNearbyParksReturn {
       return aDist - bDist;
     });
 
-    // Clean up internal flag
-    return result.map(({ _hasValidCoords, ...park }) => park as Park);
+    // Return parks with distance attached
+    return withDistance.map(({ park, distance }) => ({
+      ...park,
+      distance,
+    }));
   }, [allParks, activeFilters, userLocation]);
 
   // Paginated results

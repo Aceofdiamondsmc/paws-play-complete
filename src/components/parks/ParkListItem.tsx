@@ -81,13 +81,13 @@ export const ParkListItem = memo(function ParkListItem({ park }: ParkListItemPro
         {/* Quick feature badges */}
         <div className="flex gap-1 mt-1.5">
           {park.is_fully_fenced && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-accent text-accent-foreground">
               <Fence className="w-2.5 h-2.5 mr-0.5" />
               Fenced
             </Badge>
           )}
           {park.has_water_station && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-secondary text-secondary-foreground">
               <Droplets className="w-2.5 h-2.5 mr-0.5" />
               Water
             </Badge>
