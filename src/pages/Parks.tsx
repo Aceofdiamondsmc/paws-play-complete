@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import { MapPin, List, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, List, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Loader2, MapPinOff, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useParks } from '@/hooks/useParks';
-import { useParksPaginated } from '@/hooks/useParksPaginated';
+import { useNearbyParks } from '@/hooks/useNearbyParks';
 import { ParksMap } from '@/components/parks/ParksMap';
-import { ParksList } from '@/components/parks/ParksList';
+import { ParkListItem } from '@/components/parks/ParkListItem';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { getCurrentLocation } from '@/lib/spatial-utils';
 import type { FilterOption } from '@/types';
 
 const filterOptions: FilterOption[] = [
@@ -24,32 +24,48 @@ const iconMap: Record<string, React.ElementType> = {
   Fence, Droplets, Dog, TreePine, Car, Dumbbell
 };
 
-export default function Parks() {
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('list'); // Default to list view
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationLoading, setLocationLoading] = useState(true);
-  
-  // Get user location early for proximity sorting
-  useEffect(() => {
-    getCurrentLocation()
-      .then(location => {
-        if (location) {
-          setUserLocation({ lat: location.latitude, lng: location.longitude });
-        }
-      })
-      .finally(() => setLocationLoading(false));
-  }, []);
+// Skeleton for list items
+function ListItemSkeleton() {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border">
+      <Skeleton className="w-16 h-16 rounded-lg shrink-0" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <div className="flex gap-1">
+          <Skeleton className="h-5 w-14 rounded-full" />
+          <Skeleton className="h-5 w-12 rounded-full" />
+        </div>
+      </div>
+      <Skeleton className="w-16 h-9 rounded-full" />
+    </div>
+  );
+}
 
-  // Use paginated hook for list view with user location for proximity sorting
-  const mapHook = useParks();
-  const listHook = useParksPaginated(userLocation);
+export default function Parks() {
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
   
-  // Use the appropriate hook based on view mode
-  const activeHook = viewMode === 'map' ? mapHook : listHook;
+  // Map view uses the full parks hook
+  const mapHook = useParks();
+  
+  // List view uses the new simplified nearby hook
+  const {
+    parks,
+    loading,
+    locationLoading,
+    locationError,
+    userLocation,
+    activeFilters,
+    toggleFilter,
+    searchNearMe,
+    showMore,
+    hasMore,
+    totalMatching,
+  } = useNearbyParks();
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Sticky Header with backdrop blur */}
+      {/* Sticky Header */}
       <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border p-4 space-y-3 shrink-0">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -78,54 +94,126 @@ export default function Parks() {
           </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {filterOptions.map(filter => {
-            const Icon = iconMap[filter.icon];
-            const isActive = activeHook.activeFilters.includes(filter.id);
-            return (
-              <button
-                key={filter.id}
-                onClick={() => activeHook.toggleFilter(filter.id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border",
-                  isActive 
-                    ? "bg-primary text-primary-foreground border-primary shadow-md" 
-                    : "bg-card text-muted-foreground border-border hover:bg-muted"
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {filter.label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Filter Pills - only show for list view */}
+        {viewMode === 'list' && (
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {filterOptions.map(filter => {
+              const Icon = iconMap[filter.icon];
+              const isActive = activeFilters.includes(filter.id as any);
+              return (
+                <button
+                  key={filter.id}
+                  onClick={() => toggleFilter(filter.id as any)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border",
+                    isActive 
+                      ? "bg-primary text-primary-foreground border-primary shadow-md" 
+                      : "bg-card text-muted-foreground border-border hover:bg-muted"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {filter.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-        {/* Active filter count */}
-        {activeHook.activeFilters.length > 0 && (
+        {/* Results count */}
+        {viewMode === 'list' && !loading && parks.length > 0 && (
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-xs">
-              {activeHook.parks.length} parks match your filters
+              Showing {parks.length} of {totalMatching} parks
             </Badge>
+            {userLocation && (
+              <Badge variant="outline" className="text-xs">
+                📍 Sorted by distance
+              </Badge>
+            )}
           </div>
         )}
       </div>
 
-      {/* Content - non-blocking, bottom nav always accessible */}
+      {/* Content */}
       {viewMode === 'map' ? (
         <div className="flex-1 relative">
           <ParksMap parks={mapHook.parks} loading={mapHook.loading} />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto p-4">
-          <ParksList
-            parks={listHook.parks}
-            loading={listHook.loading}
-            loadingMore={listHook.loadingMore}
-            hasMore={listHook.hasMore}
-            userLocation={userLocation}
-            onLoadMore={listHook.loadMore}
-          />
+        <div className="flex-1 overflow-y-auto">
+          {/* Search Near Me Button - prominent when no location */}
+          {!userLocation && !locationLoading && (
+            <div className="p-4 pb-2">
+              <Button
+                onClick={searchNearMe}
+                size="lg"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl h-14 text-base font-semibold shadow-lg"
+              >
+                <Search className="w-5 h-5 mr-2" />
+                Search Dog Parks Near Me
+              </Button>
+              {locationError && (
+                <p className="text-sm text-destructive mt-2 text-center flex items-center justify-center gap-1">
+                  <MapPinOff className="w-4 h-4" />
+                  {locationError}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Location Loading State */}
+          {locationLoading && (
+            <div className="p-4">
+              <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Finding your location...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Parks List */}
+          <div className="p-4 space-y-2">
+            {/* Loading skeletons */}
+            {loading && parks.length === 0 && (
+              <>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <ListItemSkeleton key={i} />
+                ))}
+              </>
+            )}
+
+            {/* Parks */}
+            {parks.map(park => (
+              <ParkListItem key={park.id} park={park} />
+            ))}
+
+            {/* Show More Button */}
+            {hasMore && !loading && (
+              <Button
+                variant="outline"
+                onClick={showMore}
+                className="w-full mt-4 rounded-xl"
+              >
+                Show More Parks
+              </Button>
+            )}
+
+            {/* Empty State */}
+            {!loading && !locationLoading && parks.length === 0 && userLocation && (
+              <div className="text-center py-12 text-muted-foreground">
+                <Dog className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="font-medium">No parks found matching your filters</p>
+                <p className="text-sm mt-1">Try removing some filters to see more parks</p>
+              </div>
+            )}
+
+            {/* End of list */}
+            {!hasMore && parks.length > 0 && !loading && (
+              <p className="text-center text-sm text-muted-foreground py-4">
+                You've seen all {parks.length} matching parks! 🐕
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
