@@ -35,6 +35,10 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
 
   // Map database row to Park type with distance calculation
   const mapRowToPark = useCallback((row: any, location?: UserLocation | null): Park => {
+    // Parse coordinates safely, handling "NaN" strings
+    const parsedLat = typeof row.latitude === 'string' ? parseFloat(row.latitude) : row.latitude;
+    const parsedLng = typeof row.longitude === 'string' ? parseFloat(row.longitude) : row.longitude;
+    
     const park: Park = {
       id: String(row.Id),
       name: row.name,
@@ -42,8 +46,8 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
       city: row.city,
       state: row.state,
       description: row.description,
-      latitude: row.latitude,
-      longitude: row.longitude,
+      latitude: hasValidCoords(parsedLat, parsedLng) ? parsedLat : undefined,
+      longitude: hasValidCoords(parsedLat, parsedLng) ? parsedLng : undefined,
       geom: row.geom,
       image_url: row.image_url,
       rating: row.rating,
