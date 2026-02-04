@@ -17,11 +17,16 @@ export const ParkCard = memo(function ParkCard({ park, userLocation }: ParkCardP
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
-  // Calculate distance only when location or park changes
+  // Calculate distance - prefer pre-calculated from hook, fallback to calculating here
   const distance = useMemo(() => {
+    // First, use pre-calculated distance from the hook (already in meters)
+    if (park.distance !== undefined) {
+      return park.distance;
+    }
+    // Fallback: calculate if userLocation is available but park.distance wasn't set
     if (!userLocation || !park.latitude || !park.longitude) return undefined;
     return calculateDistance(userLocation.lat, userLocation.lng, park.latitude, park.longitude);
-  }, [userLocation, park.latitude, park.longitude]);
+  }, [park.distance, userLocation, park.latitude, park.longitude]);
 
   const handleNavigate = () => {
     if (park.latitude && park.longitude) {
