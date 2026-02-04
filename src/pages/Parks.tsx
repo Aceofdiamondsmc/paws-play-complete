@@ -25,24 +25,27 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 export default function Parks() {
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('list'); // Default to list view
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(true);
   
-  // Use paginated hook for list view, original hook for map view
+  // Get user location early for proximity sorting
+  useEffect(() => {
+    getCurrentLocation()
+      .then(location => {
+        if (location) {
+          setUserLocation({ lat: location.latitude, lng: location.longitude });
+        }
+      })
+      .finally(() => setLocationLoading(false));
+  }, []);
+
+  // Use paginated hook for list view with user location for proximity sorting
   const mapHook = useParks();
-  const listHook = useParksPaginated();
+  const listHook = useParksPaginated(userLocation);
   
   // Use the appropriate hook based on view mode
   const activeHook = viewMode === 'map' ? mapHook : listHook;
-
-  // Get user location for distance calculations
-  useEffect(() => {
-    getCurrentLocation().then(location => {
-      if (location) {
-        setUserLocation({ lat: location.latitude, lng: location.longitude });
-      }
-    });
-  }, []);
 
   return (
     <div className="h-screen flex flex-col">
