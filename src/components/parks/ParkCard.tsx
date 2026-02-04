@@ -29,7 +29,9 @@ export const ParkCard = memo(function ParkCard({ park, userLocation }: ParkCardP
     }
   };
 
-  const showImage = park.image_url && !imageError;
+  // Use image_url if available, otherwise use LoremFlickr with park ID for consistent placeholder
+  const imageUrl = park.image_url || `https://loremflickr.com/300/300/dog,park,nature/all?lock=${park.id}`;
+  const showImage = !imageError;
 
   return (
     <Card className="p-4 card-playful">
@@ -40,7 +42,7 @@ export const ParkCard = memo(function ParkCard({ park, userLocation }: ParkCardP
               <Skeleton className="absolute inset-0 rounded-xl" />
             )}
             <img
-              src={park.image_url}
+              src={imageUrl}
               alt={park.name || 'Dog Park'}
               className={cn(
                 "w-24 h-24 object-cover rounded-xl transition-opacity duration-200",
