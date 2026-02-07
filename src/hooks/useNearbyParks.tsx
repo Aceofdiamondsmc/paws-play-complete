@@ -4,6 +4,7 @@ import { calculateDistance, hasValidCoords, getValidCoords } from '@/lib/navigat
 import type { Park, ParkFilter } from '@/types';
 
 const INITIAL_LIMIT = 15;
+const MAX_LOCAL_DISTANCE = 80467; // 50 miles in meters
 
 interface UserLocation {
   lat: number;
@@ -23,6 +24,7 @@ interface UseNearbyParksReturn {
   showMore: () => void;
   hasMore: boolean;
   totalMatching: number;
+  localParksCount: number;
 }
 
 /**
@@ -146,8 +148,8 @@ export function useNearbyParks(): UseNearbyParksReturn {
     );
   }, []);
 
-  // Calculate distances and sort - STRICT proximity sorting
-  const sortedFilteredParks = useMemo(() => {
+  // Calculate distances and sort - Two-tier proximity sorting with 50-mile cutoff
+  const { sortedFilteredParks, localParksCount } = useMemo(() => {
     // Step 1: Filter by active filters
     let filtered = allParks.filter(park => {
       if (activeFilters.length === 0) return true;
@@ -165,12 +167,14 @@ export function useNearbyParks(): UseNearbyParksReturn {
       });
     });
 
-    // Step 2: Check coords INDEPENDENTLY, calculate distance only when userLocation available
-    const withDistance = filtered.map(park => {
+    // Step 2: Categorize parks into local vs far
+    const categorized = filtered.map(park => {
       const coords = getValidCoords(park.latitude, park.longitude);
       const hasCoords = coords !== null;
       
       let distance: number | undefined = undefined;
+      let isLocal = false;
+
       if (coords && userLocation) {
         distance = calculateDistance(
           userLocation.lat,
@@ -178,35 +182,44 @@ export function useNearbyParks(): UseNearbyParksReturn {
           coords.lat,
           coords.lng
         );
+        isLocal = distance <= MAX_LOCAL_DISTANCE;
       }
 
-      return { park, distance, hasValidCoords: hasCoords };
+      return { park, distance, hasCoords, isLocal };
     });
 
-    // Step 3: Sort with proper priority
-    withDistance.sort((a, b) => {
-      // Both have invalid coords -> sort by rating
-      if (!a.hasValidCoords && !b.hasValidCoords) {
-        return (b.park.rating || 0) - (a.park.rating || 0);
-      }
-      // Invalid coords go to bottom
-      if (!a.hasValidCoords) return 1;
-      if (!b.hasValidCoords) return -1;
+    // Step 3: Sort with two-tier priority
+    // Tier 1: Local parks (within 50 miles) sorted by distance
+    // Tier 2: Far parks sorted by distance, then parks without coords by rating
+    categorized.sort((a, b) => {
+      // Local parks always come first
+      if (a.isLocal && !b.isLocal) return -1;
+      if (!a.isLocal && b.isLocal) return 1;
 
-      // Both have valid coords
+      // Within same locality tier, sort by distance if available
       if (a.distance !== undefined && b.distance !== undefined) {
-        // Both have distances -> sort strictly by distance
         return a.distance - b.distance;
       }
-      // If no userLocation yet, sort valid-coord parks by rating
+
+      // Parks with coords before parks without coords
+      if (a.hasCoords && !b.hasCoords) return -1;
+      if (!a.hasCoords && b.hasCoords) return 1;
+
+      // Fallback to rating
       return (b.park.rating || 0) - (a.park.rating || 0);
     });
 
+    // Count local parks for UI
+    const localCount = categorized.filter(p => p.isLocal).length;
+
     // Return parks with distance attached
-    return withDistance.map(({ park, distance }) => ({
-      ...park,
-      distance,
-    }));
+    return {
+      sortedFilteredParks: categorized.map(({ park, distance }) => ({
+        ...park,
+        distance,
+      })),
+      localParksCount: localCount,
+    };
   }, [allParks, activeFilters, userLocation]);
 
   // Paginated results
@@ -245,5 +258,6 @@ export function useNearbyParks(): UseNearbyParksReturn {
     showMore,
     hasMore: displayLimit < sortedFilteredParks.length,
     totalMatching: sortedFilteredParks.length,
+    localParksCount,
   };
 }
