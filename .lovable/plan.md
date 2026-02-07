@@ -1,108 +1,105 @@
 
 
-## Fix Parks List Proximity Sorting
+## Strict Proximity Sorting with 50-Mile Cutoff
 
-The list is showing parks 582 miles away first because of a logic flaw in how coordinate validation interacts with user location availability.
+The current logic is correct but limited by data quality: **692 of 715 parks (97%) have "NaN" coordinates**. This means only 23 parks can be sorted by GPS distance. The remaining parks fall back to rating-based sorting, which puts highly-rated distant parks above local parks without geodata.
 
 ---
 
-### Root Cause
+### Solution: Two-Tier Approach
 
-In `useNearbyParks.tsx` (lines 168-184), the sorting logic conflates two separate concepts:
+**Tier 1: GPS-Based (Parks with Valid Coordinates)**
+- Calculate distance using Haversine formula
+- Apply 50-mile cutoff (80,467 meters) - parks beyond this go to the "far" section
+- Sort strictly by distance (nearest first)
 
+**Tier 2: City/State Fallback (Parks with NaN Coordinates)**
+- Check if park's `city` or `state` matches user's reverse-geocoded location
+- Local matches appear above non-local parks
+- Sort by rating within each group
+
+---
+
+### Implementation
+
+**1. Add 50-Mile Cutoff Constant**
 ```typescript
-// CURRENT (BROKEN)
-if (!coords || !userLocation) {
-  return { park, distance: undefined, hasValidCoords: false };
-}
+const MAX_LOCAL_DISTANCE = 80467; // 50 miles in meters
 ```
 
-**The Problem**: When `userLocation` is `null`, **ALL parks** are marked as `hasValidCoords: false` - even parks that DO have valid coordinates. This causes:
-1. All parks get sorted by rating (not distance)
-2. Parks 582 miles away with high ratings appear above parks 2 miles away
-
----
-
-### Solution
-
-Separate coordinate validation from distance calculation:
-
+**2. Categorize Parks in useMemo**
 ```typescript
-// FIXED
 const sortedFilteredParks = useMemo(() => {
-  let filtered = allParks.filter(/* ... */);
+  // Filter by activeFilters first
+  let filtered = allParks.filter(/* existing filter logic */);
 
-  const withDistance = filtered.map(park => {
-    // Step 1: Check if park has valid coords (INDEPENDENT of userLocation)
+  // Categorize into local vs far
+  const categorized = filtered.map(park => {
     const coords = getValidCoords(park.latitude, park.longitude);
-    const hasCoords = coords !== null;
-    
-    // Step 2: Calculate distance ONLY if we have both coords and userLocation
-    let distance: number | undefined = undefined;
+    let distance: number | undefined;
+    let isLocal = false;
+
     if (coords && userLocation) {
       distance = calculateDistance(
-        userLocation.lat,
-        userLocation.lng,
-        coords.lat,
-        coords.lng
+        userLocation.lat, userLocation.lng,
+        coords.lat, coords.lng
       );
+      isLocal = distance <= MAX_LOCAL_DISTANCE;
     }
 
-    return { park, distance, hasValidCoords: hasCoords };
+    return { park, distance, hasCoords: coords !== null, isLocal };
   });
 
-  // Step 3: Sort with proper priority
-  withDistance.sort((a, b) => {
-    // Both have invalid coords -> sort by rating
-    if (!a.hasValidCoords && !b.hasValidCoords) {
-      return (b.park.rating || 0) - (a.park.rating || 0);
-    }
-    // Invalid coords go to bottom
-    if (!a.hasValidCoords) return 1;
-    if (!b.hasValidCoords) return -1;
+  // Sort: Local with distance -> Local without distance -> Far with distance -> Far without distance
+  categorized.sort((a, b) => {
+    // Local parks first
+    if (a.isLocal && !b.isLocal) return -1;
+    if (!a.isLocal && b.isLocal) return 1;
 
-    // Both have valid coords
+    // Within same locality tier, sort by distance if available
     if (a.distance !== undefined && b.distance !== undefined) {
-      // Both have distances -> sort by distance
       return a.distance - b.distance;
     }
-    // If no userLocation yet, parks with valid coords still appear first
-    // sorted by rating until distances are calculated
+
+    // Parks with coords before parks without
+    if (a.hasCoords && !b.hasCoords) return -1;
+    if (!a.hasCoords && b.hasCoords) return 1;
+
+    // Fallback to rating
     return (b.park.rating || 0) - (a.park.rating || 0);
   });
 
-  return withDistance.map(({ park, distance }) => ({
-    ...park,
-    distance,
-  }));
+  return categorized.map(({ park, distance }) => ({ ...park, distance }));
 }, [allParks, activeFilters, userLocation]);
 ```
 
----
-
-### Key Changes
-
-| Before | After |
-|--------|-------|
-| `hasValidCoords` depends on `userLocation` | `hasValidCoords` checked independently |
-| No userLocation = all parks equal | Parks with coords always ranked higher |
-| Sorts by rating when waiting for location | Groups valid-coord parks at top |
+**3. Update UI to Show "Local" vs "More Parks" Sections**
+- Add a visual separator in the list between local (within 50 miles) and distant parks
+- Show "X parks within 50 miles" badge
 
 ---
 
-### Expected Behavior After Fix
+### Files to Modify
 
-| State | Sort Order |
-|-------|------------|
-| Location loading | Parks with valid coords (sorted by rating) at top, NaN coords at bottom |
-| Location available | Parks with valid coords sorted by distance (nearest first), NaN at bottom |
-| Filter applied | Same logic, but on filtered subset |
+| File | Changes |
+|------|---------|
+| `src/hooks/useNearbyParks.tsx` | Add 50-mile cutoff, categorize parks, update sort logic |
+| `src/pages/Parks.tsx` | Add section headers for "Nearby" vs "More Parks" |
 
 ---
 
-### File to Modify
+### Expected Behavior
 
-| File | Change |
-|------|--------|
-| `src/hooks/useNearbyParks.tsx` | Separate `hasValidCoords` from `userLocation` check in `sortedFilteredParks` useMemo |
+| Scenario | Result |
+|----------|--------|
+| User in Montana | 3 parks with coords show first (sorted by distance), then 692 parks by rating |
+| User with filters | Same logic applied to filtered subset |
+| Park 582 mi away | Pushed to "More Parks" section at bottom |
+| Parks without coords | Appear after all distance-sorted parks, sorted by rating |
+
+---
+
+### Alternative: City/State Matching
+
+If you also want parks **without coordinates** to be prioritized when they match your city/state, I can add reverse geocoding to detect your city and boost matching parks. This would require an additional API call but would make the "fallback tier" smarter.
 
