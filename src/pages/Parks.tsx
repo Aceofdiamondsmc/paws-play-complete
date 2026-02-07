@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { MapPin, List, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Loader2, MapPinOff, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useParks } from '@/hooks/useParks';
 import { useNearbyParks } from '@/hooks/useNearbyParks';
 import { ParksMap } from '@/components/parks/ParksMap';
@@ -61,6 +62,7 @@ export default function Parks() {
     showMore,
     hasMore,
     totalMatching,
+    localParksCount,
   } = useNearbyParks();
 
   return (
@@ -121,10 +123,15 @@ export default function Parks() {
 
         {/* Results count */}
         {viewMode === 'list' && !loading && parks.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary" className="text-xs">
               Showing {parks.length} of {totalMatching} parks
             </Badge>
+            {userLocation && localParksCount > 0 && (
+              <Badge variant="default" className="text-xs bg-primary/90">
+                🐕 {localParksCount} within 50 miles
+              </Badge>
+            )}
             {userLocation && (
               <Badge variant="outline" className="text-xs">
                 📍 Sorted by distance
@@ -182,10 +189,37 @@ export default function Parks() {
               </>
             )}
 
-            {/* Parks */}
-            {parks.map(park => (
-              <ParkListItem key={park.id} park={park} />
-            ))}
+            {/* Nearby Parks Section */}
+            {userLocation && localParksCount > 0 && parks.length > 0 && !loading && (
+              <div className="flex items-center gap-2 pb-1">
+                <span className="text-sm font-semibold text-primary">Nearby</span>
+                <span className="text-xs text-muted-foreground">Within 50 miles</span>
+              </div>
+            )}
+
+            {/* Parks - render with separator between local and far */}
+            {parks.map((park, index) => {
+              // Check if this is the first "far" park (after local parks end)
+              const isFirstFarPark = userLocation && 
+                localParksCount > 0 && 
+                index === localParksCount && 
+                parks.length > localParksCount;
+
+              return (
+                <div key={park.id}>
+                  {isFirstFarPark && (
+                    <div className="py-4">
+                      <Separator className="mb-3" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-muted-foreground">More Parks</span>
+                        <span className="text-xs text-muted-foreground">Beyond 50 miles</span>
+                      </div>
+                    </div>
+                  )}
+                  <ParkListItem park={park} />
+                </div>
+              );
+            })}
 
             {/* Show More Button */}
             {hasMore && !loading && (
