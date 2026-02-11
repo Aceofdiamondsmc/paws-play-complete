@@ -167,7 +167,6 @@ export function formatDistanceMiles(meters: number | undefined): string {
  */
 export function openNavigation(lat: number, lng: number, parkName?: string): void {
   if (isIOS()) {
-    // For iOS, create a simple choice dialog
     const useAppleMaps = window.confirm(
       `Navigate to ${parkName || 'park'}?\n\nPress OK for Apple Maps\nPress Cancel for Google Maps`
     );
@@ -178,7 +177,15 @@ export function openNavigation(lat: number, lng: number, parkName?: string): voi
       window.open(getGoogleMapsUrl(lat, lng), '_blank');
     }
   } else {
-    // Android and Desktop - use Google Maps
     window.open(getGoogleMapsUrl(lat, lng), '_blank');
   }
+}
+
+/**
+ * Open navigation using an address string (for parks without valid coordinates)
+ * Opens Google Maps search with the address
+ */
+export function openNavigationByAddress(address: string, parkName?: string): void {
+  const query = encodeURIComponent(parkName ? `${parkName}, ${address}` : address);
+  window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
 }

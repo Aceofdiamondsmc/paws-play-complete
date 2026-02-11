@@ -24,22 +24,20 @@ interface UseNearbyParksReturn {
   showMore: () => void;
   hasMore: boolean;
   totalMatching: number;
-  localParksCount: number;
+  tier1Count: number;
+  tier2Count: number;
+  tier3Count: number;
+  dataReady: boolean;
 }
 
-/**
- * Simple hook for "Google Search"-like park discovery
- * - Immediate geolocation on mount
- * - Strict distance-based sorting
- * - Fast initial load (15 parks)
- * - Filter support with re-sorting
- */
 export function useNearbyParks(): UseNearbyParksReturn {
   const [allParks, setAllParks] = useState<Park[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationLoading, setLocationLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [userCity, setUserCity] = useState<string>('');
+  const [userState, setUserState] = useState<string>('');
   const [activeFilters, setActiveFilters] = useState<ParkFilter[]>([]);
   const [displayLimit, setDisplayLimit] = useState(INITIAL_LIMIT);
 
@@ -53,7 +51,6 @@ export function useNearbyParks(): UseNearbyParksReturn {
 
         if (error) throw error;
 
-        // Map database rows to Park type (without distance - calculated later)
         const mappedParks: Park[] = (data || []).map(row => ({
           id: String(row.Id),
           name: row.name,
@@ -117,10 +114,26 @@ export function useNearbyParks(): UseNearbyParksReturn {
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 60000, // Cache for 1 minute
+        maximumAge: 60000,
       }
     );
   }, []);
+
+  // Reverse geocode to get user's city/state
+  useEffect(() => {
+    if (!userLocation) return;
+
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${userLocation.lat}&lon=${userLocation.lng}&format=json`,
+      { headers: { 'Accept': 'application/json' } }
+    )
+      .then(r => r.json())
+      .then(data => {
+        setUserCity(data.address?.city || data.address?.town || data.address?.village || '');
+        setUserState(data.address?.state || '');
+      })
+      .catch(() => { /* silent fail */ });
+  }, [userLocation]);
 
   // Manual search trigger
   const searchNearMe = useCallback(() => {
@@ -134,7 +147,7 @@ export function useNearbyParks(): UseNearbyParksReturn {
           lng: position.coords.longitude,
         });
         setLocationLoading(false);
-        setDisplayLimit(INITIAL_LIMIT); // Reset to show fresh results
+        setDisplayLimit(INITIAL_LIMIT);
       },
       (error) => {
         setLocationError(error.message);
@@ -143,13 +156,18 @@ export function useNearbyParks(): UseNearbyParksReturn {
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 0, // Force fresh location
+        maximumAge: 0,
       }
     );
   }, []);
 
-  // Calculate distances and sort - Two-tier proximity sorting with 50-mile cutoff
-  const { sortedFilteredParks, localParksCount } = useMemo(() => {
+  // Data ready flag: both parks fetched AND location acquired
+  const dataReady = allParks.length > 0 && userLocation !== null;
+
+  // 3-Tier sort
+  const { tier1Parks, tier2Parks, tier3Parks } = useMemo(() => {
+    if (!dataReady) return { tier1Parks: [], tier2Parks: [], tier3Parks: [] };
+
     // Step 1: Filter by active filters
     let filtered = allParks.filter(park => {
       if (activeFilters.length === 0) return true;
@@ -167,65 +185,65 @@ export function useNearbyParks(): UseNearbyParksReturn {
       });
     });
 
-    // Step 2: Categorize parks into local vs far
-    const categorized = filtered.map(park => {
+    // Step 2: Categorize into tiers
+    const t1: { park: Park; distance: number }[] = [];
+    const t2: { park: Park; distance?: number }[] = [];
+    const t3: { park: Park; distance?: number }[] = [];
+
+    for (const park of filtered) {
       const coords = getValidCoords(park.latitude, park.longitude);
-      const hasCoords = coords !== null;
-      
-      let distance: number | undefined = undefined;
-      let isLocal = false;
+      let distance: number | undefined;
+      let tier = 3;
 
       if (coords && userLocation) {
         distance = calculateDistance(
-          userLocation.lat,
-          userLocation.lng,
-          coords.lat,
-          coords.lng
+          userLocation.lat, userLocation.lng,
+          coords.lat, coords.lng
         );
-        isLocal = distance <= MAX_LOCAL_DISTANCE;
+        if (distance <= MAX_LOCAL_DISTANCE) {
+          tier = 1;
+        }
       }
 
-      return { park, distance, hasCoords, isLocal };
-    });
-
-    // Step 3: Sort with two-tier priority
-    // Tier 1: Local parks (within 50 miles) sorted by distance
-    // Tier 2: Far parks sorted by distance, then parks without coords by rating
-    categorized.sort((a, b) => {
-      // Local parks always come first
-      if (a.isLocal && !b.isLocal) return -1;
-      if (!a.isLocal && b.isLocal) return 1;
-
-      // Within same locality tier, sort by distance if available
-      if (a.distance !== undefined && b.distance !== undefined) {
-        return a.distance - b.distance;
+      // City/state matching for parks not in tier 1
+      if (tier === 3 && (userCity || userState)) {
+        const cityMatch = userCity && park.city?.toLowerCase() === userCity.toLowerCase();
+        const stateMatch = userState && park.state?.toLowerCase() === userState.toLowerCase();
+        if (cityMatch || stateMatch) tier = 2;
       }
 
-      // Parks with coords before parks without coords
-      if (a.hasCoords && !b.hasCoords) return -1;
-      if (!a.hasCoords && b.hasCoords) return 1;
+      if (tier === 1) {
+        t1.push({ park, distance: distance! });
+      } else if (tier === 2) {
+        t2.push({ park, distance });
+      } else {
+        t3.push({ park, distance });
+      }
+    }
 
-      // Fallback to rating
-      return (b.park.rating || 0) - (a.park.rating || 0);
-    });
+    // Sort each tier
+    t1.sort((a, b) => a.distance - b.distance);
+    t2.sort((a, b) => (b.park.rating || 0) - (a.park.rating || 0));
+    t3.sort((a, b) => (a.distance !== undefined && b.distance !== undefined)
+      ? a.distance - b.distance
+      : (b.park.rating || 0) - (a.park.rating || 0)
+    );
 
-    // Count local parks for UI
-    const localCount = categorized.filter(p => p.isLocal).length;
-
-    // Return parks with distance attached
     return {
-      sortedFilteredParks: categorized.map(({ park, distance }) => ({
-        ...park,
-        distance,
-      })),
-      localParksCount: localCount,
+      tier1Parks: t1.map(({ park, distance }) => ({ ...park, distance })),
+      tier2Parks: t2.map(({ park, distance }) => ({ ...park, distance })),
+      tier3Parks: t3.map(({ park, distance }) => ({ ...park, distance })),
     };
-  }, [allParks, activeFilters, userLocation]);
+  }, [allParks, activeFilters, userLocation, userCity, userState, dataReady]);
 
-  // Paginated results
+  // Tiers 1 and 2 always fully shown; displayLimit only applies to tier 3
   const displayedParks = useMemo(() => {
-    return sortedFilteredParks.slice(0, displayLimit);
-  }, [sortedFilteredParks, displayLimit]);
+    return [
+      ...tier1Parks,
+      ...tier2Parks,
+      ...tier3Parks.slice(0, displayLimit),
+    ];
+  }, [tier1Parks, tier2Parks, tier3Parks, displayLimit]);
 
   const toggleFilter = useCallback((filter: ParkFilter) => {
     setActiveFilters(prev =>
@@ -233,7 +251,7 @@ export function useNearbyParks(): UseNearbyParksReturn {
         ? prev.filter(f => f !== filter)
         : [...prev, filter]
     );
-    setDisplayLimit(INITIAL_LIMIT); // Reset pagination on filter change
+    setDisplayLimit(INITIAL_LIMIT);
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -256,8 +274,11 @@ export function useNearbyParks(): UseNearbyParksReturn {
     clearFilters,
     searchNearMe,
     showMore,
-    hasMore: displayLimit < sortedFilteredParks.length,
-    totalMatching: sortedFilteredParks.length,
-    localParksCount,
+    hasMore: displayLimit < tier3Parks.length,
+    totalMatching: tier1Parks.length + tier2Parks.length + tier3Parks.length,
+    tier1Count: tier1Parks.length,
+    tier2Count: tier2Parks.length,
+    tier3Count: tier3Parks.length,
+    dataReady,
   };
 }

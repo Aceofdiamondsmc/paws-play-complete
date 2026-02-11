@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { MapPin, List, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Loader2, MapPinOff, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +25,6 @@ const iconMap: Record<string, React.ElementType> = {
   Fence, Droplets, Dog, TreePine, Car, Dumbbell
 };
 
-// Skeleton for list items
 function ListItemSkeleton() {
   return (
     <div className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border">
@@ -46,10 +45,8 @@ function ListItemSkeleton() {
 export default function Parks() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
   
-  // Map view uses the full parks hook
   const mapHook = useParks();
   
-  // List view uses the new simplified nearby hook
   const {
     parks,
     loading,
@@ -62,7 +59,10 @@ export default function Parks() {
     showMore,
     hasMore,
     totalMatching,
-    localParksCount,
+    tier1Count,
+    tier2Count,
+    tier3Count,
+    dataReady,
   } = useNearbyParks();
 
   return (
@@ -96,8 +96,8 @@ export default function Parks() {
           </div>
         </div>
 
-        {/* Filter Pills - only show for list view */}
-        {viewMode === 'list' && (
+        {/* Filter Pills - only show for list view when data is ready */}
+        {viewMode === 'list' && dataReady && (
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {filterOptions.map(filter => {
               const Icon = iconMap[filter.icon];
@@ -121,20 +121,22 @@ export default function Parks() {
           </div>
         )}
 
-        {/* Results count */}
-        {viewMode === 'list' && !loading && parks.length > 0 && (
+        {/* Results count - only when data is ready */}
+        {viewMode === 'list' && dataReady && parks.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary" className="text-xs">
-              Showing {parks.length} of {totalMatching} parks
-            </Badge>
-            {userLocation && localParksCount > 0 && (
+            {tier1Count > 0 && (
               <Badge variant="default" className="text-xs bg-primary/90">
-                🐕 {localParksCount} within 50 miles
+                🐕 {tier1Count} within 50 miles
               </Badge>
             )}
-            {userLocation && (
+            {tier2Count > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                📍 {tier2Count} in your area
+              </Badge>
+            )}
+            {tier3Count > 0 && (
               <Badge variant="outline" className="text-xs">
-                📍 Sorted by distance
+                {tier3Count} more parks
               </Badge>
             )}
           </div>
@@ -148,106 +150,108 @@ export default function Parks() {
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          {/* Search Near Me Button - prominent when no location */}
-          {!userLocation && !locationLoading && (
+          {/* Location Loading / Detecting spinner - BLOCKS park rendering */}
+          {(locationLoading || (loading && !dataReady)) && (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+              <PawPrint className="w-12 h-12 text-primary animate-bounce mb-4" />
+              <Loader2 className="w-6 h-6 animate-spin mb-2" />
+              <span className="text-base font-medium">Detecting Location...</span>
+              <span className="text-sm mt-1">Finding dog parks near you</span>
+            </div>
+          )}
+
+          {/* Location Error - show retry */}
+          {locationError && !userLocation && !locationLoading && (
             <div className="p-4 pb-2">
-              <Button
-                onClick={searchNearMe}
-                size="lg"
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl h-14 text-base font-semibold shadow-lg"
-              >
-                <Search className="w-5 h-5 mr-2" />
-                Search Dog Parks Near Me
-              </Button>
-              {locationError && (
-                <p className="text-sm text-destructive mt-2 text-center flex items-center justify-center gap-1">
-                  <MapPinOff className="w-4 h-4" />
-                  {locationError}
+              <div className="text-center py-8">
+                <MapPinOff className="w-10 h-10 text-destructive mx-auto mb-3" />
+                <p className="text-sm text-destructive mb-4">{locationError}</p>
+                <Button
+                  onClick={searchNearMe}
+                  size="lg"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl h-14 text-base font-semibold shadow-lg"
+                >
+                  <Search className="w-5 h-5 mr-2" />
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Parks List - only when dataReady */}
+          {dataReady && !locationLoading && (
+            <div className="p-4 space-y-2">
+              {/* Loading skeletons while parks still fetching */}
+              {loading && parks.length === 0 && (
+                <>
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <ListItemSkeleton key={i} />
+                  ))}
+                </>
+              )}
+
+              {/* Tier 1+2 section header */}
+              {(tier1Count > 0 || tier2Count > 0) && parks.length > 0 && (
+                <div className="flex items-center gap-2 pb-1">
+                  <span className="text-sm font-semibold text-primary">Nearby</span>
+                  <span className="text-xs text-muted-foreground">
+                    {tier1Count > 0 && tier2Count > 0
+                      ? `${tier1Count} by distance · ${tier2Count} in your area`
+                      : tier1Count > 0
+                        ? 'Within 50 miles'
+                        : 'In your area'}
+                  </span>
+                </div>
+              )}
+
+              {/* Render parks with separator between nearby and "more" */}
+              {parks.map((park, index) => {
+                const isFirstTier3 = index === tier1Count + tier2Count && tier3Count > 0 && (tier1Count > 0 || tier2Count > 0);
+
+                return (
+                  <div key={park.id}>
+                    {isFirstTier3 && (
+                      <div className="py-4">
+                        <Separator className="mb-3" />
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-muted-foreground">More Parks</span>
+                          <span className="text-xs text-muted-foreground">Beyond your area</span>
+                        </div>
+                      </div>
+                    )}
+                    <ParkListItem park={park} />
+                  </div>
+                );
+              })}
+
+              {/* Show More Button - for tier 3 */}
+              {hasMore && !loading && (
+                <Button
+                  variant="outline"
+                  onClick={showMore}
+                  className="w-full mt-4 rounded-xl"
+                >
+                  Show More Parks
+                </Button>
+              )}
+
+              {/* Empty State */}
+              {!loading && parks.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Dog className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p className="font-medium">No parks found matching your filters</p>
+                  <p className="text-sm mt-1">Try removing some filters to see more parks</p>
+                </div>
+              )}
+
+              {/* End of list */}
+              {!hasMore && parks.length > 0 && !loading && (
+                <p className="text-center text-sm text-muted-foreground py-4">
+                  You've seen all {parks.length} matching parks! 🐕
                 </p>
               )}
             </div>
           )}
-
-          {/* Location Loading State */}
-          {locationLoading && (
-            <div className="p-4">
-              <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Finding your location...</span>
-              </div>
-            </div>
-          )}
-
-          {/* Parks List */}
-          <div className="p-4 space-y-2">
-            {/* Loading skeletons */}
-            {loading && parks.length === 0 && (
-              <>
-                {[1, 2, 3, 4, 5].map(i => (
-                  <ListItemSkeleton key={i} />
-                ))}
-              </>
-            )}
-
-            {/* Nearby Parks Section */}
-            {userLocation && localParksCount > 0 && parks.length > 0 && !loading && (
-              <div className="flex items-center gap-2 pb-1">
-                <span className="text-sm font-semibold text-primary">Nearby</span>
-                <span className="text-xs text-muted-foreground">Within 50 miles</span>
-              </div>
-            )}
-
-            {/* Parks - render with separator between local and far */}
-            {parks.map((park, index) => {
-              // Check if this is the first "far" park (after local parks end)
-              const isFirstFarPark = userLocation && 
-                localParksCount > 0 && 
-                index === localParksCount && 
-                parks.length > localParksCount;
-
-              return (
-                <div key={park.id}>
-                  {isFirstFarPark && (
-                    <div className="py-4">
-                      <Separator className="mb-3" />
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-muted-foreground">More Parks</span>
-                        <span className="text-xs text-muted-foreground">Beyond 50 miles</span>
-                      </div>
-                    </div>
-                  )}
-                  <ParkListItem park={park} />
-                </div>
-              );
-            })}
-
-            {/* Show More Button */}
-            {hasMore && !loading && (
-              <Button
-                variant="outline"
-                onClick={showMore}
-                className="w-full mt-4 rounded-xl"
-              >
-                Show More Parks
-              </Button>
-            )}
-
-            {/* Empty State */}
-            {!loading && !locationLoading && parks.length === 0 && userLocation && (
-              <div className="text-center py-12 text-muted-foreground">
-                <Dog className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="font-medium">No parks found matching your filters</p>
-                <p className="text-sm mt-1">Try removing some filters to see more parks</p>
-              </div>
-            )}
-
-            {/* End of list */}
-            {!hasMore && parks.length > 0 && !loading && (
-              <p className="text-center text-sm text-muted-foreground py-4">
-                You've seen all {parks.length} matching parks! 🐕
-              </p>
-            )}
-          </div>
         </div>
       )}
     </div>
