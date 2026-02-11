@@ -63,6 +63,8 @@ export default function Parks() {
     tier2Count,
     tier3Count,
     dataReady,
+    detectedCity,
+    detectedState,
   } = useNearbyParks();
 
   return (
@@ -157,6 +159,11 @@ export default function Parks() {
               <Loader2 className="w-6 h-6 animate-spin mb-2" />
               <span className="text-base font-medium">Detecting Location...</span>
               <span className="text-sm mt-1">Finding dog parks near you</span>
+              {(detectedCity || detectedState) && (
+                <span className="text-xs text-primary mt-2 font-mono bg-primary/10 px-2 py-1 rounded">
+                  Detected: {[detectedCity, detectedState].filter(Boolean).join(', ') || 'Waiting...'}
+                </span>
+              )}
             </div>
           )}
 
