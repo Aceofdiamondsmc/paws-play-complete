@@ -1,9 +1,9 @@
 import { memo, useState } from 'react';
-import { Star, Navigation, PawPrint, Fence, Droplets } from 'lucide-react';
+import { Star, Navigation, PawPrint, Fence, Droplets, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDistanceMiles, openNavigation, getValidCoords } from '@/lib/navigation-utils';
+import { formatDistanceMiles, openNavigation, getValidCoords, openNavigationByAddress } from '@/lib/navigation-utils';
 import { cn } from '@/lib/utils';
 import type { Park } from '@/types';
 
@@ -11,22 +11,23 @@ interface ParkListItemProps {
   park: Park;
 }
 
-/**
- * Simplified park list item for fast rendering
- * Shows: Image, Name, Distance, Rating, Navigate button
- */
 export const ParkListItem = memo(function ParkListItem({ park }: ParkListItemProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
   const coords = getValidCoords(park.latitude, park.longitude);
-  const imageUrl = park.image_url || `https://loremflickr.com/200/200/dog,park/all?lock=${park.id}`;
+  const imageUrl = park.image_url || `https://loremflickr.com/300/200/dog,park/all?lock=${park.id}`;
 
   const handleNavigate = () => {
     if (coords) {
       openNavigation(coords.lat, coords.lng, park.name || 'Dog Park');
+    } else if (park.address) {
+      const fullAddress = [park.address, park.city, park.state].filter(Boolean).join(', ');
+      openNavigationByAddress(fullAddress, park.name || 'Dog Park');
     }
   };
+
+  const hasNavigationTarget = coords || park.address;
 
   return (
     <div className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-colors">
@@ -62,10 +63,18 @@ export const ParkListItem = memo(function ParkListItem({ park }: ParkListItemPro
         <h3 className="font-semibold text-base truncate">{park.name || 'Dog Park'}</h3>
         
         <div className="flex items-center gap-2 mt-0.5">
-          {/* Distance - Most important */}
+          {/* Distance */}
           {park.distance !== undefined && (
             <span className="text-sm font-medium text-primary">
               📍 {formatDistanceMiles(park.distance)}
+            </span>
+          )}
+
+          {/* City/State fallback when no distance */}
+          {park.distance === undefined && (park.city || park.state) && (
+            <span className="flex items-center gap-0.5 text-sm text-muted-foreground">
+              <MapPin className="w-3 h-3" />
+              {[park.city, park.state].filter(Boolean).join(', ')}
             </span>
           )}
           
@@ -95,8 +104,8 @@ export const ParkListItem = memo(function ParkListItem({ park }: ParkListItemPro
         </div>
       </div>
 
-      {/* Navigate Button */}
-      {coords && (
+      {/* Navigate Button - works with coords OR address */}
+      {hasNavigationTarget && (
         <Button
           size="sm"
           onClick={handleNavigate}
