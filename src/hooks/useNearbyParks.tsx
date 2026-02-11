@@ -3,6 +3,27 @@ import { supabase } from '@/integrations/supabase/client';
 import { calculateDistance, hasValidCoords, getValidCoords } from '@/lib/navigation-utils';
 import type { Park, ParkFilter } from '@/types';
 
+const US_STATE_ABBREV: Record<string, string> = {
+  'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA',
+  'colorado':'CO','connecticut':'CT','delaware':'DE','florida':'FL','georgia':'GA',
+  'hawaii':'HI','idaho':'ID','illinois':'IL','indiana':'IN','iowa':'IA','kansas':'KS',
+  'kentucky':'KY','louisiana':'LA','maine':'ME','maryland':'MD','massachusetts':'MA',
+  'michigan':'MI','minnesota':'MN','mississippi':'MS','missouri':'MO','montana':'MT',
+  'nebraska':'NE','nevada':'NV','new hampshire':'NH','new jersey':'NJ','new mexico':'NM',
+  'new york':'NY','north carolina':'NC','north dakota':'ND','ohio':'OH','oklahoma':'OK',
+  'oregon':'OR','pennsylvania':'PA','rhode island':'RI','south carolina':'SC',
+  'south dakota':'SD','tennessee':'TN','texas':'TX','utah':'UT','vermont':'VT',
+  'virginia':'VA','washington':'WA','west virginia':'WV','wisconsin':'WI','wyoming':'WY',
+  'district of columbia':'DC',
+};
+
+function normalizeState(raw: string): string {
+  const lower = raw.trim().toLowerCase();
+  // Already a 2-letter abbreviation?
+  if (lower.length === 2) return lower.toUpperCase();
+  return US_STATE_ABBREV[lower] || raw;
+}
+
 const INITIAL_LIMIT = 15;
 const MAX_LOCAL_DISTANCE = 80467; // 50 miles in meters
 
@@ -28,6 +49,8 @@ interface UseNearbyParksReturn {
   tier2Count: number;
   tier3Count: number;
   dataReady: boolean;
+  detectedCity: string;
+  detectedState: string;
 }
 
 export function useNearbyParks(): UseNearbyParksReturn {
@@ -130,7 +153,8 @@ export function useNearbyParks(): UseNearbyParksReturn {
       .then(r => r.json())
       .then(data => {
         setUserCity(data.address?.city || data.address?.town || data.address?.village || '');
-        setUserState(data.address?.state || '');
+        const rawState = data.address?.state || '';
+        setUserState(rawState ? normalizeState(rawState) : '');
       })
       .catch(() => { /* silent fail */ });
   }, [userLocation]);
@@ -280,5 +304,7 @@ export function useNearbyParks(): UseNearbyParksReturn {
     tier2Count: tier2Parks.length,
     tier3Count: tier3Parks.length,
     dataReady,
+    detectedCity: userCity,
+    detectedState: userState,
   };
 }

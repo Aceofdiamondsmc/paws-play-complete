@@ -21,13 +21,14 @@ export const ParkListItem = memo(function ParkListItem({ park }: ParkListItemPro
   const handleNavigate = () => {
     if (coords) {
       openNavigation(coords.lat, coords.lng, park.name || 'Dog Park');
-    } else if (park.address) {
-      const fullAddress = [park.address, park.city, park.state].filter(Boolean).join(', ');
-      openNavigationByAddress(fullAddress, park.name || 'Dog Park');
+    } else {
+      // Use park name + city + state for Google Maps search
+      const query = [park.name, park.city, park.state].filter(Boolean).join(' ');
+      openNavigationByAddress(query);
     }
   };
 
-  const hasNavigationTarget = coords || park.address;
+  const hasNavigationTarget = coords || park.name || park.address;
 
   return (
     <div className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-colors">
