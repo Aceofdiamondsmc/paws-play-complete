@@ -9,6 +9,7 @@ interface PostWithDetails extends Post {
   likesCount: number;
   commentsCount: number;
   isLiked: boolean;
+  dogName?: string | null;
 }
 
 interface Comment {
@@ -60,6 +61,22 @@ export function usePosts() {
       const profileMap = new Map<string, Profile>();
       profiles?.forEach((p: any) => profileMap.set(p.id, p as Profile));
 
+      // Fetch dogs for all authors to get real dog names
+      const { data: dogs } = await supabase
+        .from('dogs')
+        .select('id, owner_id, name')
+        .in('owner_id', Array.from(authorIds));
+
+      // Map dog_id -> dog name, and owner_id -> first dog name
+      const dogByIdMap = new Map<string, string>();
+      const dogByOwnerMap = new Map<string, string>();
+      dogs?.forEach((d: any) => {
+        dogByIdMap.set(d.id, d.name);
+        if (!dogByOwnerMap.has(d.owner_id)) {
+          dogByOwnerMap.set(d.owner_id, d.name);
+        }
+      });
+
       // Get likes and comments count for each post
       const enrichedPosts = await Promise.all(
         (postsData || []).map(async (p: Post) => {
@@ -92,7 +109,8 @@ export function usePosts() {
             author: profileMap.get(p.author_id),
             likesCount: likesCount || 0,
             commentsCount: commentsCount || 0,
-            isLiked
+            isLiked,
+            dogName: p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id) || null,
           };
         })
       );
