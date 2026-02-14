@@ -368,27 +368,31 @@ export default function Social() {
                       <span>{post.commentsCount || 0}</span>
                     </button>
                     
-                    <button
-                      onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
-                      className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
-                      aria-label={post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}
-                    >
-                      <PawPrint className="w-5 h-5" />
-                      <span className="hidden sm:inline">
-                        {post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}
-                      </span>
-                    </button>
-                    
                     <button 
                       onClick={() => handleShare(
                         post.id, 
                         post.content || '', 
                         post.author?.display_name || post.author?.username || 'Someone'
                       )}
-                      className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors ml-auto"
+                      className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
                       aria-label="Share post"
                     >
                       <Share2 className="w-5 h-5" />
+                    </button>
+
+                    <button
+                      onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold",
+                        "bg-gradient-to-r from-primary via-primary to-accent text-white",
+                        "shadow-sm hover:shadow-md hover:scale-105 active:scale-95",
+                        "transition-all duration-200 meet-button-shimmer",
+                        "ml-auto"
+                      )}
+                      aria-label={post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}
+                    >
+                      <PawPrint className="w-3.5 h-3.5" />
+                      <span>{post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}</span>
                     </button>
                   </div>
                 </div>
