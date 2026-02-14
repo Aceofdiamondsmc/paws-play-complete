@@ -17,6 +17,14 @@ const US_STATE_ABBREV: Record<string, string> = {
   'district of columbia':'DC',
 };
 
+const REGIONAL_STATES: Record<string, string[]> = {
+  'NV': ['AZ', 'UT', 'CA', 'ID', 'OR'],
+  'CA': ['NV', 'AZ', 'OR'],
+  'AZ': ['NV', 'CA', 'UT', 'NM', 'CO'],
+  'UT': ['NV', 'AZ', 'ID', 'CO', 'WY'],
+  'OR': ['NV', 'CA', 'WA', 'ID'],
+};
+
 function normalizeState(raw: string): string {
   const lower = raw.trim().toLowerCase();
   // Already a 2-letter abbreviation?
@@ -232,8 +240,11 @@ export function useNearbyParks(): UseNearbyParksReturn {
       // City/state matching for parks not in tier 1
       if (tier === 3 && (userCity || userState)) {
         const cityMatch = userCity && park.city?.toLowerCase() === userCity.toLowerCase();
-        const stateMatch = userState && park.state?.toLowerCase() === userState.toLowerCase();
-        if (cityMatch || stateMatch) tier = 2;
+        const parkStateUpper = park.state?.toUpperCase() || '';
+        const stateMatch = userState && parkStateUpper === userState;
+        const regionalStates = REGIONAL_STATES[userState] || [];
+        const regionalMatch = parkStateUpper && regionalStates.includes(parkStateUpper);
+        if (cityMatch || stateMatch || regionalMatch) tier = 2;
       }
 
       if (tier === 1) {
