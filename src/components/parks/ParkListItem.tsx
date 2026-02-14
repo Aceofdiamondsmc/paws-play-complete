@@ -9,9 +9,10 @@ import type { Park } from '@/types';
 
 interface ParkListItemProps {
   park: Park;
+  isLocalFavorite?: boolean;
 }
 
-export const ParkListItem = memo(function ParkListItem({ park }: ParkListItemProps) {
+export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite }: ParkListItemProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -89,7 +90,12 @@ export const ParkListItem = memo(function ParkListItem({ park }: ParkListItemPro
         </div>
 
         {/* Quick feature badges */}
-        <div className="flex gap-1 mt-1.5">
+        <div className="flex gap-1 mt-1.5 flex-wrap">
+          {isLocalFavorite && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-green-500/20 text-green-700 border-green-500/30">
+              ⭐ Local Favorite
+            </Badge>
+          )}
           {park.is_fully_fenced && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-accent text-accent-foreground">
               <Fence className="w-2.5 h-2.5 mr-0.5" />

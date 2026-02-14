@@ -200,13 +200,15 @@ export default function Parks() {
               {/* Tier 1+2 section header */}
               {(tier1Count > 0 || tier2Count > 0) && parks.length > 0 && (
                 <div className="flex items-center gap-2 pb-1">
-                  <span className="text-sm font-semibold text-primary">Nearby</span>
+                  <span className="text-sm font-semibold text-primary">
+                    {detectedState ? `Parks Near ${detectedState}` : 'Nearby'}
+                  </span>
                   <span className="text-xs text-muted-foreground">
                     {tier1Count > 0 && tier2Count > 0
-                      ? `${tier1Count} by distance · ${tier2Count} in your area`
+                      ? `${tier1Count} by distance · ${tier2Count} in your region`
                       : tier1Count > 0
                         ? 'Within 50 miles'
-                        : 'In your area'}
+                        : 'In your region'}
                   </span>
                 </div>
               )}
@@ -214,6 +216,7 @@ export default function Parks() {
               {/* Render parks with separator between nearby and "more" */}
               {parks.map((park, index) => {
                 const isFirstTier3 = index === tier1Count + tier2Count && tier3Count > 0 && (tier1Count > 0 || tier2Count > 0);
+                const isLocalFavorite = index < tier1Count + tier2Count;
 
                 return (
                   <div key={park.id}>
@@ -226,7 +229,7 @@ export default function Parks() {
                         </div>
                       </div>
                     )}
-                    <ParkListItem park={park} />
+                    <ParkListItem park={park} isLocalFavorite={isLocalFavorite} />
                   </div>
                 );
               })}
