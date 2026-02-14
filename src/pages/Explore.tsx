@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Compass, Search, Dog, Scissors, Stethoscope, Home, MapPin, List, Map as MapIcon, BadgeCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,8 +26,33 @@ export default function Explore() {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [isLocating, setIsLocating] = useState(false);
-  const [nearMeMode, setNearMeMode] = useState(false);
+  const [isLocating, setIsLocating] = useState(true);
+  const [nearMeMode, setNearMeMode] = useState(true);
+
+  // Auto-locate on page load
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setNearMeMode(false);
+      setIsLocating(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setIsLocating(false);
+        toast.success("Showing services near you!");
+      },
+      () => {
+        setNearMeMode(false);
+        setIsLocating(false);
+        toast.error("Could not get your location. Showing all services.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
 
   const { data: services, isLoading } = useServices(selectedCategory);
   const { data: nearbyServices, isLoading: nearbyLoading } = useNearbyServices(

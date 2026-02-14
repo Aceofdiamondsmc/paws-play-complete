@@ -29,11 +29,11 @@ const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 // Fallback images by category from Unsplash
 const FALLBACK_IMAGES: Record<string, string> = {
-  'Dog Walkers': 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop',
-  'Daycare': 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&h=300&fit=crop',
-  'Vet Clinics': 'https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?w=400&h=300&fit=crop',
-  'Trainers': 'https://images.unsplash.com/photo-1558929996-da64ba858215?w=400&h=300&fit=crop',
-  'Groomers': 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=400&h=300&fit=crop',
+  'Dog Walkers': 'https://placedog.net/600/400?id=walk',
+  'Daycare': 'https://placedog.net/600/400?id=service',
+  'Vet Clinics': 'https://placedog.net/600/400?id=service',
+  'Trainers': 'https://placedog.net/600/400?id=train',
+  'Groomers': 'https://placedog.net/600/400?id=groom',
 };
 
 // Check if a URL is likely broken or generic
@@ -73,7 +73,7 @@ export function getServiceImage(service: Service): string {
   }
   
   // Fallback: category-based stock photos
-  return FALLBACK_IMAGES[service.category] || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop';
+  return FALLBACK_IMAGES[service.category] || 'https://placedog.net/600/400?id=service';
 }
 
 export function useServices(category?: string | null) {
