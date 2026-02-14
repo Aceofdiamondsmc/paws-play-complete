@@ -1,27 +1,49 @@
 
 
-## Instagram-Style Social Feed Polish
+## Display Dog Name on "Meet" Button
+
+### Overview
+
+Update the "Meet" button on each social post to show "MEET ACE" (or whatever the pup's name is) instead of just "Meet". The `pup_name` field exists in the `posts` database table but isn't currently included in the app's type definitions or data fetching.
+
+---
 
 ### Changes
 
-**`src/pages/Social.tsx`** -- 3 targeted updates:
+**1. `src/types/index.ts` -- Add `pup_name` to the Post type**
 
-1. **Square Post Images**: Replace the current `max-h-80` image styling with a 1:1 aspect ratio container using the existing `AspectRatio` component from `@radix-ui/react-aspect-ratio`. Both `post.imageUrl` and `post.image_url` renders (lines 335-353) will be wrapped in `<AspectRatio ratio={1}>` with `object-cover w-full h-full rounded-xl`.
+Add `pup_name: string | null;` to the `Post` interface so TypeScript recognizes the field.
 
-2. **Like Button**: The heart already turns red (`text-destructive`) and fills (`fill-current`) when liked -- this is working correctly. No changes needed here.
+**2. `src/hooks/usePosts.tsx` -- Already fetching `*`, no query change needed**
 
-3. **Empty State**: Update the empty state message (lines 406-414) from "No posts yet / Be the first to share with the pack!" to a friendlier:
-   - Icon: PawPrint instead of MessageCircle
-   - Title: "The Pack is gathering..."
-   - Subtitle: "Be the first to post! Share your pup's latest adventure."
+The hook uses `select('*')` which already returns `pup_name` from the database. No changes needed here -- TypeScript will recognize it once the type is updated.
 
-### Technical Details
+**3. `src/pages/Social.tsx` -- Update the Meet button label**
 
-| Area | Current | Updated |
-|------|---------|---------|
-| Post images | `max-h-80 object-cover` | `AspectRatio ratio={1}` with `object-cover w-full h-full` |
-| Empty state icon | `MessageCircle` | `PawPrint` |
-| Empty state text | "No posts yet" | "The Pack is gathering..." |
-| Like button | Already red + filled when liked | No change needed |
+Change the PawPrint "Meet" button (around line 375) from:
 
-Only one file modified: `src/pages/Social.tsx`.
+```
+<span className="hidden sm:inline">Meet</span>
+```
+
+To:
+
+```
+<span className="hidden sm:inline">
+  {post.pup_name ? `MEET ${post.pup_name.toUpperCase()}` : 'MEET'}
+</span>
+```
+
+Also update the `aria-label` to include the pup name when available.
+
+---
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/types/index.ts` | Add `pup_name: string \| null` to `Post` interface |
+| `src/pages/Social.tsx` | Update Meet button to show `MEET [PUP_NAME]` |
+
+No database or hook changes required -- `select('*')` already returns `pup_name`.
+
