@@ -375,7 +375,7 @@ export default function Social() {
                     >
                       <PawPrint className="w-5 h-5" />
                       <span className="hidden sm:inline">
-                        {post.dogName ? `MEET ${post.dogName.toUpperCase()}` : 'MEET'}
+                        {post.dogName ? `Meet ${post.dogName}` : 'Meet'}
                       </span>
                     </button>
                     
