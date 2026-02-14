@@ -1,38 +1,76 @@
 
 
-## Use `pup_name` from Posts Table for Meet Button
+## Make the "Meet [Pup Name]" Button Fancy and Eye-Catching
 
 ### Overview
 
-You've manually populated a `pup_name` column on the `posts` table. The current code ignores that field and instead looks up names from the `dogs` table. This plan updates the logic to prioritize `pup_name` directly from each post, with proper fallbacks.
+Transform the plain text "Meet" button into an animated, pill-shaped mini badge that draws attention and delights users -- fitting the playful pet social network aesthetic.
+
+---
+
+### Design Concept
+
+The "Meet [Name]" action becomes a **gradient pill button** with a paw print icon, subtle shimmer animation, and a bounce-on-hover effect. It will feel like a mini call-to-action that stands out from the other post actions (like, comment, share).
+
+**Visual details:**
+- Warm coral-to-teal gradient background (matches the app's primary/accent palette)
+- White text with the paw icon inside the pill
+- A subtle **shimmer sweep** animation that plays once on load (like a glint of light)
+- On hover: slight scale-up + glow shadow
+- On tap: satisfying bounce-down effect
+- Always visible (remove the `hidden sm:inline` so it shows on mobile too)
+- Rounded-full pill shape to differentiate it from the flat icon buttons
 
 ---
 
 ### Changes
 
-**1. `src/hooks/usePosts.tsx` -- Prioritize `pup_name` over dog table lookup**
+**1. `src/index.css` -- Add shimmer + glow keyframes**
 
-Update line 113 to use `pup_name` first:
+Add a shimmer sweep animation and a paw-glow utility:
 
-```typescript
-dogName: p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id)) || null,
+```css
+@keyframes shimmer-sweep {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.meet-button-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer-sweep 2s ease-in-out 0.5s 1;
+}
 ```
 
-This means: use the manually set `pup_name` if it exists, otherwise fall back to the dogs table lookup.
+**2. `src/pages/Social.tsx` -- Redesign the Meet button**
 
-**2. `src/pages/Social.tsx` -- Update fallback text**
+Replace the current plain text button with a gradient pill:
 
-Change the Meet button fallback (line 378) from `'Meet'` to `'Meet a Friend'`:
-
-```typescript
-{post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}
+```tsx
+<button
+  onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
+  className={cn(
+    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold",
+    "bg-gradient-to-r from-primary via-primary to-accent text-white",
+    "shadow-sm hover:shadow-md hover:scale-105 active:scale-95",
+    "transition-all duration-200 meet-button-shimmer",
+    "ml-auto"
+  )}
+  aria-label={post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}
+>
+  <PawPrint className="w-3.5 h-3.5" />
+  <span>{post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}</span>
+</button>
 ```
 
-Also update the `aria-label` fallback (line 374) to match:
+This also moves it to `ml-auto` so it sits at the right end of the action bar, swapping position with the Share button (which becomes inline with like/comment).
 
-```typescript
-aria-label={post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}
-```
+**3. Move the Share button left, Meet button right**
+
+Reorder the action buttons so the layout is:
+- Left side: Like, Comment, Share (utility actions)
+- Right side: Meet pill (primary CTA, stands out)
+
+This makes the Meet button the visual anchor of each post card.
 
 ---
 
@@ -40,8 +78,11 @@ aria-label={post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}
 
 | File | Change |
 |------|--------|
-| `src/hooks/usePosts.tsx` | Prioritize `p.pup_name` in dogName enrichment |
-| `src/pages/Social.tsx` | Change fallback from "Meet" to "Meet a Friend" |
+| `src/index.css` | Add shimmer-sweep keyframe + `.meet-button-shimmer` class |
+| `src/pages/Social.tsx` | Redesign Meet button as gradient pill, reorder action buttons |
 
-No database or type changes needed -- `pup_name` is already in the `Post` type and fetched via `select('*')`.
+---
 
+### Result
+
+Each post card will have a polished, animated "Meet Ace" pill button that catches the eye, invites interaction, and feels premium -- while staying consistent with the app's warm, playful design system.
