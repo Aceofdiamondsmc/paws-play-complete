@@ -1,105 +1,87 @@
 
 
-## Hard-Code NV Priority + "Local Favorite" Badge + Indiana Demotion
+## Auto-Locate on Load + Category Placeholders for Explore Tab
 
-### The Data Reality
+### Overview
 
-There are **zero Nevada (NV) parks** in the database. The nearest states with parks are Arizona (19), Utah (19), Idaho (20), and Oregon (15). Indiana has 7 parks. 180 parks have a NULL state.
-
-Since there are no NV parks, hard-coding "NV priority" alone won't help. The plan will:
-1. Treat **neighboring states** (AZ, UT, CA, ID, OR) as "regional" when the user is in NV
-2. Add a visible "Local Favorite" badge for state-matched parks
-3. Push Indiana parks to the bottom (Tier 3)
+Three changes: (1) automatically trigger geolocation when the Explore page loads, (2) update fallback images to use placedog.net URLs by category, and (3) visually indicate "Near Me" mode is active from the start.
 
 ---
 
-### Changes
+### File Changes
 
-**1. `src/hooks/useNearbyParks.tsx` -- Add NV fallback + regional matching**
+**1. `src/pages/Explore.tsx` -- Auto-locate on page load**
 
-- Add a `NEIGHBORING_STATES` map so when `userState === 'NV'`, parks in AZ, UT, CA, ID, OR are also promoted to Tier 2
-- In the Tier 2 matching logic, check if `park.state` is in the user's neighboring states list
-- When `userState === 'NV'`, explicitly exclude `IN` parks from Tier 2 (they stay in Tier 3)
-- Add an `isLocalFavorite` flag to the Park type extension returned from the hook (parks matching user's state or neighboring states)
+- Change initial state: `nearMeMode` starts as `true`, `isLocating` starts as `true`
+- Add a `useEffect` that runs once on mount to request geolocation automatically
+- On success: set `userCoords` and keep `nearMeMode = true`
+- On failure: set `nearMeMode = false`, show toast, fall back to regular services list
+- The existing `handleFindNearMe` toggle still works for manual on/off
+- The MapPin button renders as "active" (variant="default") immediately since `nearMeMode` starts true
 
-**2. `src/components/parks/ParkListItem.tsx` -- "Local Favorite" badge + image fix**
+**2. `src/hooks/useServices.tsx` -- Update fallback images**
 
-- Accept optional `isLocalFavorite` prop
-- When true, render a green "Local Favorite" badge on the card
-- Confirm the LoremFlickr fallback is already in place (it is -- line 19)
-
-**3. `src/pages/Parks.tsx` -- Section headers for NV vs Others**
-
-- When `detectedState === 'NV'` (or any state), show a section header "Parks Near Nevada" for Tier 2 parks
-- Tier 3 header becomes "More Parks" (behind Show More as it already is)
-- Pass `isLocalFavorite` flag to each `ParkListItem`
+- Replace the `FALLBACK_IMAGES` map with placedog.net URLs:
+  - `'Groomers'` -> `'https://placedog.net/600/400?id=groom'`
+  - `'Trainers'` -> `'https://placedog.net/600/400?id=train'`
+  - `'Dog Walkers'` -> `'https://placedog.net/600/400?id=walk'`
+  - `'Daycare'` -> `'https://placedog.net/600/400?id=service'`
+  - `'Vet Clinics'` -> `'https://placedog.net/600/400?id=service'`
+- Update the final fallback in `getServiceImage` to `'https://placedog.net/600/400?id=service'`
 
 ---
 
 ### Technical Details
 
-**Neighboring States Map (in useNearbyParks.tsx):**
+**Auto-locate useEffect (in Explore.tsx):**
 ```typescript
-const REGIONAL_STATES: Record<string, string[]> = {
-  'NV': ['AZ', 'UT', 'CA', 'ID', 'OR'],
-  'CA': ['NV', 'AZ', 'OR'],
-  // Can expand later for other states
+const [nearMeMode, setNearMeMode] = useState(true);
+const [isLocating, setIsLocating] = useState(true);
+
+useEffect(() => {
+  if (!navigator.geolocation) {
+    setNearMeMode(false);
+    setIsLocating(false);
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      setUserCoords({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+      setIsLocating(false);
+      toast.success("Showing services near you!");
+    },
+    () => {
+      setNearMeMode(false);
+      setIsLocating(false);
+      toast.error("Could not get your location. Showing all services.");
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}, []);
+```
+
+**Updated FALLBACK_IMAGES (in useServices.tsx):**
+```typescript
+const FALLBACK_IMAGES: Record<string, string> = {
+  'Dog Walkers': 'https://placedog.net/600/400?id=walk',
+  'Daycare': 'https://placedog.net/600/400?id=service',
+  'Vet Clinics': 'https://placedog.net/600/400?id=service',
+  'Trainers': 'https://placedog.net/600/400?id=train',
+  'Groomers': 'https://placedog.net/600/400?id=groom',
 };
 ```
 
-**Updated Tier 2 Logic:**
-```typescript
-// After tier 1 check...
-if (tier === 3 && (userCity || userState)) {
-  const cityMatch = userCity && park.city?.toLowerCase() === userCity.toLowerCase();
-  const stateMatch = userState && park.state?.toUpperCase() === userState;
-  const regionalStates = REGIONAL_STATES[userState] || [];
-  const regionalMatch = park.state && regionalStates.includes(park.state.toUpperCase());
-  
-  if (cityMatch || stateMatch || regionalMatch) tier = 2;
-}
-```
-
-**ParkListItem Badge:**
-```typescript
-{isLocalFavorite && (
-  <Badge className="text-[10px] px-1.5 py-0 h-5 bg-green-500/20 text-green-700 border-green-500/30">
-    Local Favorite
-  </Badge>
-)}
-```
-
-**Parks.tsx -- Pass flag to list items:**
-```typescript
-// Determine which parks are "local favorites" (Tier 1 + Tier 2)
-const localParkIds = new Set([
-  ...tier1Parks.map(p => p.id),
-  ...tier2Parks.map(p => p.id),
-]);
-
-// In render:
-<ParkListItem park={park} isLocalFavorite={localParkIds.has(park.id)} />
-```
-
 ---
 
-### Files to Modify
+### Expected Behavior
 
-| File | Changes |
-|------|---------|
-| `src/hooks/useNearbyParks.tsx` | Add `REGIONAL_STATES` map, update Tier 2 logic to include neighboring states, return tier info |
-| `src/components/parks/ParkListItem.tsx` | Add `isLocalFavorite` prop, render green badge when true |
-| `src/pages/Parks.tsx` | Compute `localParkIds` set, pass `isLocalFavorite` to each `ParkListItem`, update section headers |
-
----
-
-### Expected Results
-
-| Scenario | What Shows |
-|----------|-----------|
-| User in Las Vegas, NV | Tier 1: Any parks with coords within 50mi. Tier 2: AZ, UT, ID, OR parks with "Local Favorite" badge, sorted by rating. Tier 3: Everything else (including IN) behind "Show More". |
-| Debug spinner | Shows "Detected: Las Vegas, NV" |
-| Indiana parks | Pushed to Tier 3 (bottom), hidden behind "Show More" |
-| Navigate button | Uses "Park Name City State" Google Maps search for parks without coords |
-| Images | LoremFlickr fallback already active from previous change |
-
+| State | What Happens |
+|-------|-------------|
+| Page loads | MapPin button shows active (filled), spinner appears, geolocation requested automatically |
+| Location acquired | Services list updates to show nearest services with distance badges |
+| Location denied | Falls back to showing all services, MapPin button deactivates, toast shown |
+| Manual toggle | Clicking MapPin still toggles near-me mode on/off as before |
+| Missing service image | Shows placedog.net placeholder matching the service category |
