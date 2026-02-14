@@ -110,7 +110,7 @@ export function usePosts() {
             likesCount: likesCount || 0,
             commentsCount: commentsCount || 0,
             isLiked,
-            dogName: p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id) || null,
+            dogName: p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id)) || null,
           };
         })
       );
