@@ -28,6 +28,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import CreatePostForm from '@/components/social/CreatePostForm';
 import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
 import CommentsDrawer from '@/components/social/CommentsDrawer';
@@ -332,23 +333,15 @@ export default function Social() {
                   )}
                   
                   {/* Image(s) */}
-                  {post.imageUrl && (
-                    <div className="mt-3">
-                      <img
-                        src={post.imageUrl}
-                        alt=""
-                        className="rounded-xl w-full max-h-80 object-cover border border-border"
-                      />
-                    </div>
-                  )}
-                  
-                  {post.image_url && (
-                    <div className="mt-3">
-                      <img
-                        src={post.image_url}
-                        alt=""
-                        className="rounded-xl w-full max-h-80 object-cover border border-border"
-                      />
+                  {(post.imageUrl || post.image_url) && (
+                    <div className="mt-3 overflow-hidden rounded-xl border border-border">
+                      <AspectRatio ratio={1}>
+                        <img
+                          src={post.imageUrl || post.image_url}
+                          alt="Post content"
+                          className="object-cover w-full h-full"
+                        />
+                      </AspectRatio>
                     </div>
                   )}
                   
@@ -406,10 +399,10 @@ export default function Social() {
         {!loading && filteredPosts.length === 0 && (
           <div className="text-center py-12">
             <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <MessageCircle className="w-10 h-10 text-primary" />
+              <PawPrint className="w-10 h-10 text-primary" />
             </div>
-            <h3 className="text-lg font-bold text-foreground mb-2">No posts yet</h3>
-            <p className="text-muted-foreground">Be the first to share with the pack!</p>
+            <h3 className="text-lg font-bold text-foreground mb-2">The Pack is gathering...</h3>
+            <p className="text-muted-foreground">Be the first to post! Share your pup's latest adventure.</p>
           </div>
         )}
       </div>
