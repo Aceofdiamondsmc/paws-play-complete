@@ -846,6 +846,7 @@ export type Database = {
           dog_id: string | null
           id: string
           image_url: string | null
+          pup_name: string | null
           updated_at: string
           visibility: Database["public"]["Enums"]["post_visibility"]
         }
@@ -856,6 +857,7 @@ export type Database = {
           dog_id?: string | null
           id?: string
           image_url?: string | null
+          pup_name?: string | null
           updated_at?: string
           visibility?: Database["public"]["Enums"]["post_visibility"]
         }
@@ -866,6 +868,7 @@ export type Database = {
           dog_id?: string | null
           id?: string
           image_url?: string | null
+          pup_name?: string | null
           updated_at?: string
           visibility?: Database["public"]["Enums"]["post_visibility"]
         }

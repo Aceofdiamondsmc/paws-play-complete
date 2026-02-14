@@ -371,10 +371,12 @@ export default function Social() {
                     <button
                       onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
                       className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
-                      aria-label="Meet the pup"
+                      aria-label={post.pup_name ? `Meet ${post.pup_name}` : 'Meet the pup'}
                     >
                       <PawPrint className="w-5 h-5" />
-                      <span className="hidden sm:inline">Meet</span>
+                      <span className="hidden sm:inline">
+                        {post.pup_name ? `MEET ${post.pup_name.toUpperCase()}` : 'MEET'}
+                      </span>
                     </button>
                     
                     <button 
