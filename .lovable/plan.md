@@ -1,40 +1,38 @@
 
 
-## Display Dog Name on "Meet" Button
+## Use `pup_name` from Posts Table for Meet Button
 
 ### Overview
 
-Update the "Meet" button on each social post to show "MEET ACE" (or whatever the pup's name is) instead of just "Meet". The `pup_name` field exists in the `posts` database table but isn't currently included in the app's type definitions or data fetching.
+You've manually populated a `pup_name` column on the `posts` table. The current code ignores that field and instead looks up names from the `dogs` table. This plan updates the logic to prioritize `pup_name` directly from each post, with proper fallbacks.
 
 ---
 
 ### Changes
 
-**1. `src/types/index.ts` -- Add `pup_name` to the Post type**
+**1. `src/hooks/usePosts.tsx` -- Prioritize `pup_name` over dog table lookup**
 
-Add `pup_name: string | null;` to the `Post` interface so TypeScript recognizes the field.
+Update line 113 to use `pup_name` first:
 
-**2. `src/hooks/usePosts.tsx` -- Already fetching `*`, no query change needed**
-
-The hook uses `select('*')` which already returns `pup_name` from the database. No changes needed here -- TypeScript will recognize it once the type is updated.
-
-**3. `src/pages/Social.tsx` -- Update the Meet button label**
-
-Change the PawPrint "Meet" button (around line 375) from:
-
-```
-<span className="hidden sm:inline">Meet</span>
+```typescript
+dogName: p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id)) || null,
 ```
 
-To:
+This means: use the manually set `pup_name` if it exists, otherwise fall back to the dogs table lookup.
 
-```
-<span className="hidden sm:inline">
-  {post.pup_name ? `MEET ${post.pup_name.toUpperCase()}` : 'MEET'}
-</span>
+**2. `src/pages/Social.tsx` -- Update fallback text**
+
+Change the Meet button fallback (line 378) from `'Meet'` to `'Meet a Friend'`:
+
+```typescript
+{post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}
 ```
 
-Also update the `aria-label` to include the pup name when available.
+Also update the `aria-label` fallback (line 374) to match:
+
+```typescript
+aria-label={post.dogName ? `Meet ${post.dogName}` : 'Meet a Friend'}
+```
 
 ---
 
@@ -42,8 +40,8 @@ Also update the `aria-label` to include the pup name when available.
 
 | File | Change |
 |------|--------|
-| `src/types/index.ts` | Add `pup_name: string \| null` to `Post` interface |
-| `src/pages/Social.tsx` | Update Meet button to show `MEET [PUP_NAME]` |
+| `src/hooks/usePosts.tsx` | Prioritize `p.pup_name` in dogName enrichment |
+| `src/pages/Social.tsx` | Change fallback from "Meet" to "Meet a Friend" |
 
-No database or hook changes required -- `select('*')` already returns `pup_name`.
+No database or type changes needed -- `pup_name` is already in the `Post` type and fetched via `select('*')`.
 
