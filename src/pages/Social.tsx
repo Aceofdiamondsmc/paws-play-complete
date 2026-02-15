@@ -77,7 +77,7 @@ export default function Social() {
   
   // Admin edit state
   const [adminEditingPost, setAdminEditingPost] = useState<{
-    id: string; content: string; pup_name: string; image_url: string;
+    id: string; content: string; pup_name: string; image_url: string; likes_count: number; comments_count: number;
   } | null>(null);
 
   const handleDeletePost = async () => {
@@ -300,6 +300,8 @@ export default function Social() {
                             content: post.content || '',
                             pup_name: post.pup_name || post.dogName || '',
                             image_url: post.image_url || '',
+                            likes_count: post.likesCount,
+                            comments_count: post.commentsCount,
                           })}
                           className="p-1.5 rounded-full hover:bg-primary/10 transition-colors text-primary/60 hover:text-primary"
                           aria-label="Admin edit post"
@@ -469,6 +471,8 @@ export default function Social() {
         initialContent={adminEditingPost?.content || ''}
         initialPupName={adminEditingPost?.pup_name || ''}
         initialImageUrl={adminEditingPost?.image_url || ''}
+        initialLikesCount={adminEditingPost?.likes_count || 0}
+        initialCommentsCount={adminEditingPost?.comments_count || 0}
         onPostUpdated={refresh}
       />
 

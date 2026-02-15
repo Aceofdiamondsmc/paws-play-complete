@@ -78,45 +78,31 @@ export function usePosts() {
         }
       });
 
-      // Get likes and comments count for each post
-      const enrichedPosts = await Promise.all(
-        (postsData || []).map(async (p: Post) => {
-          // Get likes count
-          const { count: likesCount } = await supabase
-            .from('post_likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', p.id);
+      // Check which posts current user has liked (single query)
+      let likedPostIds = new Set<string>();
+      if (user) {
+        const postIds = (postsData || []).map((p: Post) => p.id);
+        const { data: userLikes } = await supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', user.id)
+          .in('post_id', postIds);
+        userLikes?.forEach((l: any) => likedPostIds.add(l.post_id));
+      }
 
-          // Get comments count
-          const { count: commentsCount } = await supabase
-            .from('post_comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', p.id);
-
-          // Check if current user liked this post
-          let isLiked = false;
-          if (user) {
-            const { data: likeData } = await supabase
-              .from('post_likes')
-              .select('id')
-              .eq('post_id', p.id)
-              .eq('user_id', user.id)
-              .single();
-            isLiked = !!likeData;
-          }
-
-          const dogName = p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id)) || null;
-          return {
-            ...p,
-            author: profileMap.get(p.author_id),
-            likesCount: likesCount || 0,
-            commentsCount: commentsCount || 0,
-            isLiked,
-            dogName,
-            image_url: getPupImage(dogName, p.image_url),
-          };
-        })
-      );
+      // Use likes_count and comments_count directly from posts table
+      const enrichedPosts = (postsData || []).map((p: any) => {
+        const dogName = p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id)) || null;
+        return {
+          ...p,
+          author: profileMap.get(p.author_id),
+          likesCount: p.likes_count || 0,
+          commentsCount: p.comments_count || 0,
+          isLiked: likedPostIds.has(p.id),
+          dogName,
+          image_url: getPupImage(dogName, p.image_url),
+        };
+      });
 
       setPosts(enrichedPosts);
     } catch (e) {

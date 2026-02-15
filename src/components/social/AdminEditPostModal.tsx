@@ -20,6 +20,8 @@ interface AdminEditPostModalProps {
   initialContent: string;
   initialPupName: string;
   initialImageUrl: string;
+  initialLikesCount?: number;
+  initialCommentsCount?: number;
   onPostUpdated: () => void;
 }
 
@@ -30,11 +32,15 @@ export default function AdminEditPostModal({
   initialContent,
   initialPupName,
   initialImageUrl,
+  initialLikesCount = 0,
+  initialCommentsCount = 0,
   onPostUpdated,
 }: AdminEditPostModalProps) {
   const [content, setContent] = useState(initialContent);
   const [pupName, setPupName] = useState(initialPupName);
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
+  const [likesCount, setLikesCount] = useState(initialLikesCount);
+  const [commentsCount, setCommentsCount] = useState(initialCommentsCount);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -42,8 +48,10 @@ export default function AdminEditPostModal({
       setContent(initialContent);
       setPupName(initialPupName);
       setImageUrl(initialImageUrl);
+      setLikesCount(initialLikesCount);
+      setCommentsCount(initialCommentsCount);
     }
-  }, [open, initialContent, initialPupName, initialImageUrl]);
+  }, [open, initialContent, initialPupName, initialImageUrl, initialLikesCount, initialCommentsCount]);
 
   const handleSave = async () => {
     if (!postId || !content.trim()) return;
@@ -56,8 +64,10 @@ export default function AdminEditPostModal({
           content: content.trim(),
           pup_name: pupName.trim() || null,
           image_url: imageUrl.trim() || null,
+          likes_count: likesCount,
+          comments_count: commentsCount,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', postId);
 
       if (error) throw error;
@@ -125,6 +135,29 @@ export default function AdminEditPostModal({
                 }}
               />
             )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="admin-likes-count">Likes Count</Label>
+              <Input
+                id="admin-likes-count"
+                type="number"
+                min={0}
+                value={likesCount}
+                onChange={(e) => setLikesCount(Math.max(0, parseInt(e.target.value) || 0))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-comments-count">Comments Count</Label>
+              <Input
+                id="admin-comments-count"
+                type="number"
+                min={0}
+                value={commentsCount}
+                onChange={(e) => setCommentsCount(Math.max(0, parseInt(e.target.value) || 0))}
+              />
+            </div>
           </div>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
