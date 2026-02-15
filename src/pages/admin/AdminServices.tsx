@@ -8,7 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon, ClipboardList, Check, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon, ClipboardList, Check, X, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useServices, getServiceImage, Service } from '@/hooks/useServices';
 import { useAllSubmissions, useApproveSubmission, useRejectSubmission, ServiceSubmission } from '@/hooks/useServiceSubmissions';
@@ -39,6 +50,12 @@ export default function AdminServices() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<ServiceSubmission | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Edit/Delete state
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', category: '', description: '', address: '', city: '', state: '', image_url: '' });
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
 
   const { data: services, isLoading } = useServices();
   const { data: submissions, isLoading: submissionsLoading } = useAllSubmissions('paid', 'pending');
@@ -77,6 +94,59 @@ export default function AdminServices() {
     setRejectDialogOpen(false);
     setSelectedSubmission(null);
     setRejectionReason('');
+  };
+
+  const openEditModal = (service: Service) => {
+    setEditingService(service);
+    setEditForm({
+      name: service.name || '',
+      category: service.category || '',
+      description: service.description || '',
+      address: (service as any).verified_address || '',
+      city: '',
+      state: '',
+      image_url: service.image_url || '',
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editingService) return;
+    setIsEditSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('services')
+        .update({
+          name: editForm.name.trim(),
+          category: editForm.category,
+          description: editForm.description.trim() || null,
+          verified_address: editForm.address.trim() || null,
+          image_url: editForm.image_url.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingService.id);
+      if (error) throw error;
+      toast({ title: 'Service updated!' });
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      setEditingService(null);
+    } catch (error: any) {
+      toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsEditSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (deletingServiceId === null) return;
+    try {
+      const { error } = await supabase.from('services').delete().eq('id', deletingServiceId);
+      if (error) throw error;
+      toast({ title: 'Service deleted' });
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+    } catch (error: any) {
+      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setDeletingServiceId(null);
+    }
   };
 
   const servicesByCategory = services?.reduce((acc, service) => {
@@ -182,7 +252,15 @@ export default function AdminServices() {
                           <div className="text-sm text-muted-foreground">{service.category}</div>
                         </div>
                       </div>
-                      {service.is_verified && <Badge className="bg-success">Verified</Badge>}
+                      <div className="flex items-center gap-2">
+                        {service.is_verified && <Badge className="bg-success">Verified</Badge>}
+                        <Button size="icon" variant="ghost" onClick={() => openEditModal(service)} aria-label="Edit service">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => setDeletingServiceId(service.id)} aria-label="Delete service" className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -194,6 +272,7 @@ export default function AdminServices() {
         </TabsContent>
       </Tabs>
 
+      {/* Reject Submission Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -207,6 +286,65 @@ export default function AdminServices() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Service Modal */}
+      <Dialog open={!!editingService} onOpenChange={(open) => !open && setEditingService(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Service</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input id="edit-name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-category">Category</Label>
+              <Select value={editForm.category} onValueChange={v => setEditForm(f => ({ ...f, category: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(c => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-desc">Description</Label>
+              <Textarea id="edit-desc" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="min-h-[80px]" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-address">Address</Label>
+              <Input id="edit-address" value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-image">Image URL</Label>
+              <Input id="edit-image" value={editForm.image_url} onChange={e => setEditForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
+              {editForm.image_url && (
+                <img src={editForm.image_url} alt="Preview" className="mt-2 rounded-lg max-h-32 object-cover w-full border border-border" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingService(null)} disabled={isEditSubmitting}>Cancel</Button>
+            <Button onClick={handleEditSave} disabled={isEditSubmitting || !editForm.name.trim()}>
+              {isEditSubmitting ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deletingServiceId !== null} onOpenChange={(open) => !open && setDeletingServiceId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Service</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure? This will permanently remove this service.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
