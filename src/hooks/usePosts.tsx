@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import type { Post, Profile } from '@/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { getPupImage } from '@/lib/pup-images';
 
 interface PostWithDetails extends Post {
   author?: Partial<Profile>;
@@ -104,13 +105,15 @@ export function usePosts() {
             isLiked = !!likeData;
           }
 
+          const dogName = p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id)) || null;
           return {
             ...p,
             author: profileMap.get(p.author_id),
             likesCount: likesCount || 0,
             commentsCount: commentsCount || 0,
             isLiked,
-            dogName: p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id)) || null,
+            dogName,
+            image_url: getPupImage(dogName, p.image_url),
           };
         })
       );
