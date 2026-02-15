@@ -159,16 +159,22 @@ export default function AdminServices() {
 
   const handleDelete = async () => {
     if (deletingServiceId === null) return;
+    const idToDelete = deletingServiceId;
+    setDeletingServiceId(null);
+
+    // Optimistic removal
+    queryClient.setQueryData(['services'], (old: Service[] | undefined) =>
+      old ? old.filter(s => s.id !== idToDelete) : []
+    );
+
     try {
-      const { error } = await supabase.from('services').delete().eq('id', deletingServiceId);
+      const { error } = await supabase.from('services').delete().eq('id', idToDelete);
       if (error) throw error;
       toast({ title: 'Service deleted' });
-      queryClient.invalidateQueries({ queryKey: ['services'] });
     } catch (error: any) {
       toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
-    } finally {
-      setDeletingServiceId(null);
     }
+    queryClient.invalidateQueries({ queryKey: ['services'] });
   };
 
   const servicesByCategory = services?.reduce((acc, service) => {

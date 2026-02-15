@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,6 +49,7 @@ interface Profile {
 
 export default function AdminSocial() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<Map<string, Profile>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -115,19 +117,22 @@ export default function AdminSocial() {
 
   const handleDelete = async () => {
     if (!selectedPost) return;
+    const postId = selectedPost.id;
 
-    setIsDeleting(true);
+    // Optimistic removal
+    setPosts(prev => prev.filter(p => p.id !== postId));
+    setIsDeleteDialogOpen(false);
+    setSelectedPost(null);
+
     try {
       const { error } = await supabase
         .from('posts')
         .delete()
-        .eq('id', selectedPost.id);
+        .eq('id', postId);
 
       if (error) throw error;
 
       toast({ title: 'Success', description: 'Post deleted successfully' });
-      setIsDeleteDialogOpen(false);
-      fetchPosts();
     } catch (error: any) {
       console.error('Delete error:', error);
       toast({
@@ -135,9 +140,11 @@ export default function AdminSocial() {
         description: error.message || 'Failed to delete post',
         variant: 'destructive',
       });
-    } finally {
-      setIsDeleting(false);
+      // Re-fetch to restore state on failure
+      fetchPosts();
     }
+    // Invalidate frontend queries so Social tab updates
+    queryClient.invalidateQueries({ queryKey: ['posts'] });
   };
 
   if (loading) {
