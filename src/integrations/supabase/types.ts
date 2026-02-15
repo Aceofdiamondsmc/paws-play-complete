@@ -841,33 +841,39 @@ export type Database = {
       posts: {
         Row: {
           author_id: string
+          comments_count: number
           content: string
           created_at: string | null
           dog_id: string | null
           id: string
           image_url: string | null
+          likes_count: number
           pup_name: string | null
           updated_at: string
           visibility: Database["public"]["Enums"]["post_visibility"]
         }
         Insert: {
           author_id: string
+          comments_count?: number
           content: string
           created_at?: string | null
           dog_id?: string | null
           id?: string
           image_url?: string | null
+          likes_count?: number
           pup_name?: string | null
           updated_at?: string
           visibility?: Database["public"]["Enums"]["post_visibility"]
         }
         Update: {
           author_id?: string
+          comments_count?: number
           content?: string
           created_at?: string | null
           dog_id?: string | null
           id?: string
           image_url?: string | null
+          likes_count?: number
           pup_name?: string | null
           updated_at?: string
           visibility?: Database["public"]["Enums"]["post_visibility"]
