@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon, ClipboardList, Check, X, Pencil, Trash2 } from 'lucide-react';
+import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon, ClipboardList, Check, X, Pencil, Trash2, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useServices, getServiceImage, Service } from '@/hooks/useServices';
 import { useAllSubmissions, useApproveSubmission, useRejectSubmission, ServiceSubmission } from '@/hooks/useServiceSubmissions';
@@ -51,10 +51,11 @@ export default function AdminServices() {
   const [selectedSubmission, setSelectedSubmission] = useState<ServiceSubmission | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Edit/Delete state
-  const [editingService, setEditingService] = useState<Service | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: '', description: '', address: '', city: '', state: '', image_url: '' });
-  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  // Create/Edit/Delete state
+  const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null);
+  const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '', rating: '0' });
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
 
   const { data: services, isLoading } = useServices();
@@ -96,42 +97,63 @@ export default function AdminServices() {
     setRejectionReason('');
   };
 
+  const openCreateModal = () => {
+    setFormMode('create');
+    setEditingServiceId(null);
+    setEditForm({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '$', rating: '0' });
+  };
+
   const openEditModal = (service: Service) => {
-    setEditingService(service);
+    setFormMode('edit');
+    setEditingServiceId(service.id);
     setEditForm({
       name: service.name || '',
-      category: service.category || '',
+      category: service.category || 'Groomers',
       description: service.description || '',
       address: (service as any).verified_address || '',
-      city: '',
-      state: '',
       image_url: service.image_url || '',
+      price: service.price || '$',
+      rating: String(service.rating || 0),
     });
   };
 
-  const handleEditSave = async () => {
-    if (!editingService) return;
-    setIsEditSubmitting(true);
+  const handleFormSave = async () => {
+    if (!editForm.name.trim() || !editForm.category) return;
+    setIsFormSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('services')
-        .update({
+      if (formMode === 'create') {
+        const { error } = await supabase.from('services').insert({
           name: editForm.name.trim(),
           category: editForm.category,
           description: editForm.description.trim() || null,
           verified_address: editForm.address.trim() || null,
-          image_url: editForm.image_url.trim() || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', editingService.id);
-      if (error) throw error;
-      toast({ title: 'Service updated!' });
+          image_url: editForm.image_url.trim() || 'https://placedog.net/600/400?id=service',
+          price: editForm.price || '$',
+          rating: parseFloat(editForm.rating) || 0,
+        });
+        if (error) throw error;
+        toast({ title: 'Service created!' });
+      } else if (formMode === 'edit' && editingServiceId !== null) {
+        const { error } = await supabase
+          .from('services')
+          .update({
+            name: editForm.name.trim(),
+            category: editForm.category,
+            description: editForm.description.trim() || null,
+            verified_address: editForm.address.trim() || null,
+            image_url: editForm.image_url.trim() || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingServiceId);
+        if (error) throw error;
+        toast({ title: 'Service updated!' });
+      }
       queryClient.invalidateQueries({ queryKey: ['services'] });
-      setEditingService(null);
+      setFormMode(null);
     } catch (error: any) {
-      toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
+      toast({ title: formMode === 'create' ? 'Create failed' : 'Update failed', description: error.message, variant: 'destructive' });
     } finally {
-      setIsEditSubmitting(false);
+      setIsFormSubmitting(false);
     }
   };
 
@@ -235,8 +257,12 @@ export default function AdminServices() {
 
         <TabsContent value="all">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>All Services ({services?.length || 0})</CardTitle>
+              <Button onClick={openCreateModal} size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                Create New Service
+              </Button>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -287,19 +313,19 @@ export default function AdminServices() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Service Modal */}
-      <Dialog open={!!editingService} onOpenChange={(open) => !open && setEditingService(null)}>
+      {/* Create/Edit Service Modal */}
+      <Dialog open={formMode !== null} onOpenChange={(open) => !open && setFormMode(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Service</DialogTitle>
+            <DialogTitle>{formMode === 'create' ? 'Create New Service' : 'Edit Service'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Name</Label>
-              <Input id="edit-name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+              <Label htmlFor="svc-name">Name</Label>
+              <Input id="svc-name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="Business name" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-category">Category</Label>
+              <Label htmlFor="svc-category">Category</Label>
               <Select value={editForm.category} onValueChange={v => setEditForm(f => ({ ...f, category: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -308,25 +334,25 @@ export default function AdminServices() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-desc">Description</Label>
-              <Textarea id="edit-desc" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="min-h-[80px]" />
+              <Label htmlFor="svc-desc">Description</Label>
+              <Textarea id="svc-desc" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="min-h-[80px]" placeholder="Service description..." />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-address">Address</Label>
-              <Input id="edit-address" value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} />
+              <Label htmlFor="svc-address">Address</Label>
+              <Input id="svc-address" value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St, City, State" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-image">Image URL</Label>
-              <Input id="edit-image" value={editForm.image_url} onChange={e => setEditForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
+              <Label htmlFor="svc-image">Image URL</Label>
+              <Input id="svc-image" value={editForm.image_url} onChange={e => setEditForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
               {editForm.image_url && (
                 <img src={editForm.image_url} alt="Preview" className="mt-2 rounded-lg max-h-32 object-cover w-full border border-border" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingService(null)} disabled={isEditSubmitting}>Cancel</Button>
-            <Button onClick={handleEditSave} disabled={isEditSubmitting || !editForm.name.trim()}>
-              {isEditSubmitting ? 'Saving...' : 'Save Changes'}
+            <Button variant="outline" onClick={() => setFormMode(null)} disabled={isFormSubmitting}>Cancel</Button>
+            <Button onClick={handleFormSave} disabled={isFormSubmitting || !editForm.name.trim()}>
+              {isFormSubmitting ? 'Saving...' : formMode === 'create' ? 'Create Service' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
