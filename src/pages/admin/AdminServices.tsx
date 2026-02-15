@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,12 +19,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon, ClipboardList, Check, X, Pencil, Trash2, Plus } from 'lucide-react';
+import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon, ClipboardList, Check, X, Pencil, Trash2, Plus, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useServices, getServiceImage, Service } from '@/hooks/useServices';
 import { useAllSubmissions, useApproveSubmission, useRejectSubmission, ServiceSubmission } from '@/hooks/useServiceSubmissions';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/ui/use-toast';
+import { useImageUpload } from '@/hooks/useImageUpload';
 
 const needsImage = (service: Service): boolean => {
   if (!service.image_url) return true;
@@ -57,6 +58,8 @@ export default function AdminServices() {
   const [editForm, setEditForm] = useState({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '', rating: '0' });
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
+  const { uploadImage, uploading: imageUploading } = useImageUpload();
+  const svcFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: services, isLoading } = useServices();
   const { data: submissions, isLoading: submissionsLoading } = useAllSubmissions('paid', 'pending');
@@ -348,8 +351,41 @@ export default function AdminServices() {
               <Input id="svc-address" value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St, City, State" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="svc-image">Image URL</Label>
-              <Input id="svc-image" value={editForm.image_url} onChange={e => setEditForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
+              <Label>Image</Label>
+              <input
+                ref={svcFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const { url, error } = await uploadImage(file, 'post-images');
+                  if (error) {
+                    toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
+                  } else if (url) {
+                    setEditForm(f => ({ ...f, image_url: url }));
+                  }
+                  if (svcFileInputRef.current) svcFileInputRef.current.value = '';
+                }}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => svcFileInputRef.current?.click()}
+                  disabled={imageUploading}
+                >
+                  {imageUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                  {imageUploading ? 'Uploading...' : 'Upload Image'}
+                </Button>
+                {editForm.image_url && (
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setEditForm(f => ({ ...f, image_url: '' }))} className="h-8 w-8">
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               {editForm.image_url && (
                 <img src={editForm.image_url} alt="Preview" className="mt-2 rounded-lg max-h-32 object-cover w-full border border-border" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               )}

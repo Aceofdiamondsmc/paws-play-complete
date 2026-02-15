@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useImageUpload } from '@/hooks/useImageUpload';
+import { Upload, Loader2, X } from 'lucide-react';
 
 interface AdminEditPostModalProps {
   open: boolean;
@@ -42,6 +44,8 @@ export default function AdminEditPostModal({
   const [likesCount, setLikesCount] = useState(initialLikesCount);
   const [commentsCount, setCommentsCount] = useState(initialCommentsCount);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { uploadImage, uploading } = useImageUpload();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -72,7 +76,7 @@ export default function AdminEditPostModal({
 
       if (error) throw error;
 
-      toast.success('Post updated!');
+      toast.success('Post Updated Successfully!');
       onPostUpdated();
       onOpenChange(false);
     } catch (error: any) {
@@ -118,13 +122,41 @@ export default function AdminEditPostModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="admin-image-url">Image URL</Label>
-            <Input
-              id="admin-image-url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..."
+            <Label>Image</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const { url, error } = await uploadImage(file, 'post-images');
+                if (error) {
+                  toast.error(error.message || 'Upload failed');
+                } else if (url) {
+                  setImageUrl(url);
+                }
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
             />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                {uploading ? 'Uploading...' : 'Upload Image'}
+              </Button>
+              {imageUrl && (
+                <Button type="button" variant="ghost" size="icon" onClick={() => setImageUrl('')} className="h-8 w-8">
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
             {imageUrl && (
               <img
                 src={imageUrl}
