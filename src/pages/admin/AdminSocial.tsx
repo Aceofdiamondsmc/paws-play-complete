@@ -23,14 +23,18 @@ import {
 } from '@/components/ui/table';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Search, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Pencil, Search, Loader2, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import AdminEditPostModal from '@/components/social/AdminEditPostModal';
 
 interface Post {
   id: string;
   author_id: string;
   content: string;
   image_url: string | null;
+  pup_name: string | null;
+  likes_count: number;
+  comments_count: number;
   visibility: string;
   created_at: string | null;
 }
@@ -51,6 +55,8 @@ export default function AdminSocial() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -225,14 +231,26 @@ export default function AdminSocial() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenDelete(post)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setEditingPost(post);
+                            setEditModalOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenDelete(post)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -264,6 +282,18 @@ export default function AdminSocial() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Edit Post Modal */}
+      <AdminEditPostModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        postId={editingPost?.id ?? null}
+        initialContent={editingPost?.content ?? ''}
+        initialPupName={editingPost?.pup_name ?? ''}
+        initialImageUrl={editingPost?.image_url ?? ''}
+        initialLikesCount={editingPost?.likes_count ?? 0}
+        initialCommentsCount={editingPost?.comments_count ?? 0}
+        onPostUpdated={fetchPosts}
+      />
     </div>
   );
 }
