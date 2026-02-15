@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdmin } from '@/hooks/useAdmin';
 import { useParks } from '@/hooks/useParks';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -33,6 +34,7 @@ import CreatePostForm from '@/components/social/CreatePostForm';
 import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
 import CommentsDrawer from '@/components/social/CommentsDrawer';
 import EditPostModal from '@/components/social/EditPostModal';
+import AdminEditPostModal from '@/components/social/AdminEditPostModal';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
@@ -61,6 +63,7 @@ export default function Social() {
   const { user } = useAuth();
   const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts();
   const { allParks } = useParks();
+  const { isAdmin } = useAdmin();
   const [isPosting, setIsPosting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
@@ -71,6 +74,11 @@ export default function Social() {
   
   // Delete confirmation state
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  
+  // Admin edit state
+  const [adminEditingPost, setAdminEditingPost] = useState<{
+    id: string; content: string; pup_name: string; image_url: string;
+  } | null>(null);
 
   const handleDeletePost = async () => {
     if (!deletingPostId) return;
@@ -284,6 +292,23 @@ export default function Social() {
                         </Badge>
                       )}
                       
+                      {/* Admin Edit Button */}
+                      {isAdmin && (
+                        <button
+                          onClick={() => setAdminEditingPost({
+                            id: post.id,
+                            content: post.content || '',
+                            pup_name: post.pup_name || post.dogName || '',
+                            image_url: post.image_url || '',
+                          })}
+                          className="p-1.5 rounded-full hover:bg-primary/10 transition-colors text-primary/60 hover:text-primary"
+                          aria-label="Admin edit post"
+                          title="Admin Edit"
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                        </button>
+                      )}
+
                       {/* Owner Actions Menu */}
                       {user && post.author_id === user.id && (
                         <DropdownMenu>
@@ -436,7 +461,17 @@ export default function Social() {
         onPostUpdated={refresh}
       />
 
-      {/* Delete Confirmation Dialog */}
+      {/* Admin Edit Post Modal */}
+      <AdminEditPostModal
+        open={!!adminEditingPost}
+        onOpenChange={(open) => !open && setAdminEditingPost(null)}
+        postId={adminEditingPost?.id || null}
+        initialContent={adminEditingPost?.content || ''}
+        initialPupName={adminEditingPost?.pup_name || ''}
+        initialImageUrl={adminEditingPost?.image_url || ''}
+        onPostUpdated={refresh}
+      />
+
       <AlertDialog open={!!deletingPostId} onOpenChange={(open) => !open && setDeletingPostId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
