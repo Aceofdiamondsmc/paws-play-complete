@@ -81,6 +81,7 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string | null
+          icon_name: string | null
           id: string
           is_enabled: boolean | null
           is_recurring: boolean | null
@@ -93,6 +94,7 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string | null
+          icon_name?: string | null
           id?: string
           is_enabled?: boolean | null
           is_recurring?: boolean | null
@@ -105,6 +107,7 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string | null
+          icon_name?: string | null
           id?: string
           is_enabled?: boolean | null
           is_recurring?: boolean | null
@@ -2592,6 +2595,10 @@ export type Database = {
       st_wrapx: {
         Args: { geom: unknown; move: number; wrap: number }
         Returns: unknown
+      }
+      toggle_post_like: {
+        Args: { target_post_id: string; target_user_id: string }
+        Returns: undefined
       }
       unlockrows: { Args: { "": string }; Returns: number }
       updategeometrysrid: {
