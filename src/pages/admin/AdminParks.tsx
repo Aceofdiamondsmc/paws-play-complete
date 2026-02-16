@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParks } from '@/hooks/useParks';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Search, Loader2, MapPin, Star } from 'lucide-react';
+import { useImageUpload } from '@/hooks/useImageUpload';
+import { Plus, Pencil, Trash2, Search, Loader2, MapPin, Star, Upload, X } from 'lucide-react';
 import type { Park } from '@/types';
 
 interface ParkFormData {
@@ -45,6 +46,7 @@ interface ParkFormData {
   description: string;
   latitude: number | null;
   longitude: number | null;
+  image_url: string;
   is_fully_fenced: boolean;
   has_water_station: boolean;
   has_small_dog_area: boolean;
@@ -63,6 +65,7 @@ const initialFormData: ParkFormData = {
   description: '',
   latitude: null,
   longitude: null,
+  image_url: '',
   is_fully_fenced: false,
   has_water_station: false,
   has_small_dog_area: false,
@@ -76,6 +79,8 @@ const initialFormData: ParkFormData = {
 export default function AdminParks() {
   const { allParks, loading, refresh } = useParks();
   const { toast } = useToast();
+  const { uploadImage, uploading: parkImageUploading } = useImageUpload();
+  const parkFileInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -105,6 +110,7 @@ export default function AdminParks() {
       description: park.description || '',
       latitude: park.latitude || null,
       longitude: park.longitude || null,
+      image_url: (park as any).image_url || '',
       is_fully_fenced: park.is_fully_fenced || false,
       has_water_station: park.has_water_station || false,
       has_small_dog_area: park.has_small_dog_area || false,
@@ -138,6 +144,7 @@ export default function AdminParks() {
         description: formData.description || null,
         latitude: formData.latitude,
         longitude: formData.longitude,
+        image_url: formData.image_url.trim() || null,
         is_fully_fenced: formData.is_fully_fenced,
         has_water_station: formData.has_water_station,
         has_small_dog_area: formData.has_small_dog_area,
@@ -412,6 +419,52 @@ export default function AdminParks() {
                 placeholder="Park description..."
                 rows={3}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Image</Label>
+              <input
+                ref={parkFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const { url, error } = await uploadImage(file, 'post-images');
+                  if (error) {
+                    toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
+                  } else if (url) {
+                    updateFormField('image_url', url);
+                  }
+                  if (parkFileInputRef.current) parkFileInputRef.current.value = '';
+                }}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => parkFileInputRef.current?.click()}
+                  disabled={parkImageUploading}
+                >
+                  {parkImageUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                  {parkImageUploading ? 'Uploading...' : 'Upload Image'}
+                </Button>
+                {formData.image_url && (
+                  <Button type="button" variant="ghost" size="icon" onClick={() => updateFormField('image_url', '')} className="h-8 w-8">
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Input
+                value={formData.image_url}
+                onChange={(e) => updateFormField('image_url', e.target.value)}
+                placeholder="Or paste an image URL..."
+              />
+              {formData.image_url && (
+                <img src={formData.image_url} alt="Preview" className="mt-2 rounded-lg max-h-32 object-cover w-full border border-border" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              )}
             </div>
 
             <div className="space-y-3">

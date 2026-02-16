@@ -386,6 +386,11 @@ export default function AdminServices() {
                   </Button>
                 )}
               </div>
+              <Input
+                value={editForm.image_url}
+                onChange={e => setEditForm(f => ({ ...f, image_url: e.target.value }))}
+                placeholder="Or paste an image URL..."
+              />
               {editForm.image_url && (
                 <img src={editForm.image_url} alt="Preview" className="mt-2 rounded-lg max-h-32 object-cover w-full border border-border" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               )}

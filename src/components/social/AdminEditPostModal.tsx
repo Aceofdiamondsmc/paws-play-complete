@@ -157,6 +157,11 @@ export default function AdminEditPostModal({
                 </Button>
               )}
             </div>
+            <Input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Or paste an image URL..."
+            />
             {imageUrl && (
               <img
                 src={imageUrl}
