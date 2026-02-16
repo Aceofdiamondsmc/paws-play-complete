@@ -30,7 +30,7 @@ function getCategoryIcon(category: string) {
     case 'medication':
       return <Pill className="w-4 h-4 text-primary" />;
     case 'feeding':
-      return <UtensilsCrossed className="w-4 h-4 text-accent-foreground" />;
+      return <UtensilsCrossed className="w-4 h-4 text-primary" />;
     case 'grooming':
       return <Scissors className="w-4 h-4 text-primary" />;
     case 'training':
