@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Trash2, Plus, CheckCircle, AlertTriangle, Timer, Info } from 'lucide-react';
+import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Scissors, GraduationCap, Trash2, Plus, CheckCircle, AlertTriangle, Timer, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCareReminders } from '@/hooks/useCareReminders';
 import { useCareHistory } from '@/hooks/useCareHistory';
@@ -31,6 +31,10 @@ function getCategoryIcon(category: string) {
       return <Pill className="w-4 h-4 text-primary" />;
     case 'feeding':
       return <UtensilsCrossed className="w-4 h-4 text-accent-foreground" />;
+    case 'grooming':
+      return <Scissors className="w-4 h-4 text-primary" />;
+    case 'training':
+      return <GraduationCap className="w-4 h-4 text-primary" />;
     default:
       return <PawPrint className="w-4 h-4 text-primary" />;
   }
@@ -268,6 +272,8 @@ export function CareScheduleSection() {
               {triggeredReminder.category === 'walk' && 'Time for a walk!'}
               {triggeredReminder.category === 'medication' && `Time for ${triggeredReminder.task_details || 'medication'}`}
               {triggeredReminder.category === 'feeding' && `Time to feed: ${triggeredReminder.task_details || 'your pup'}`}
+              {triggeredReminder.category === 'grooming' && 'Time for grooming!'}
+              {triggeredReminder.category === 'training' && 'Time for training!'}
             </span>
           </div>
           <div className="flex gap-2">
@@ -316,6 +322,18 @@ export function CareScheduleSection() {
                   Feeding
                 </div>
               </SelectItem>
+              <SelectItem value="grooming">
+                <div className="flex items-center gap-2">
+                  <Scissors className="w-4 h-4" />
+                  Grooming
+                </div>
+              </SelectItem>
+              <SelectItem value="training">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  Training
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -347,11 +365,19 @@ export function CareScheduleSection() {
         </div>
 
         {/* Conditional Task Details Input */}
-        {(category === 'medication' || category === 'feeding') && (
+        {(category === 'medication' || category === 'feeding' || category === 'grooming' || category === 'training') && (
           <div className="space-y-2">
-            <Label>{category === 'medication' ? 'Medication Name & Dosage' : 'Food Amount'}</Label>
+            <Label>
+              {category === 'medication' ? 'Medication Name & Dosage' : 
+               category === 'feeding' ? 'Food Amount' :
+               category === 'grooming' ? 'Grooming Details' : 'Training Details'}
+            </Label>
             <Input
-              placeholder={category === 'medication' ? 'e.g., Apoquel 16mg' : 'e.g., 1 cup kibble'}
+              placeholder={
+                category === 'medication' ? 'e.g., Apoquel 16mg' : 
+                category === 'feeding' ? 'e.g., 1 cup kibble' :
+                category === 'grooming' ? 'e.g., Nail trim, bath' : 'e.g., Recall practice'
+              }
               value={taskDetails}
               onChange={(e) => setTaskDetails(e.target.value)}
               className="rounded-full"
@@ -426,6 +452,14 @@ export function CareScheduleSection() {
             <UtensilsCrossed className="w-4 h-4 mr-1" />
             Feeding
           </Button>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleQuickLog('grooming')}>
+            <Scissors className="w-4 h-4 mr-1" />
+            Grooming
+          </Button>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleQuickLog('training')}>
+            <GraduationCap className="w-4 h-4 mr-1" />
+            Training
+          </Button>
         </div>
       </div>
 
@@ -448,6 +482,8 @@ export function CareScheduleSection() {
                     {entry.category === 'walk' && 'Walked'}
                     {entry.category === 'medication' && (entry.task_details || entry.notes || 'Medication')}
                     {entry.category === 'feeding' && (entry.task_details || entry.notes || 'Fed')}
+                    {entry.category === 'grooming' && (entry.task_details || entry.notes || 'Groomed')}
+                    {entry.category === 'training' && (entry.task_details || entry.notes || 'Trained')}
                   </span>
                 </div>
                 <span className="text-xs text-muted-foreground">
