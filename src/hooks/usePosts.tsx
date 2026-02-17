@@ -56,7 +56,7 @@ export function usePosts() {
       // Fetch author profiles from profiles_safe view (publicly readable)
       const { data: profiles } = await supabase
         .from('profiles_safe')
-        .select('*')
+        .select('id, display_name, avatar_url')
         .in('id', Array.from(authorIds));
 
       const profileMap = new Map<string, Profile>();
@@ -124,7 +124,7 @@ export function usePosts() {
       try {
         const { data: profile } = await supabase
           .from('profiles_safe')
-          .select('*')
+          .select('id, display_name, avatar_url')
           .eq('id', post.author_id)
           .single();
 
@@ -363,7 +363,7 @@ export function usePostComments(postId: string | null) {
 
       const { data: profiles } = await supabase
         .from('profiles_safe')
-        .select('*')
+        .select('id, display_name, avatar_url')
         .in('id', Array.from(authorIds));
 
       const profileMap = new Map<string, Profile>();

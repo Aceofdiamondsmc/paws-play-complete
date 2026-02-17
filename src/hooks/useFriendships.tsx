@@ -38,7 +38,7 @@ export function useFriendships() {
       // Fetch profiles for these users (use profiles_safe view for authenticated access)
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles_safe')
-        .select('*')
+        .select('id, display_name, full_name, avatar_url, city, state')
         .in('id', Array.from(userIds));
 
       if (profilesError) {

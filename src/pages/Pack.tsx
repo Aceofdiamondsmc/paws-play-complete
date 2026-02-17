@@ -212,7 +212,7 @@ export default function Pack() {
             const ownerIds = [...new Set(filteredDogs.map(d => d.owner_id))];
             const { data: profiles } = await supabase
               .from('profiles_safe')
-              .select('*')
+              .select('id, display_name, avatar_url, city, state')
               .in('id', ownerIds);
 
             const profileMap = new Map<string, Profile>();
