@@ -1,53 +1,63 @@
 
 
-## Fix "Meet [Dog Name]" Button Navigation
+## Care Schedule UI Fixes
 
-### Problem
-The "Meet" button on the Social feed navigates to `/pack?dog={dog_id}` or `/pack?user={author_id}`, but the Pack page **completely ignores these query parameters**. It loads the general discovery stack starting at index 0, which is often the current user's own dog (since `get_nearby_dogs` places it first).
+### 1. Header Redesign (line 173-179)
+- Increase "Care Schedule" heading from `text-lg` to `text-2xl font-bold`
+- Add a subtle accent background strip behind the header area with `bg-primary/10 rounded-xl p-4` styling
+- Keep the Heart and Clock icons but bump them to `w-6 h-6`
 
-### Fix
+### 2. Fix Horizontal Scrolling on Quick Log Buttons (lines 440-463)
+The Quick Log buttons row uses `flex gap-2` but has no overflow handling, so buttons get squished or hidden on narrow screens.
+- Add `overflow-x-auto whitespace-nowrap scrollbar-hide` to the Quick Log button container
+- Add `pb-1` for scroll padding so content doesn't feel clipped
 
-**File: `src/pages/Pack.tsx`**
+### 3. Padding Improvements
+- Change the outer Card from `p-4` to `p-5` for more breathing room
+- Add `px-1` padding to the scrollable Quick Log row so items don't touch screen edges
+- Ensure the Recent Activity section has a small top margin (`mt-2`) for spacing
 
-1. **Read query params on mount** using `useSearchParams` from `react-router-dom`:
-   - Extract `dog` and `user` params from the URL.
+### Technical Details
 
-2. **After fetching `discoveryDogs`**, find the target dog in the list:
-   - If `?dog=<id>` is present, find the index where `dog.id === id`.
-   - Else if `?user=<id>` is present, find the index where `dog.owner_id === id`.
-   - If a match is found, set `currentIndex` to that index so the card stack opens on the correct dog.
+**File: `src/components/dates/CareScheduleSection.tsx`**
 
-3. **Clear the params after use** (optional but clean) by calling `setSearchParams({})` to avoid stale state on subsequent visits.
+**Header (line 173-179):**
+```tsx
+// Change from:
+<Card className="p-4 bg-card mt-4">
+  <div className="flex items-center gap-2 mb-4">
+    <Heart className="w-5 h-5 text-primary" />
+    <Clock className="w-5 h-5 text-primary" />
+    <h2 className="text-lg font-bold">Care Schedule</h2>
+  </div>
 
-### Technical details
-
-```
-// New import
-import { useSearchParams } from 'react-router-dom';
-
-// Inside component
-const [searchParams, setSearchParams] = useSearchParams();
-
-// After discoveryDogs are set (in the fetch useEffect), add:
-const targetDogId = searchParams.get('dog');
-const targetUserId = searchParams.get('user');
-
-if (targetDogId) {
-  const idx = dogs.findIndex(d => d.id === targetDogId);
-  if (idx >= 0) setCurrentIndex(idx);
-} else if (targetUserId) {
-  const idx = dogs.findIndex(d => d.owner_id === targetUserId);
-  if (idx >= 0) setCurrentIndex(idx);
-}
-
-// Clear params so re-navigation works cleanly
-setSearchParams({}, { replace: true });
+// Change to:
+<Card className="p-5 bg-card mt-4">
+  <div className="flex items-center gap-3 mb-5 bg-primary/10 rounded-xl p-4 -mx-1">
+    <Heart className="w-6 h-6 text-primary" />
+    <Clock className="w-6 h-6 text-primary" />
+    <h2 className="text-2xl font-bold text-primary">Care Schedule</h2>
+  </div>
 ```
 
-### What stays the same
-- Social feed button logic (already generates correct URLs with real `dog_id`/`author_id`)
-- Pack discovery fetching and swipe mechanics
-- All other navigation in the app
+**Quick Log scrollable row (line 442):**
+```tsx
+// Change from:
+<div className="flex gap-2">
 
-### Files changed
-- `src/pages/Pack.tsx` only
+// Change to:
+<div className="flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide pb-1 px-1">
+```
+
+**Recent Activity spacing (line 467):**
+```tsx
+// Change from:
+<div>
+
+// Change to:
+<div className="mt-2">
+```
+
+### Files Changed
+- `src/components/dates/CareScheduleSection.tsx` only
+
