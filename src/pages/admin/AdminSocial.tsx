@@ -75,7 +75,7 @@ export default function AdminSocial() {
       const authorIds = [...new Set((data || []).map(p => p.author_id))];
       if (authorIds.length > 0) {
         const { data: profileData } = await supabase
-          .from('profiles_safe')
+          .from('public_profiles')
           .select('id, display_name, full_name')
           .in('id', authorIds);
 

@@ -47,9 +47,9 @@ export function usePlaydates() {
         .select('*')
         .in('id', Array.from(allDogIds));
 
-      // Fetch profiles (use profiles_safe view for authenticated access)
+      // Fetch profiles from public_profiles view
       const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles_safe')
+        .from('public_profiles')
         .select('id, display_name, full_name, avatar_url, city, state')
         .in('id', Array.from(requesterIds));
 

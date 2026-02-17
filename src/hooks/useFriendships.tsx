@@ -35,9 +35,9 @@ export function useFriendships() {
         if (f.addressee_id !== user.id) userIds.add(f.addressee_id);
       });
 
-      // Fetch profiles for these users (use profiles_safe view for authenticated access)
+      // Fetch profiles from public_profiles view
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles_safe')
+        .from('public_profiles')
         .select('id, display_name, full_name, avatar_url, city, state')
         .in('id', Array.from(userIds));
 

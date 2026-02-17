@@ -37,9 +37,9 @@ export function useMessages() {
         otherUserIds.add(otherId);
       });
 
-      // Fetch profiles (use profiles_safe view for authenticated access)
+      // Fetch profiles from public_profiles view
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles_safe')
+        .from('public_profiles')
         .select('id, display_name, avatar_url')
         .in('id', Array.from(otherUserIds));
 
