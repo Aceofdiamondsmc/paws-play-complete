@@ -1,37 +1,53 @@
 
 
-## Minimize Profile Data Exposure
+## Fix "Meet [Dog Name]" Button Navigation
 
 ### Problem
-Multiple hooks fetch `select('*')` from profiles, pulling more data than needed. The Social feed should only request display names and avatars.
+The "Meet" button on the Social feed navigates to `/pack?dog={dog_id}` or `/pack?user={author_id}`, but the Pack page **completely ignores these query parameters**. It loads the general discovery stack starting at index 0, which is often the current user's own dog (since `get_nearby_dogs` places it first).
 
-### Changes
+### Fix
 
-**1. `src/hooks/usePosts.tsx`** (Social Feed) — 3 locations
-- Change all `profiles_safe` queries from `select('*')` to `select('id, display_name, avatar_url')`
-- Lines ~58, ~127, ~365
+**File: `src/pages/Pack.tsx`**
 
-**2. `src/hooks/useMessages.tsx`**
-- Change `select('*')` to `select('id, display_name, avatar_url')` (messages only need name + avatar for chat headers)
+1. **Read query params on mount** using `useSearchParams` from `react-router-dom`:
+   - Extract `dog` and `user` params from the URL.
 
-**3. `src/hooks/useFriendships.tsx`**
-- Change `select('*')` to `select('id, display_name, username, full_name, avatar_url, city, state')` (friendship cards show location info)
+2. **After fetching `discoveryDogs`**, find the target dog in the list:
+   - If `?dog=<id>` is present, find the index where `dog.id === id`.
+   - Else if `?user=<id>` is present, find the index where `dog.owner_id === id`.
+   - If a match is found, set `currentIndex` to that index so the card stack opens on the correct dog.
 
-**4. `src/hooks/usePlaydates.tsx`**
-- Change `select('*')` to `select('id, display_name, username, full_name, avatar_url, city, state')` (playdate matching shows location)
+3. **Clear the params after use** (optional but clean) by calling `setSearchParams({})` to avoid stale state on subsequent visits.
 
-**5. `src/pages/Pack.tsx`**
-- Change `select('*')` to `select('id, display_name, avatar_url, city, state')` (Pack discovery cards)
+### Technical details
 
-**6. `src/pages/admin/AdminSocial.tsx`** — already scoped to `select('id, display_name, username, full_name')`, no change needed.
+```
+// New import
+import { useSearchParams } from 'react-router-dom';
 
-**7. `src/hooks/useAuth.tsx`** — keep `select('*')` from `profiles` table since this is the logged-in user fetching their own full profile (needed for settings, onboarding status, location, etc.). No change needed.
+// Inside component
+const [searchParams, setSearchParams] = useSearchParams();
+
+// After discoveryDogs are set (in the fetch useEffect), add:
+const targetDogId = searchParams.get('dog');
+const targetUserId = searchParams.get('user');
+
+if (targetDogId) {
+  const idx = dogs.findIndex(d => d.id === targetDogId);
+  if (idx >= 0) setCurrentIndex(idx);
+} else if (targetUserId) {
+  const idx = dogs.findIndex(d => d.owner_id === targetUserId);
+  if (idx >= 0) setCurrentIndex(idx);
+}
+
+// Clear params so re-navigation works cleanly
+setSearchParams({}, { replace: true });
+```
 
 ### What stays the same
-- The `profiles_safe` view definition (already excludes GPS and tokens)
-- All RLS policies
-- The `useAuth` hook (own-profile fetch)
-- All update/insert queries against `profiles`
+- Social feed button logic (already generates correct URLs with real `dog_id`/`author_id`)
+- Pack discovery fetching and swipe mechanics
+- All other navigation in the app
 
-### Impact
-No UI changes — all components already only use the fields being selected. This just stops over-fetching unused sensitive-adjacent data.
+### Files changed
+- `src/pages/Pack.tsx` only
