@@ -50,7 +50,7 @@ export function usePlaydates() {
       // Fetch profiles (use profiles_safe view for authenticated access)
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles_safe')
-        .select('*')
+        .select('id, display_name, full_name, avatar_url, city, state')
         .in('id', Array.from(requesterIds));
 
       if (profilesError) {

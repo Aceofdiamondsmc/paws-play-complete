@@ -40,7 +40,7 @@ export function useMessages() {
       // Fetch profiles (use profiles_safe view for authenticated access)
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles_safe')
-        .select('*')
+        .select('id, display_name, avatar_url')
         .in('id', Array.from(otherUserIds));
 
       if (profilesError) {
