@@ -170,12 +170,12 @@ export function CareScheduleSection() {
   };
 
   return (
-    <Card className="p-4 bg-card mt-4">
+    <Card className="p-5 bg-card mt-4">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <Heart className="w-5 h-5 text-primary" />
-        <Clock className="w-5 h-5 text-primary" />
-        <h2 className="text-lg font-bold">Care Schedule</h2>
+      <div className="flex items-center gap-3 mb-5 bg-primary/10 rounded-xl p-4 -mx-1">
+        <Heart className="w-6 h-6 text-primary" />
+        <Clock className="w-6 h-6 text-primary" />
+        <h2 className="text-2xl font-bold text-primary">Care Schedule</h2>
       </div>
 
       {/* Notification Permission Status */}
@@ -439,7 +439,7 @@ export function CareScheduleSection() {
       {/* Quick Log Buttons */}
       <div className="mb-6">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">Quick Log</h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide pb-1 px-1">
           <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleQuickLog('walk')}>
             <PawPrint className="w-4 h-4 mr-1" />
             Walk
@@ -464,7 +464,7 @@ export function CareScheduleSection() {
       </div>
 
       {/* Recent Activity */}
-      <div>
+      <div className="mt-2">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">Recent Activity</h3>
         {historyLoading ? (
           <div className="flex justify-center py-4">
