@@ -211,7 +211,7 @@ export default function Pack() {
           if (filteredDogs.length > 0) {
             const ownerIds = [...new Set(filteredDogs.map(d => d.owner_id))];
             const { data: profiles } = await supabase
-              .from('profiles_safe')
+              .from('public_profiles')
               .select('id, display_name, avatar_url, city, state')
               .in('id', ownerIds);
 

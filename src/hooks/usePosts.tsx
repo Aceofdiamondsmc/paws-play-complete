@@ -53,9 +53,9 @@ export function usePosts() {
       const authorIds = new Set<string>();
       postsData?.forEach((p: Post) => authorIds.add(p.author_id));
 
-      // Fetch author profiles from profiles_safe view (publicly readable)
+      // Fetch author profiles from public_profiles view
       const { data: profiles } = await supabase
-        .from('profiles_safe')
+        .from('public_profiles')
         .select('id, display_name, avatar_url')
         .in('id', Array.from(authorIds));
 
@@ -123,7 +123,7 @@ export function usePosts() {
     const fetchNewPost = async (post: Post) => {
       try {
         const { data: profile } = await supabase
-          .from('profiles_safe')
+          .from('public_profiles')
           .select('id, display_name, avatar_url')
           .eq('id', post.author_id)
           .single();
@@ -357,12 +357,12 @@ export function usePostComments(postId: string | null) {
 
       if (error) throw error;
 
-      // Get author profiles from profiles_safe view (publicly readable)
+      // Get author profiles from public_profiles view
       const authorIds = new Set<string>();
       data?.forEach((c: Comment) => authorIds.add(c.author_id));
 
       const { data: profiles } = await supabase
-        .from('profiles_safe')
+        .from('public_profiles')
         .select('id, display_name, avatar_url')
         .in('id', Array.from(authorIds));
 
