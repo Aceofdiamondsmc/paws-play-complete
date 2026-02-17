@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -117,6 +118,7 @@ function formatDistanceMiles(meters: number | null | undefined): string {
 
 export default function Pack() {
   const { user, dogs: userDogs } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [discoveryDogs, setDiscoveryDogs] = useState<DogWithOwner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -240,6 +242,23 @@ export default function Pack() {
 
     fetchDogs();
   }, [locationStatus, userLocation, user]);
+
+  // Deep-link: jump to a specific dog/owner when navigated with ?dog= or ?user=
+  useEffect(() => {
+    if (discoveryDogs.length === 0) return;
+    const targetDogId = searchParams.get('dog');
+    const targetUserId = searchParams.get('user');
+    if (targetDogId) {
+      const idx = discoveryDogs.findIndex(d => d.id === targetDogId);
+      if (idx >= 0) setCurrentIndex(idx);
+    } else if (targetUserId) {
+      const idx = discoveryDogs.findIndex(d => d.owner_id === targetUserId);
+      if (idx >= 0) setCurrentIndex(idx);
+    }
+    if (targetDogId || targetUserId) {
+      setSearchParams({}, { replace: true });
+    }
+  }, [discoveryDogs, searchParams, setSearchParams]);
 
   const currentDog = discoveryDogs[currentIndex];
 
