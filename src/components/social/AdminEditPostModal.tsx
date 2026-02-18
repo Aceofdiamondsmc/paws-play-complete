@@ -22,6 +22,7 @@ interface AdminEditPostModalProps {
   initialContent: string;
   initialPupName: string;
   initialImageUrl: string;
+  initialAuthorName: string;
   initialLikesCount?: number;
   initialCommentsCount?: number;
   onPostUpdated: () => void;
@@ -34,6 +35,7 @@ export default function AdminEditPostModal({
   initialContent,
   initialPupName,
   initialImageUrl,
+  initialAuthorName,
   initialLikesCount = 0,
   initialCommentsCount = 0,
   onPostUpdated,
@@ -41,6 +43,7 @@ export default function AdminEditPostModal({
   const [content, setContent] = useState(initialContent);
   const [pupName, setPupName] = useState(initialPupName);
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
+  const [authorName, setAuthorName] = useState(initialAuthorName);
   const [likesCount, setLikesCount] = useState(initialLikesCount);
   const [commentsCount, setCommentsCount] = useState(initialCommentsCount);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,10 +55,11 @@ export default function AdminEditPostModal({
       setContent(initialContent);
       setPupName(initialPupName);
       setImageUrl(initialImageUrl);
+      setAuthorName(initialAuthorName);
       setLikesCount(initialLikesCount);
       setCommentsCount(initialCommentsCount);
     }
-  }, [open, initialContent, initialPupName, initialImageUrl, initialLikesCount, initialCommentsCount]);
+  }, [open, initialContent, initialPupName, initialImageUrl, initialAuthorName, initialLikesCount, initialCommentsCount]);
 
   const handleSave = async () => {
     if (!postId || !content.trim()) return;
@@ -68,6 +72,7 @@ export default function AdminEditPostModal({
           content: content.trim(),
           pup_name: pupName.trim() || null,
           image_url: imageUrl.trim() || null,
+          author_display_name: authorName.trim() || null,
           likes_count: likesCount,
           comments_count: commentsCount,
           updated_at: new Date().toISOString(),
@@ -96,6 +101,17 @@ export default function AdminEditPostModal({
           </DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="admin-author-name">Author Display Name</Label>
+            <Input
+              id="admin-author-name"
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              placeholder="Override author name for this post..."
+            />
+            <p className="text-xs text-muted-foreground">Leave blank to use profile name</p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="admin-content">Content</Label>
             <Textarea
