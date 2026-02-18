@@ -95,7 +95,10 @@ export function usePosts() {
         const dogName = p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id)) || null;
         return {
           ...p,
-          author: profileMap.get(p.author_id),
+          author: {
+            ...profileMap.get(p.author_id),
+            display_name: p.author_display_name || profileMap.get(p.author_id)?.display_name,
+          },
           likesCount: p.likes_count || 0,
           commentsCount: p.comments_count || 0,
           isLiked: likedPostIds.has(p.id),

@@ -34,6 +34,7 @@ interface Post {
   content: string;
   image_url: string | null;
   pup_name: string | null;
+  author_display_name: string | null;
   likes_count: number;
   comments_count: number;
   visibility: string;
@@ -99,15 +100,16 @@ export default function AdminSocial() {
     fetchPosts();
   }, []);
 
-  const getAuthorName = (authorId: string) => {
-    const profile = profiles.get(authorId);
-    if (!profile) return authorId.slice(0, 8) + '...';
+  const getAuthorName = (post: Post) => {
+    if (post.author_display_name) return post.author_display_name;
+    const profile = profiles.get(post.author_id);
+    if (!profile) return post.author_id.slice(0, 8) + '...';
     return profile.display_name || profile.username || profile.full_name || 'Anonymous';
   };
 
   const filteredPosts = posts.filter(post =>
     post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    getAuthorName(post.author_id).toLowerCase().includes(searchQuery.toLowerCase())
+    getAuthorName(post).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleOpenDelete = (post: Post) => {
@@ -199,7 +201,7 @@ export default function AdminSocial() {
                 filteredPosts.map((post) => (
                   <TableRow key={post.id}>
                     <TableCell>
-                      <div className="font-medium">{getAuthorName(post.author_id)}</div>
+                      <div className="font-medium">{getAuthorName(post)}</div>
                     </TableCell>
                     <TableCell>
                       <div className="max-w-[200px] truncate text-sm">
@@ -273,7 +275,7 @@ export default function AdminSocial() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Post</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this post by {selectedPost ? getAuthorName(selectedPost.author_id) : ''}? This action cannot be undone.
+              Are you sure you want to delete this post by {selectedPost ? getAuthorName(selectedPost) : ''}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -297,6 +299,7 @@ export default function AdminSocial() {
         initialContent={editingPost?.content ?? ''}
         initialPupName={editingPost?.pup_name ?? ''}
         initialImageUrl={editingPost?.image_url ?? ''}
+        initialAuthorName={editingPost?.author_display_name || (editingPost ? getAuthorName(editingPost) : '')}
         initialLikesCount={editingPost?.likes_count ?? 0}
         initialCommentsCount={editingPost?.comments_count ?? 0}
         onPostUpdated={fetchPosts}
