@@ -1,100 +1,133 @@
 
 
-## HEIC Image Support and Image Loading Fallback
+## Add "Processing Image..." Feedback During HEIC Conversion
 
 ### Problem
-iPhone users uploading HEIC/HEIF photos see broken images (question marks) on the Social feed because browsers don't natively support this format. Additionally, there's no loading state while images fetch.
+When a user selects a HEIC/HEIF image, the `ensureJpeg` conversion can take a few seconds. During this time there's no visual feedback, making the app appear frozen.
 
 ### Solution
+Add a toast notification and a processing state at each call site where `ensureJpeg` is invoked during file selection. The toast will appear only for actual HEIC files (non-HEIC files return instantly so no feedback is needed).
 
-#### 1. Install `heic2any` library
-Add the `heic2any` package which converts HEIC/HEIF blobs to JPEG in the browser.
+### Changes
 
-#### 2. Create a shared HEIC conversion utility
-**New file: `src/lib/heic-convert.ts`**
-- Export an `ensureJpeg(file: File): Promise<File>` function
-- Detect HEIC/HEIF by checking `file.type` (`image/heic`, `image/heif`) and file extension (`.heic`, `.heif`)
-- If detected, use `heic2any` to convert to JPEG blob, then wrap it as a new `File` with a `.jpg` extension
-- If not HEIC, return the original file unchanged
+#### 1. Update `ensureJpeg` to accept an optional `onStart` callback
+**File: `src/lib/heic-convert.ts`**
+- Add an optional `onProcessing` callback parameter
+- Call it right before the conversion begins (only for actual HEIC files)
+- This keeps the utility reusable without hardcoding toast logic
 
-#### 3. Update `useImageUpload` hook
-**File: `src/hooks/useImageUpload.tsx`**
-- Import `ensureJpeg` from the utility
-- Before uploading, run `file = await ensureJpeg(file)`
-- Force the file extension to `.jpg` after conversion (already handled by the utility returning a renamed File)
+```ts
+export async function ensureJpeg(
+  file: File,
+  onProcessing?: () => void
+): Promise<File> {
+  if (!isHeic(file)) return file;
+  onProcessing?.();
+  // ... existing conversion logic
+}
+```
 
-#### 4. Update `PhotoUploadSheet` upload flow
-**File: `src/components/social/PhotoUploadSheet.tsx`**
-- In `handleFileSelect`: expand the type check to also accept `image/heic` and `image/heif`
-- In `handleSubmit`: before uploading, convert with `ensureJpeg(imageFile)` and re-generate the preview from the converted file
-- Update the `accept` attribute on file inputs to include `.heic,.heif`
-
-#### 5. Update `CreatePostForm` upload flow
+#### 2. Update `CreatePostForm` -- show toast + processing state
 **File: `src/components/social/CreatePostForm.tsx`**
-- In `handleImageSelect`: accept HEIC types, convert with `ensureJpeg`, then generate preview from the converted file
-- Update file input `accept` to include `.heic,.heif`
+- Add a `processing` boolean state
+- In `handleImageSelect`, pass an `onProcessing` callback that fires a toast and sets `processing = true`
+- After conversion completes, set `processing = false`
+- Disable the post button while processing
+- Show "Processing..." text on the image button area while converting
 
-#### 6. Add image loading/fallback state in Social feed
-**File: `src/pages/Social.tsx`**
-- Replace the plain `<img>` tag (lines 366-370) with a small wrapper component that:
-  - Shows a `Skeleton` placeholder while the image is loading (`onLoad` / `onError` handlers)
-  - On error, shows a muted fallback icon (e.g., `ImageOff`) instead of a broken image
-  - Uses React `useState` to track `loaded` and `errored` states
+#### 3. Update `PhotoUploadSheet` -- show toast during file select
+**File: `src/components/social/PhotoUploadSheet.tsx`**
+- Add a `processing` boolean state
+- In `handleFileSelect`, after detecting a HEIC file, show a toast: "Processing image... Converting for best compatibility"
+- Set `processing = true` before conversion, `false` after
+- Disable submit and cancel buttons while processing
+- Show a small spinner overlay on the image preview area
+
+#### 4. Update `useImageUpload` -- show toast during upload conversion
+**File: `src/hooks/useImageUpload.tsx`**
+- Pass an `onProcessing` callback when calling `ensureJpeg` that fires a toast notification
 
 ### Technical Details
 
-**`src/lib/heic-convert.ts`**
+**`src/lib/heic-convert.ts`** -- add callback parameter:
 ```ts
-import heic2any from 'heic2any';
-
-function isHeic(file: File): boolean {
-  const type = file.type.toLowerCase();
-  const ext = file.name.split('.').pop()?.toLowerCase();
-  return type === 'image/heic' || type === 'image/heif' 
-    || ext === 'heic' || ext === 'heif';
-}
-
-export async function ensureJpeg(file: File): Promise<File> {
+export async function ensureJpeg(
+  file: File,
+  onProcessing?: () => void
+): Promise<File> {
   if (!isHeic(file)) return file;
+  onProcessing?.();
   const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
   const result = blob instanceof Blob ? blob : blob[0];
-  const name = file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg');
+  const name = file.name.replace(/\.(heic|heif)$/i, '.jpg');
   return new File([result], name, { type: 'image/jpeg' });
 }
 ```
 
-**Social feed image with loading state (in Social.tsx):**
+**`src/components/social/CreatePostForm.tsx`** -- key changes in `handleImageSelect`:
 ```tsx
-// Inline or extracted component
-function PostImage({ src, alt }: { src: string; alt: string }) {
-  const [loaded, setLoaded] = useState(false);
-  const [errored, setErrored] = useState(false);
+const [processing, setProcessing] = useState(false);
 
-  return (
-    <>
-      {!loaded && !errored && <Skeleton className="absolute inset-0" />}
-      {errored ? (
-        <div className="flex items-center justify-center w-full h-full bg-muted">
-          <ImageOff className="w-10 h-10 text-muted-foreground" />
-        </div>
-      ) : (
-        <img
-          src={src}
-          alt={alt}
-          className={cn("object-cover w-full h-full", !loaded && "opacity-0")}
-          onLoad={() => setLoaded(true)}
-          onError={() => setErrored(true)}
-        />
-      )}
-    </>
-  );
-}
+const handleImageSelect = async (e) => {
+  const rawFile = e.target.files?.[0];
+  if (rawFile) {
+    try {
+      setProcessing(true);
+      const file = await ensureJpeg(rawFile, () => {
+        toast({
+          title: "Processing image... 📸",
+          description: "Converting for best compatibility. One moment!",
+        });
+      });
+      setImageFile(file);
+      // ... preview logic unchanged
+    } catch { ... }
+    finally { setProcessing(false); }
+  }
+};
+
+// Disable post button: 
+const isSubmitting = isPosting || uploading || processing;
+```
+
+**`src/components/social/PhotoUploadSheet.tsx`** -- key changes in `handleFileSelect`:
+```tsx
+const [processing, setProcessing] = useState(false);
+
+const handleFileSelect = async (e) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    // ... existing validation ...
+    try {
+      setProcessing(true);
+      const converted = await ensureJpeg(file, () => {
+        toast({
+          title: "Processing image... 📸",
+          description: "Converting for best compatibility. One moment!",
+        });
+      });
+      setImageFile(converted);
+      // generate preview from converted file
+    } catch { ... }
+    finally { setProcessing(false); }
+  }
+};
+// Disable submit while processing
+// Show Loader2 spinner overlay when processing is true
+```
+
+**`src/hooks/useImageUpload.tsx`** -- add toast on conversion:
+```tsx
+file = await ensureJpeg(file, () => {
+  toast({
+    title: "Processing image... 📸",
+    description: "Converting for best compatibility.",
+  });
+});
 ```
 
 ### Files Changed
-- **New**: `src/lib/heic-convert.ts`
-- **Modified**: `src/hooks/useImageUpload.tsx`
-- **Modified**: `src/components/social/PhotoUploadSheet.tsx`
-- **Modified**: `src/components/social/CreatePostForm.tsx`
-- **Modified**: `src/pages/Social.tsx`
-- **New dependency**: `heic2any`
+- `src/lib/heic-convert.ts` -- add optional callback parameter
+- `src/hooks/useImageUpload.tsx` -- pass toast callback
+- `src/components/social/CreatePostForm.tsx` -- add processing state + toast
+- `src/components/social/PhotoUploadSheet.tsx` -- add processing state + toast
