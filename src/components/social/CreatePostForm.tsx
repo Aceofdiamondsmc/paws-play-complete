@@ -16,6 +16,7 @@ import { useParks } from '@/hooks/useParks';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { ensureJpeg } from '@/lib/heic-convert';
 
 interface CreatePostFormProps {
   onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number) => Promise<void>;
@@ -68,15 +69,24 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
   const [imageFile, setImageFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0];
+    if (rawFile) {
+      try {
+        const file = await ensureJpeg(rawFile);
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewImage(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } catch (err) {
+        toast({
+          title: "Image error",
+          description: "Could not process this image. Please try a different one.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -235,7 +245,7 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             onChange={handleImageSelect}
             className="hidden"
           />

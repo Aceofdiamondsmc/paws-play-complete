@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { ensureJpeg } from '@/lib/heic-convert';
 
 interface PhotoUploadSheetProps {
   open: boolean;
@@ -76,8 +77,9 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
+      // Validate file type (allow HEIC/HEIF too)
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (!file.type.startsWith('image/') && ext !== 'heic' && ext !== 'heif') {
         toast({
           title: "Invalid file type",
           description: "Please select an image file.",
@@ -146,17 +148,19 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
 
       let imageUrl: string | null = null;
 
-      // Upload image to Supabase Storage if one was selected
+      // Convert HEIC/HEIF to JPEG if needed, then upload
       if (imageFile) {
-        setUploadProgress(20);
+        setUploadProgress(15);
+        const convertedFile = await ensureJpeg(imageFile);
+        setUploadProgress(25);
         
-        const fileExt = imageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const fileExt = convertedFile.name.split('.').pop()?.toLowerCase() || 'jpg';
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
         const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('social_posts')
-          .upload(filePath, imageFile, {
+          .upload(filePath, convertedFile, {
             cacheControl: '3600',
             upsert: false,
           });
@@ -244,7 +248,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
               <input
                 ref={cameraInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 capture="environment"
                 onChange={handleFileSelect}
                 className="hidden"
@@ -262,7 +266,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
               <input
                 ref={galleryInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 onChange={handleFileSelect}
                 className="hidden"
               />

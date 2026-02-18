@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck, ImageOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Skeleton } from '@/components/ui/skeleton';
 import CreatePostForm from '@/components/social/CreatePostForm';
 import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
 import CommentsDrawer from '@/components/social/CommentsDrawer';
@@ -38,6 +39,31 @@ import AdminEditPostModal from '@/components/social/AdminEditPostModal';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
+
+// Image with loading/error fallback
+function PostImage({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+
+  return (
+    <>
+      {!loaded && !errored && <Skeleton className="absolute inset-0 rounded-none" />}
+      {errored ? (
+        <div className="flex items-center justify-center w-full h-full bg-muted">
+          <ImageOff className="w-10 h-10 text-muted-foreground" />
+        </div>
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          className={cn("object-cover w-full h-full transition-opacity", !loaded && "opacity-0")}
+          onLoad={() => setLoaded(true)}
+          onError={() => setErrored(true)}
+        />
+      )}
+    </>
+  );
+}
 
 // Star rating component
 function StarRating({ rating }: { rating: number }) {
@@ -363,10 +389,9 @@ export default function Social() {
                   {(post.imageUrl || post.image_url) && (
                     <div className="mt-3 overflow-hidden rounded-xl border border-border">
                       <AspectRatio ratio={1}>
-                        <img
+                        <PostImage
                           src={post.imageUrl || post.image_url}
                           alt="Post content"
-                          className="object-cover w-full h-full"
                         />
                       </AspectRatio>
                     </div>
