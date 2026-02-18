@@ -67,13 +67,20 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
   const [rating, setRating] = useState(0);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [processing, setProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawFile = e.target.files?.[0];
     if (rawFile) {
       try {
-        const file = await ensureJpeg(rawFile);
+        setProcessing(true);
+        const file = await ensureJpeg(rawFile, () => {
+          toast({
+            title: "Processing image... 📸",
+            description: "Converting for best compatibility. One moment!",
+          });
+        });
         setImageFile(file);
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -86,6 +93,8 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
           description: "Could not process this image. Please try a different one.",
           variant: "destructive",
         });
+      } finally {
+        setProcessing(false);
       }
     }
   };
@@ -139,7 +148,7 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
   };
 
   const canPost = content.trim() && (!isReview || (selectedParkId && rating > 0));
-  const isSubmitting = isPosting || uploading;
+  const isSubmitting = isPosting || uploading || processing;
 
   return (
     <Card className="p-4 bg-card border-2 border-primary/20 rounded-2xl shadow-sm">

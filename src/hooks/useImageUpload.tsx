@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { ensureJpeg } from '@/lib/heic-convert';
+import { toast } from '@/hooks/use-toast';
 
 interface UploadResult {
   url: string | null;
@@ -21,7 +22,12 @@ export function useImageUpload() {
       setUploading(true);
 
       // Convert HEIC/HEIF to JPEG if needed
-      file = await ensureJpeg(file);
+      file = await ensureJpeg(file, () => {
+        toast({
+          title: "Processing image... 📸",
+          description: "Converting for best compatibility.",
+        });
+      });
 
       // Create unique file path: userId/timestamp-randomstring.extension
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
