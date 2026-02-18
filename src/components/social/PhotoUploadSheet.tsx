@@ -177,7 +177,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
         const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('social_posts')
+          .from('post-images')
           .upload(filePath, convertedFile, {
             cacheControl: '3600',
             upsert: false,
@@ -191,7 +191,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-          .from('social_posts')
+          .from('post-images')
           .getPublicUrl(filePath);
 
         imageUrl = publicUrl;
