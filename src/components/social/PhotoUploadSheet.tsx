@@ -29,6 +29,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -74,7 +75,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type (allow HEIC/HEIF too)
@@ -98,12 +99,29 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
         return;
       }
       
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setProcessing(true);
+        const converted = await ensureJpeg(file, () => {
+          toast({
+            title: "Processing image... 📸",
+            description: "Converting for best compatibility. One moment!",
+          });
+        });
+        setImageFile(converted);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewImage(reader.result as string);
+        };
+        reader.readAsDataURL(converted);
+      } catch (err) {
+        toast({
+          title: "Image error",
+          description: "Could not process this image. Please try a different one.",
+          variant: "destructive",
+        });
+      } finally {
+        setProcessing(false);
+      }
     }
   };
 
@@ -313,16 +331,16 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
         <DrawerFooter className="border-t border-border pt-4">
           <Button
             onClick={handleSubmit}
-            disabled={uploading || (!imageFile && !caption.trim())}
+            disabled={uploading || processing || (!imageFile && !caption.trim())}
             className={cn(
               "w-full rounded-full font-bold py-6",
               "bg-[hsl(165,40%,45%)] hover:bg-[hsl(165,40%,40%)]"
             )}
           >
-            {uploading ? (
+            {uploading || processing ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Posting...
+                {processing ? 'Processing...' : 'Posting...'}
               </>
             ) : (
               <>
@@ -332,7 +350,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
             )}
           </Button>
           <DrawerClose asChild>
-            <Button variant="ghost" disabled={uploading} className="rounded-full">
+            <Button variant="ghost" disabled={uploading || processing} className="rounded-full">
               Cancel
             </Button>
           </DrawerClose>
