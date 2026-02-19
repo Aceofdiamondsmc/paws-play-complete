@@ -129,11 +129,11 @@ Deno.serve(async (req) => {
 
     console.log('Sending push notification to user:', postOwnerId);
 
-    const oneSignalResponse = await fetch('https://onesignal.com/api/v1/notifications', {
+    const oneSignalResponse = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${oneSignalApiKey}`,
+        'Authorization': `Key ${oneSignalApiKey}`,
       },
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,

@@ -84,11 +84,11 @@ Deno.serve(async (req) => {
       data: data || {},
     };
 
-    const osResponse = await fetch('https://onesignal.com/api/v1/notifications', {
+    const osResponse = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Basic ${ONESIGNAL_REST_API_KEY}`,
+        Authorization: `Key ${ONESIGNAL_REST_API_KEY}`,
       },
       body: JSON.stringify(oneSignalPayload),
     });
