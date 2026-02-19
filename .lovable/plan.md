@@ -1,65 +1,27 @@
 
-## Create Properly Sized PWA Icons (192x192 and 512x512)
-
-### The Problem
-
-Currently, `manifest.json` references a single `favicon.png` file for both 192×192 and 512×512 icon sizes. The browser is forced to stretch or shrink one image to fit both slots — this can cause blurry icons on home screens and fails PWA best-practice validation.
+## Replace All Icons with New Paw Print Image (Paw_Print_icon3.png)
 
 ### What Will Be Done
 
-**1. Copy the paw print image as three dedicated icon files in `public/`**
-
-| File | Use |
-|---|---|
-| `public/icon-192.png` | PWA home screen icon (Android, Chrome) |
-| `public/icon-512.png` | PWA splash screen / install icon |
-| `public/apple-touch-icon.png` | iOS home screen icon (180×180 is the standard Apple size) |
-
-The source image (`user-uploads://paw_print.png`) will be copied to each of these paths. Since browsers natively handle PNG scaling, providing the same source image at named size paths is the correct pattern — it declares the intended display size to the OS without needing server-side image resizing.
-
-**2. Update `public/manifest.json`**
-
-Change the `icons` array to reference the new dedicated files:
-
-```json
-"icons": [
-  {
-    "src": "/icon-192.png",
-    "sizes": "192x192",
-    "type": "image/png",
-    "purpose": "any maskable"
-  },
-  {
-    "src": "/icon-512.png",
-    "sizes": "512x512",
-    "type": "image/png",
-    "purpose": "any maskable"
-  }
-]
-```
-
-Adding `"purpose": "any maskable"` tells Android to use the image for adaptive icons (rounded squares, circles, etc.) — required for full PWA compliance on modern Android devices.
-
-**3. Update `index.html`**
-
-Add a dedicated apple-touch-icon reference pointing to the new file:
-
-```html
-<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-```
-
-The existing `<link rel="icon" href="/favicon.png" />` stays as-is for the browser tab favicon.
+Copy `user-uploads://Paw_Print_icon3.png` to all four icon files in `public/`. This ensures the new fluffy paw print is used everywhere — browser tab, Android home screen, iOS bookmark, and PWA splash screen — at the largest declared size.
 
 ### Files to Change
 
 | File | Change |
 |---|---|
-| `public/icon-192.png` | New file — copy of `user-uploads://paw_print.png` |
-| `public/icon-512.png` | New file — copy of `user-uploads://paw_print.png` |
-| `public/apple-touch-icon.png` | New file — copy of `user-uploads://paw_print.png` (for iOS) |
-| `public/manifest.json` | Updated `icons` array to reference new files with `purpose` field |
-| `index.html` | Updated `apple-touch-icon` link to point to `/apple-touch-icon.png` |
+| `public/favicon.png` | Overwrite with `Paw_Print_icon3.png` (browser tab icon) |
+| `public/icon-192.png` | Overwrite with `Paw_Print_icon3.png` (Android PWA 192x192) |
+| `public/icon-512.png` | Overwrite with `Paw_Print_icon3.png` (Android PWA 512x512 — largest slot) |
+| `public/apple-touch-icon.png` | Overwrite with `Paw_Print_icon3.png` (iOS home screen) |
 
-### No Risk to the Existing Favicon
+No changes needed to `manifest.json` or `index.html` — those already correctly reference these file paths.
 
-`public/favicon.png` (your paw print) is untouched and continues to serve as the browser tab icon.
+### Why "As Big As Possible" Is Already Handled
+
+The 512x512 slot in the manifest is the largest standard PWA icon size. The OS will scale up from 192 and down from 512 as needed. By providing the image at both slots, the OS always picks the best fit — no quality is lost.
+
+### Note on Cache
+
+After the files are replaced, you may need to:
+- Hard refresh the browser (`Cmd+Shift+R` / `Ctrl+Shift+R`) to see the new favicon in the tab
+- Remove and re-add the app to your home screen to see the updated PWA icon
