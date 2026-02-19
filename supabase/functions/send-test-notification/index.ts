@@ -39,8 +39,14 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub;
 
-    // Admin check
-    const { data: adminRow } = await supabase
+    // Service-role client to bypass RLS for admin check
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Admin check (uses service-role client to bypass RLS)
+    const { data: adminRow } = await adminClient
       .from('admin_users')
       .select('user_id')
       .eq('user_id', userId)
