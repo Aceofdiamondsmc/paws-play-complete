@@ -1,65 +1,98 @@
 
-## Fix Social Share Link Previews on Twitter/X
 
-### Problem
-When you share a post to Twitter/X, it shows a generic placeholder image and no post-specific content. This is because the app is a single-page app (SPA) -- Twitter's crawler cannot run JavaScript, so it only sees the static Open Graph tags in `index.html` which point to the generic `/og-image.png`.
+## Admin Tools Page: Notification Testing and Install Preview
 
-### Solution
-Create a Supabase Edge Function that serves dynamic HTML with proper Open Graph meta tags when a social media crawler visits a post-specific URL. Regular users get redirected to the app.
+### Overview
+Replace the placeholder "Admin Settings" page with a full-featured **Admin Tools** page containing three sections: Notification Diagnostics, Targeted Push Test, and Install Prompt Preview.
 
-### How It Works
+---
 
-1. **Post-specific share URLs**: Change the share URL from `/social` to a post-specific URL like `/social/post/{postId}`
-2. **Edge function** (`og-post`): When a crawler (Twitter, Facebook, etc.) hits this URL, the edge function fetches the post from the database and returns an HTML page with dynamic OG tags (title, description, image). For regular browsers, it redirects to the app.
-3. **App routing**: Add a `/social/post/:id` route that scrolls/highlights the relevant post or just shows the social feed.
+### Section 1: Notification Diagnostics (Local Device)
 
-### Changes
+A card showing the current state of notifications on **your** device:
 
-#### 1. New Edge Function: `supabase/functions/og-post/index.ts`
-- Accepts a `postId` query parameter
-- Fetches the post from the `posts` table (content, image_url, author_display_name, pup_name)
-- Returns HTML with dynamic OG meta tags:
-  - `og:title` -- "{Author Name} on Paws Play Repeat"
-  - `og:description` -- The post content (truncated to 200 chars)
-  - `og:image` -- The post's image URL (falls back to `/og-image.png`)
-  - `twitter:card` -- `summary_large_image`
-- Includes a JavaScript redirect to the actual app page for real users
-- Also includes a `<meta http-equiv="refresh">` fallback redirect
+- **Permission Status**: Live display of `Notification.permission` (granted / denied / default) with a color-coded badge
+- **OneSignal Status**: Whether OneSignal SDK is loaded and your current subscription ID
+- **Test Local Notification**: A button that fires a browser `new Notification(...)` to confirm your device can receive alerts
+- **Re-request Permission**: If permission is "default", show a button to trigger `Notification.requestPermission()`
 
-#### 2. Update share handler in `src/pages/Social.tsx`
-- Change the share URL from `${window.location.origin}/social` to the edge function URL with the post ID
-- Format: `https://{supabase-url}/functions/v1/og-post?postId={postId}`
+---
 
-#### 3. Add `/social/post/:id` route in `src/App.tsx`
-- Points to the same `Social` component (the feed)
-- This is the redirect target from the edge function, so users land on the social feed
+### Section 2: Targeted Push Notification Test (Send to Any User)
 
-### Files Changed
-- **New**: `supabase/functions/og-post/index.ts` -- Dynamic OG tag server
-- **Edit**: `src/pages/Social.tsx` -- Update `handleShare` to use post-specific edge function URL
-- **Edit**: `src/App.tsx` -- Add `/social/post/:id` route
+Send a real push notification to any user via OneSignal's REST API:
+
+- **User Selector**: A text input for entering a `user_id` manually, plus a "Look Up User" button that queries the `profiles` table and shows the user's display name for confirmation
+- **Notification Type Dropdown**: Choose from preset templates:
+  - "Test Notification" (generic)
+  - "Walk Reminder" (dog walk style)
+  - "Medication Reminder" (medication style)
+  - "Feeding Reminder" (feeding style)
+- **Custom Message**: Optional text input to override the default message
+- **Send Button**: Calls a new Edge Function `send-test-notification` that uses the OneSignal REST API with `include_external_user_ids` to push to the specified user
+- **Result Display**: Shows success/failure response from OneSignal
+
+#### New Edge Function: `supabase/functions/send-test-notification/index.ts`
+- Accepts `{ targetUserId, title, body, data }` in the request body
+- Requires JWT auth and verifies the caller is an admin (checks `admin_users` table)
+- Sends push via OneSignal REST API using the existing `ONESIGNAL_REST_API_KEY` secret
+- Returns the OneSignal API response for debugging
+
+---
+
+### Section 3: Install Prompt Preview
+
+A card with a toggle switch: **"Force Show Install Instructions"**
+
+- When toggled ON, renders the `NotificationPrompt` component's iOS and Standard prompt UIs inline (not as a fixed overlay) so you can preview exactly how they look
+- Shows both variants side-by-side: the standard "Enable Notifications" prompt and the iOS "Add to Home Screen" instructions
+- Also displays device detection info: `isIOS()`, `isStandalone()`, `isAndroid()` results as badges so you can verify detection logic
+
+---
 
 ### Technical Details
 
-**Edge function logic (simplified)**:
+#### Files to Create
+- `src/pages/admin/AdminTools.tsx` -- New page with all three sections
+- `supabase/functions/send-test-notification/index.ts` -- Edge function for targeted push
+
+#### Files to Modify
+- `src/components/admin/AdminLayout.tsx` -- Add "Tools" nav item (Wrench icon)
+- `src/App.tsx` -- Add `/admin/tools` route
+- `supabase/config.toml` -- Add `[functions.send-test-notification]` with `verify_jwt = false` (auth checked in code)
+
+#### Edge Function Design
 ```
-1. Extract postId from query params
-2. Fetch post from 'posts' table
-3. Look up author name (author_display_name or from public_profiles)
-4. Return HTML with:
-   - OG meta tags (title, description, image)
-   - Twitter card meta tags
-   - JavaScript redirect: window.location.replace('/social')
-   - Meta refresh redirect as fallback
+POST /send-test-notification
+Body: { targetUserId: string, title: string, body: string, data?: object }
+
+1. Verify JWT from Authorization header
+2. Check caller's user_id exists in admin_users table
+3. Send OneSignal notification with include_external_user_ids: [targetUserId]
+4. Return OneSignal response JSON
 ```
 
-**Share URL change**:
-```ts
-// Before
-const shareUrl = `${window.location.origin}/social`;
-
-// After  
-const shareUrl = `https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/og-post?postId=${postId}`;
+#### AdminTools Page Structure
+```
+Admin Tools
+  |-- Card: Notification Diagnostics
+  |     |-- Permission badge (granted/denied/default)
+  |     |-- OneSignal status
+  |     |-- [Test Local Notification] button
+  |     |-- [Re-request Permission] button (if default)
+  |
+  |-- Card: Send Test Push
+  |     |-- User ID input + [Look Up] button
+  |     |-- User info display (name, avatar)
+  |     |-- Notification type select (Test/Walk/Medication/Feeding)
+  |     |-- Custom message input (optional)
+  |     |-- [Send Push Notification] button
+  |     |-- Result/error display
+  |
+  |-- Card: Install Prompt Preview
+        |-- Device info badges (iOS/Android/Standalone)
+        |-- Toggle: Force show prompts
+        |-- Inline preview of Standard prompt
+        |-- Inline preview of iOS prompt
 ```
 
-**Why an edge function?** Twitter/X crawlers don't execute JavaScript, so we need a server-side endpoint that returns proper HTML with OG tags. The edge function reads the post data from the database and generates the appropriate meta tags on the fly.
