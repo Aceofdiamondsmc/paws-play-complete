@@ -29,6 +29,7 @@ import AdminServices from "./pages/admin/AdminServices";
 import AdminSocial from "./pages/admin/AdminSocial";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminTools from "./pages/admin/AdminTools";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ const App = () => (
                 <Route path="services" element={<AdminServices />} />
                 <Route path="social" element={<AdminSocial />} />
                 <Route path="users" element={<AdminUsers />} />
+                <Route path="tools" element={<AdminTools />} />
                 <Route path="settings" element={<AdminSettings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
