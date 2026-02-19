@@ -12,19 +12,56 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Auth check - require admin
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // Admin check using service role client
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, SUPABASE_SERVICE_ROLE_KEY);
+
+    const { data: adminRow } = await supabase
+      .from('admin_users')
+      .select('user_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!adminRow) {
+      return new Response(
+        JSON.stringify({ error: "Admin access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const MAPBOX_TOKEN = Deno.env.get("MAPBOX_ACCESS_TOKEN");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!MAPBOX_TOKEN) {
       throw new Error("MAPBOX_ACCESS_TOKEN not configured");
     }
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Supabase credentials not configured");
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Fetch parks with missing coordinates but valid addresses
     const { data: parks, error: fetchError } = await supabase
@@ -40,7 +77,6 @@ serve(async (req: Request) => {
     const parksToGeocode = (parks || []).filter((p: any) => {
       const lat = p.latitude;
       const lng = p.longitude;
-      // Check if lat/lng are invalid (null, NaN, or out of bounds)
       const isInvalid = 
         lat == null || lng == null ||
         (typeof lat === 'number' && (isNaN(lat) || !isFinite(lat))) ||
@@ -57,7 +93,6 @@ serve(async (req: Request) => {
       errors: [] as string[],
     };
 
-    // Process in batches to avoid rate limiting
     for (const park of parksToGeocode.slice(0, 50)) {
       try {
         const query = encodeURIComponent(park.address);
@@ -76,13 +111,11 @@ serve(async (req: Request) => {
         if (data.features && data.features.length > 0) {
           const [lng, lat] = data.features[0].center;
           
-          // Update the park in the database
           const { error: updateError } = await supabase
             .from("parks")
             .update({ 
               latitude: lat, 
               longitude: lng,
-              // Also update the geom column with a valid PostGIS point
               geom: `SRID=4326;POINT(${lng} ${lat})`
             })
             .eq("Id", park.Id);
@@ -99,7 +132,6 @@ serve(async (req: Request) => {
           results.errors.push(`No results for ${park.name}`);
         }
 
-        // Rate limiting: wait 100ms between requests
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error: unknown) {
         results.failed++;
