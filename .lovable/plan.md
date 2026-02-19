@@ -1,61 +1,65 @@
 
-
-## Add Per-Post Author Name Override in Admin
+## Fix Social Share Link Previews on Twitter/X
 
 ### Problem
-Many seed/demo posts share the same `author_id`, so they all display the same profile name (e.g., "Harry"). You need the ability to set a different display name per post from the Admin panel.
+When you share a post to Twitter/X, it shows a generic placeholder image and no post-specific content. This is because the app is a single-page app (SPA) -- Twitter's crawler cannot run JavaScript, so it only sees the static Open Graph tags in `index.html` which point to the generic `/og-image.png`.
 
-### Approach
-Add an `author_display_name` column to the `posts` table that acts as a per-post override. When set, the social feed and admin panel will use it instead of the profile's `display_name`. This avoids modifying the actual user profile (which would affect all posts by that user).
+### Solution
+Create a Supabase Edge Function that serves dynamic HTML with proper Open Graph meta tags when a social media crawler visits a post-specific URL. Regular users get redirected to the app.
+
+### How It Works
+
+1. **Post-specific share URLs**: Change the share URL from `/social` to a post-specific URL like `/social/post/{postId}`
+2. **Edge function** (`og-post`): When a crawler (Twitter, Facebook, etc.) hits this URL, the edge function fetches the post from the database and returns an HTML page with dynamic OG tags (title, description, image). For regular browsers, it redirects to the app.
+3. **App routing**: Add a `/social/post/:id` route that scrolls/highlights the relevant post or just shows the social feed.
 
 ### Changes
 
-#### 1. Database Migration
-Add a nullable `author_display_name` text column to the `posts` table:
-```sql
-ALTER TABLE posts ADD COLUMN author_display_name text;
-```
+#### 1. New Edge Function: `supabase/functions/og-post/index.ts`
+- Accepts a `postId` query parameter
+- Fetches the post from the `posts` table (content, image_url, author_display_name, pup_name)
+- Returns HTML with dynamic OG meta tags:
+  - `og:title` -- "{Author Name} on Paws Play Repeat"
+  - `og:description` -- The post content (truncated to 200 chars)
+  - `og:image` -- The post's image URL (falls back to `/og-image.png`)
+  - `twitter:card` -- `summary_large_image`
+- Includes a JavaScript redirect to the actual app page for real users
+- Also includes a `<meta http-equiv="refresh">` fallback redirect
 
-#### 2. AdminEditPostModal -- add Author Name field
-**File: `src/components/social/AdminEditPostModal.tsx`**
-- Add `initialAuthorName` prop and `authorName` state
-- Add an "Author Display Name" text input field (placed above Content)
-- Include `author_display_name` in the update query on save
+#### 2. Update share handler in `src/pages/Social.tsx`
+- Change the share URL from `${window.location.origin}/social` to the edge function URL with the post ID
+- Format: `https://{supabase-url}/functions/v1/og-post?postId={postId}`
 
-#### 3. AdminSocial -- pass author name to edit modal
-**File: `src/pages/admin/AdminSocial.tsx`**
-- Update the `Post` interface to include `author_display_name`
-- Pass the post's `author_display_name` (or the resolved profile name as fallback) to the edit modal
-- Display the override name in the table's Author column when present
+#### 3. Add `/social/post/:id` route in `src/App.tsx`
+- Points to the same `Social` component (the feed)
+- This is the redirect target from the edge function, so users land on the social feed
 
-#### 4. Social Feed -- prefer per-post override
-**File: `src/hooks/usePosts.tsx`**
-- When building enriched posts, set `author.display_name` to `post.author_display_name` if it exists, falling back to the profile's display name
+### Files Changed
+- **New**: `supabase/functions/og-post/index.ts` -- Dynamic OG tag server
+- **Edit**: `src/pages/Social.tsx` -- Update `handleShare` to use post-specific edge function URL
+- **Edit**: `src/App.tsx` -- Add `/social/post/:id` route
 
 ### Technical Details
 
-**Database**: Single column addition, no data migration needed. Existing posts will have `null` and continue using the profile name.
-
-**AdminEditPostModal changes**:
-- New prop: `initialAuthorName: string`
-- New state: `authorName`
-- New input field between the dialog title and Content textarea
-- Update query adds: `author_display_name: authorName.trim() || null`
-
-**usePosts.tsx change** (in the enriched posts mapping):
-```ts
-author: {
-  ...profileMap.get(p.author_id),
-  display_name: p.author_display_name || profileMap.get(p.author_id)?.display_name,
-}
+**Edge function logic (simplified)**:
+```
+1. Extract postId from query params
+2. Fetch post from 'posts' table
+3. Look up author name (author_display_name or from public_profiles)
+4. Return HTML with:
+   - OG meta tags (title, description, image)
+   - Twitter card meta tags
+   - JavaScript redirect: window.location.replace('/social')
+   - Meta refresh redirect as fallback
 ```
 
-**AdminSocial.tsx changes**:
-- `getAuthorName` checks `post.author_display_name` first
-- Passes `initialAuthorName` to the edit modal using `post.author_display_name || getAuthorName(post.author_id)`
+**Share URL change**:
+```ts
+// Before
+const shareUrl = `${window.location.origin}/social`;
 
-### Files Changed
-- **Migration**: Add `author_display_name` column to `posts`
-- `src/components/social/AdminEditPostModal.tsx` -- add author name field + save logic
-- `src/pages/admin/AdminSocial.tsx` -- pass author name, display override in table
-- `src/hooks/usePosts.tsx` -- prefer per-post override in feed display
+// After  
+const shareUrl = `https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/og-post?postId=${postId}`;
+```
+
+**Why an edge function?** Twitter/X crawlers don't execute JavaScript, so we need a server-side endpoint that returns proper HTML with OG tags. The edge function reads the post data from the database and generates the appropriate meta tags on the fly.
