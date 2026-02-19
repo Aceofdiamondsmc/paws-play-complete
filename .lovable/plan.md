@@ -1,38 +1,32 @@
 
+## Use Paw Print Image as the Site Icon
 
-## Update `send-test-notification` to Use Service Role Key
+This replaces the previous icon choice (the pug logo) with the new fluffy paw print image (`user-uploads://paw_print.png`).
 
-### Problem
-With RLS tightened on the `profiles` table, the edge function can no longer query `admin_users` (or any RLS-protected table) using the caller's anon-key client, because the admin check query may fail depending on policy configuration.
+### What Will Be Done
 
-### Solution
-Use two Supabase clients:
-1. **Anon client** (with the caller's JWT) -- solely to verify the caller's identity via `auth.getClaims()`
-2. **Service-role client** -- to perform the admin check against `admin_users` (bypasses RLS)
+**1. Copy the paw print to the public folder**
+- Copy `user-uploads://paw_print.png` → `public/favicon.png`
+- This overwrites the current favicon with the new paw print image
+- `index.html` and `manifest.json` already reference `/favicon.png` — no HTML changes needed for the icon
 
-This keeps auth verification secure while allowing the function to read RLS-protected data.
+**2. Fix OG image URLs to be absolute (same fix as before)**
+- Update `index.html` `og:image` and `twitter:image` meta tags to use the full absolute URL: `https://pawsplayrepeat.lovable.app/og-image.png`
+- This is required for Google and social crawlers to correctly pick up and display your brand image in search results
 
-### Changes
+### Files to Change
 
-**File**: `supabase/functions/send-test-notification/index.ts`
+| File | Change |
+|------|--------|
+| `public/favicon.png` | Replaced with `user-uploads://paw_print.png` |
+| `index.html` | OG image meta tag URLs changed from relative (`/og-image.png`) to absolute (`https://pawsplayrepeat.lovable.app/og-image.png`) |
 
-- **Line 25-29**: Keep the existing anon client for JWT verification (auth.getClaims)
-- **After line 40**: Create a second service-role client:
-  ```ts
-  const adminClient = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  );
-  ```
-- **Line 43**: Change the admin check query from `supabase.from(...)` to `adminClient.from(...)` so it bypasses RLS
-- The rest of the function (OneSignal call, targetUserId handling) remains unchanged
+### No Other Files Needed
+- `public/manifest.json` already references `/favicon.png` for PWA icons (192x192, 512x512) — no change needed
+- `index.html` already has `<link rel="icon" type="image/png" href="/favicon.png" />` — no change needed
 
-### Why Two Clients?
-- The anon client with the caller's JWT is needed to securely verify who is calling the function (we can't trust the request body alone)
-- The service-role client bypasses RLS to read `admin_users` and any future queries against protected tables
-- This is the standard Supabase edge function pattern for admin operations
+### About Reverting
+As confirmed earlier, the **History** tab lets you roll back to any previous version at any time — including the current favicon — with a single click.
 
-### No Other Files Changed
-- `targetUserId` is already dynamically passed from the request body (not hardcoded)
-- `SUPABASE_SERVICE_ROLE_KEY` is already available as a default Supabase secret -- no need to add it
-
+### Note on Google's Cache
+After publishing, Google may take a few days to re-crawl and update the icon shown in search results. You can speed this up by submitting your URL in [Google Search Console](https://search.google.com/search-console) and requesting re-indexing.
