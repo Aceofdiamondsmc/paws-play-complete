@@ -131,7 +131,7 @@ export default function Social() {
   };
 
   const handleShare = async (postId: string, postContent: string, authorName: string) => {
-    const shareUrl = `${window.location.origin}/social`;
+    const shareUrl = `https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/og-post?postId=${postId}`;
     
     const truncatedContent = postContent.length > 100 
       ? postContent.substring(0, 100) + '...' 
