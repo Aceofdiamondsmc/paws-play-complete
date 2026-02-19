@@ -86,7 +86,7 @@ export default function AdminTools() {
     setLookingUp(true);
     setLookupResult(null);
     const { data, error } = await supabase
-      .from('profiles')
+      .from('public_profiles')
       .select('display_name, avatar_url')
       .eq('id', targetUserId.trim())
       .maybeSingle();
