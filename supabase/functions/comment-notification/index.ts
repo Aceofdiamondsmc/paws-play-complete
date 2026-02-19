@@ -29,11 +29,37 @@ Deno.serve(async (req) => {
 
     const { post_id, author_id: commenterId, body: commentBody, id: commentId } = comment;
 
+    // Validate required fields
+    if (!post_id || !commenterId || !commentId) {
+      console.log('Missing required fields in payload');
+      return new Response(JSON.stringify({ error: 'Invalid payload' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Create Supabase client with service role
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    // Verify the comment actually exists in the database (prevents fake payloads)
+    const { data: verifiedComment, error: verifyError } = await supabase
+      .from('post_comments')
+      .select('id, post_id, author_id')
+      .eq('id', commentId)
+      .eq('post_id', post_id)
+      .eq('author_id', commenterId)
+      .single();
+
+    if (verifyError || !verifiedComment) {
+      console.error('Comment verification failed - payload does not match database:', verifyError);
+      return new Response(JSON.stringify({ error: 'Invalid or non-existent comment' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Look up the post to find the owner
     const { data: post, error: postError } = await supabase
