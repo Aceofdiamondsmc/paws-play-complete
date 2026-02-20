@@ -388,11 +388,11 @@ export default function Social() {
                   )}
                   
                   {/* Image(s) */}
-                  {(post.imageUrl || post.image_url) && (
+                  {post.image_url && (
                     <div className="mt-3 overflow-hidden rounded-xl border border-border">
                       <AspectRatio ratio={1}>
                         <PostImage
-                          src={post.imageUrl || post.image_url}
+                          src={post.image_url}
                           alt="Post content"
                         />
                       </AspectRatio>
