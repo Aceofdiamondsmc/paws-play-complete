@@ -64,6 +64,8 @@ export default function AdminSocial() {
   const fetchPosts = async () => {
     setLoading(true);
     try {
+      // Admin reads from base posts table (not public_posts view) to see ALL posts
+      // including private/non-public ones. Write operations also target base tables.
       const { data, error } = await supabase
         .from('posts')
         .select('*')
