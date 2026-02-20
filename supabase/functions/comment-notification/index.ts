@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
         include_external_user_ids: [postOwnerId],
+        channel_for_external_user_ids: 'push',
         contents: { en: `${commenterName} commented on your post!` },
         headings: { en: 'New Comment 💬' },
         data: { type: 'comment', postId: post_id },

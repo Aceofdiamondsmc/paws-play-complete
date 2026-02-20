@@ -78,6 +78,7 @@ Deno.serve(async (req) => {
     const oneSignalPayload = {
       app_id: ONESIGNAL_APP_ID,
       include_external_user_ids: [targetUserId],
+      channel_for_external_user_ids: 'push',
       contents: { en: body },
       headings: { en: title },
       data: data || {},
