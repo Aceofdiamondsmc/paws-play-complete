@@ -40,48 +40,30 @@ export function usePosts() {
     try {
       setLoading(true);
 
-      // Fetch all posts (RLS policies will control visibility)
+      // Single query against the public_posts view (pre-joins author profile data)
       const { data: postsData, error } = await supabase
-        .from('posts')
+        .from('public_posts' as any)
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
 
-      // Get unique author IDs
-      const authorIds = new Set<string>();
-      postsData?.forEach((p: Post) => authorIds.add(p.author_id));
-
-      // Fetch author profiles from public_profiles view
-      const { data: profiles } = await supabase
-        .from('public_profiles')
-        .select('id, display_name, avatar_url')
-        .in('id', Array.from(authorIds));
-
-      const profileMap = new Map<string, Profile>();
-      profiles?.forEach((p: any) => profileMap.set(p.id, p as Profile));
-
-      // Fetch dogs for all authors to get real dog names
-      const { data: dogs } = await supabase
-        .from('dogs')
-        .select('id, owner_id, name')
-        .in('owner_id', Array.from(authorIds));
-
-      // Map dog_id -> dog name, and owner_id -> first dog name
+      // Fetch dog names for posts that have a dog_id
+      const dogIds = (postsData || []).map((p: any) => p.dog_id).filter(Boolean);
       const dogByIdMap = new Map<string, string>();
-      const dogByOwnerMap = new Map<string, string>();
-      dogs?.forEach((d: any) => {
-        dogByIdMap.set(d.id, d.name);
-        if (!dogByOwnerMap.has(d.owner_id)) {
-          dogByOwnerMap.set(d.owner_id, d.name);
-        }
-      });
+      if (dogIds.length > 0) {
+        const { data: dogs } = await supabase
+          .from('dogs')
+          .select('id, name')
+          .in('id', dogIds);
+        dogs?.forEach((d: any) => dogByIdMap.set(d.id, d.name));
+      }
 
-      // Check which posts current user has liked (single query)
+      // Check which posts current user has liked
       let likedPostIds = new Set<string>();
       if (user) {
-        const postIds = (postsData || []).map((p: Post) => p.id);
+        const postIds = (postsData || []).map((p: any) => p.id);
         const { data: userLikes } = await supabase
           .from('post_likes')
           .select('post_id')
@@ -90,14 +72,13 @@ export function usePosts() {
         userLikes?.forEach((l: any) => likedPostIds.add(l.post_id));
       }
 
-      // Use likes_count and comments_count directly from posts table
       const enrichedPosts = (postsData || []).map((p: any) => {
-        const dogName = p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : dogByOwnerMap.get(p.author_id)) || null;
+        const dogName = p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : null) || null;
         return {
           ...p,
           author: {
-            ...profileMap.get(p.author_id),
-            display_name: p.author_display_name || profileMap.get(p.author_id)?.display_name,
+            display_name: p.author_display_name,
+            avatar_url: p.author_avatar_url,
           },
           likesCount: p.likes_count || 0,
           commentsCount: p.comments_count || 0,
@@ -122,21 +103,27 @@ export function usePosts() {
 
   // Set up real-time subscriptions separately
   useEffect(() => {
-    // Helper to fetch a new post with author info
+    // Helper to fetch a new post with pre-joined author info from the view
     const fetchNewPost = async (post: Post) => {
       try {
-        const { data: profile } = await supabase
-          .from('public_profiles')
-          .select('id, display_name, avatar_url')
-          .eq('id', post.author_id)
+        const { data: postRow } = await supabase
+          .from('public_posts' as any)
+          .select('*')
+          .eq('id', post.id)
           .single();
 
+        if (!postRow) return;
+
         const newPost: PostWithDetails = {
-          ...post,
-          author: profile || undefined,
-          likesCount: 0,
-          commentsCount: 0,
-          isLiked: false
+          ...(postRow as any),
+          author: {
+            display_name: (postRow as any).author_display_name,
+            avatar_url: (postRow as any).author_avatar_url,
+          },
+          likesCount: (postRow as any).likes_count || 0,
+          commentsCount: (postRow as any).comments_count || 0,
+          isLiked: false,
+          dogName: (postRow as any).pup_name || null,
         };
 
         // Mark as new for animation

@@ -673,6 +673,13 @@ export type Database = {
             referencedRelation: "posts_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "post_access_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "public_posts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       post_comments: {
@@ -713,6 +720,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "public_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -795,6 +809,13 @@ export type Database = {
             referencedRelation: "posts_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "post_images_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "public_posts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       post_likes: {
@@ -829,6 +850,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "public_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -1519,6 +1547,39 @@ export type Database = {
         }
         Relationships: []
       }
+      public_posts: {
+        Row: {
+          author_avatar_url: string | null
+          author_display_name: string | null
+          author_id: string | null
+          comments_count: number | null
+          content: string | null
+          created_at: string | null
+          dog_id: string | null
+          id: string | null
+          image_url: string | null
+          likes_count: number | null
+          pup_name: string | null
+          updated_at: string | null
+          visibility: Database["public"]["Enums"]["post_visibility"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs_discovery"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_profiles: {
         Row: {
           avatar_url: string | null
@@ -1614,6 +1675,13 @@ export type Database = {
             referencedRelation: "posts_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "public_posts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       view_post_like_counts: {
@@ -1634,6 +1702,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "public_posts"
             referencedColumns: ["id"]
           },
         ]
