@@ -33,6 +33,9 @@ verify_jwt = false
 [functions.og-post]
 verify_jwt = false
 
+[functions.care-reminder-push]
+verify_jwt = false
+
 [functions.like-notification]
 verify_jwt = false
 
