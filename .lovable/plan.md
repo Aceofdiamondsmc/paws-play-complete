@@ -1,15 +1,26 @@
 
 
-## Fix: Notification Bell Prompt Overlapping Bottom Nav
+## Update OneSignalSDKWorker.js with Immediate Activation Hooks
 
-**Problem**: The notification prompt card sits too low on the screen (`bottom-24` / 6rem), causing the bell icon to overlap with the "Me" icon in the bottom navigation bar (which is `h-20` / 5rem tall).
+**What**: Add `install` and `activate` event listeners to the OneSignal service worker so it activates immediately without waiting for a page refresh.
 
-**Solution**: Increase the bottom offset of the notification prompt so it clears the bottom nav entirely.
+**Why**: By default, a new service worker waits until all tabs are closed before activating. Adding `skipWaiting()` and `clients.claim()` ensures the worker takes control instantly, improving reliability of background push notifications -- especially on iOS PWAs.
 
 ### Changes
 
-**File: `src/components/notifications/NotificationPrompt.tsx`**
-- Change the container's positioning class from `bottom-24` to `bottom-28` (7rem), giving more clearance above the bottom navigation bar. This ensures the card floats comfortably above all nav icons without overlapping.
+**File: `public/OneSignalSDKWorker.js`**
 
-This is a single-line CSS class change -- quick and minimal.
+Replace the current single-line content with:
+
+```js
+self.addEventListener('install', () => self.skipWaiting());
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
+});
+
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+```
+
+This is a small addition to one file -- the existing `importScripts` line stays at the bottom.
 
