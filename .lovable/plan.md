@@ -1,33 +1,30 @@
 
 
-## Make Block Button Clearly Labeled
+## Add Block/Unblock UI to Friends & Pack
 
-### The Problem
-The block button on incoming playdate request cards is currently just a small shield icon with no text. Users can't tell what it does at a glance.
-
-### The Fix
-Change the block button from an icon-only ghost button to a clearly labeled button that says **"Block"** with the shield icon next to it. This makes the action unmistakable.
+Two changes: (1) add a "Blocked Users" section with tap-to-unblock, and (2) make blocking simpler with a single tap (no dialog) in the Pack tab.
 
 ### What Changes
 
-**File: `src/pages/Dates.tsx` (line 291-294)**
+**1. `src/hooks/useBlockedUsers.tsx` -- Return full blocked user profiles**
 
-The current icon-only button:
-```
-<ShieldBan className="w-4 h-4" />
-```
+Currently the hook only stores a `Set<string>` of blocked IDs. We'll also fetch display_name and avatar_url from `profiles` for each blocked user, returning a `blockedUsers` array of `{ id, display_name, avatar_url }` so the UI can render them.
 
-Will become a labeled button:
-```
-<ShieldBan className="w-4 h-4 mr-1" />
-Block
-```
+**2. `src/components/profile/FriendsList.tsx` -- Add "Blocked Users" section**
 
-The button keeps its destructive red styling so it's visually distinct from Accept/Decline, but now includes the word "Block" so users immediately understand the capability.
+Add a collapsible section at the bottom of the FriendsList showing all blocked users. Each row displays their avatar, name, and a tap-to-**Unblock** button. Tapping it instantly unblocks them with a success toast. The section only appears when there are blocked users.
+
+Also update the empty state check so the list still shows if there are blocked users even when there are no friends/requests.
+
+**3. `src/pages/Pack.tsx` -- Simplify block to single tap**
+
+On the Pack tab dog cards, the existing "Block" button currently opens the `BlockUserDialog`. We'll simplify this to a single tap that blocks immediately (no reason prompt) with a toast confirmation. This keeps the interaction lightweight for discovery. The full dialog with reason field remains available on the Dates tab and FriendsList for incoming requests where more context matters.
 
 ### Summary
 
 | File | Change |
 |------|--------|
-| `src/pages/Dates.tsx` | Add "Block" text label to the block button on incoming playdate cards |
+| `src/hooks/useBlockedUsers.tsx` | Fetch and return blocked user profiles (name, avatar) |
+| `src/components/profile/FriendsList.tsx` | Add "Blocked Users" section with tap-to-unblock buttons |
+| `src/pages/Pack.tsx` | Simplify block to single-tap (no dialog) |
 
