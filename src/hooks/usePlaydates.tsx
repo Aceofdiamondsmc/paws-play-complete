@@ -50,7 +50,7 @@ export function usePlaydates() {
       // Fetch profiles from public_profiles view
       const { data: profilesData, error: profilesError } = await supabase
         .from('public_profiles')
-        .select('id, display_name, full_name, avatar_url, city, state')
+        .select('id, display_name, avatar_url, city, state')
         .in('id', Array.from(requesterIds));
 
       if (profilesError) {

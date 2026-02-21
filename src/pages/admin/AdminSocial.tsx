@@ -45,7 +45,7 @@ interface Profile {
   id: string;
   display_name: string | null;
   username: string | null;
-  full_name: string | null;
+  
 }
 
 export default function AdminSocial() {
@@ -79,7 +79,7 @@ export default function AdminSocial() {
       if (authorIds.length > 0) {
         const { data: profileData } = await supabase
           .from('public_profiles')
-          .select('id, display_name, full_name')
+          .select('id, display_name')
           .in('id', authorIds);
 
         const profileMap = new Map<string, Profile>();
@@ -106,7 +106,7 @@ export default function AdminSocial() {
     if (post.author_display_name) return post.author_display_name;
     const profile = profiles.get(post.author_id);
     if (!profile) return post.author_id.slice(0, 8) + '...';
-    return profile.display_name || profile.username || profile.full_name || 'Anonymous';
+    return profile.display_name || profile.username || 'Anonymous';
   };
 
   const filteredPosts = posts.filter(post =>
