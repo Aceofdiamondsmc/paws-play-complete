@@ -77,6 +77,27 @@ export type Database = {
           },
         ]
       }
+      care_reminder_sent_log: {
+        Row: {
+          id: string
+          reminder_id: string
+          sent_at: string
+          sent_date: string
+        }
+        Insert: {
+          id?: string
+          reminder_id: string
+          sent_at?: string
+          sent_date?: string
+        }
+        Update: {
+          id?: string
+          reminder_id?: string
+          sent_at?: string
+          sent_date?: string
+        }
+        Relationships: []
+      }
       care_reminders: {
         Row: {
           category: string | null
