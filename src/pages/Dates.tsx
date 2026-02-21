@@ -290,7 +290,8 @@ function PlaydateCard({
           </Button>
           {onBlock && (
             <Button onClick={onBlock} variant="ghost" size="sm" className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10" title="Block this user">
-              <ShieldBan className="w-4 h-4" />
+              <ShieldBan className="w-4 h-4 mr-1" />
+              Block
             </Button>
           )}
         </div>
