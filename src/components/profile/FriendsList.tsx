@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { UserPlus, UserCheck, UserX, Clock, X, ShieldBan } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, Clock, X, ShieldBan, ShieldOff, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useFriendships } from '@/hooks/useFriendships';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
@@ -9,8 +10,9 @@ import { toast } from 'sonner';
 
 export function FriendsList() {
   const { friends, pendingRequests, sentRequests, loading, acceptRequest, declineRequest, removeFriend } = useFriendships();
-  const { blockUser } = useBlockedUsers();
+  const { blockUser, unblockUser, blockedUsers } = useBlockedUsers();
   const [blockTarget, setBlockTarget] = useState<{ id: string; name?: string } | null>(null);
+  const [blockedOpen, setBlockedOpen] = useState(false);
 
   const handleAccept = async (friendshipId: string) => {
     const { error } = await acceptRequest(friendshipId);
@@ -30,13 +32,19 @@ export function FriendsList() {
     else toast.success('Friend removed');
   };
 
+  const handleUnblock = async (userId: string) => {
+    const { error } = await unblockUser(userId);
+    if (error) toast.error('Failed to unblock user');
+    else toast.success('User unblocked');
+  };
+
   if (loading) {
     return (
       <div className="py-4 text-center text-sm text-muted-foreground">Loading...</div>
     );
   }
 
-  const isEmpty = friends.length === 0 && pendingRequests.length === 0 && sentRequests.length === 0;
+  const isEmpty = friends.length === 0 && pendingRequests.length === 0 && sentRequests.length === 0 && blockedUsers.length === 0;
 
   if (isEmpty) {
     return (
@@ -156,6 +164,44 @@ export function FriendsList() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Blocked Users */}
+      {blockedUsers.length > 0 && (
+        <Collapsible open={blockedOpen} onOpenChange={setBlockedOpen}>
+          <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Blocked Users ({blockedUsers.length})
+            </h4>
+            <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${blockedOpen ? 'rotate-180' : ''}`} />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2">
+            <div className="space-y-2">
+              {blockedUsers.map((u) => (
+                <div key={u.id} className="flex items-center gap-3 p-3 bg-muted rounded-xl">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={u.avatar_url || undefined} />
+                    <AvatarFallback className="bg-destructive/10 text-destructive text-sm">
+                      {u.display_name?.[0] || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{u.display_name || 'Unknown'}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 rounded-full text-xs text-muted-foreground hover:text-primary"
+                    onClick={() => handleUnblock(u.id)}
+                  >
+                    <ShieldOff className="w-3.5 h-3.5 mr-1" />
+                    Unblock
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
       <BlockUserDialog

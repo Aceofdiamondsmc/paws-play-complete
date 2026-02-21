@@ -10,7 +10,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFriendships } from '@/hooks/useFriendships';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { RequestPlaydateModal } from '@/components/playdate/RequestPlaydateModal';
-import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
 import { toast } from 'sonner';
 import { UserPlus, UserCheck, Clock as ClockIcon } from 'lucide-react';
 
@@ -132,7 +131,7 @@ export default function Pack() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
   const [playdateModalOpen, setPlaydateModalOpen] = useState(false);
-  const [blockTarget, setBlockTarget] = useState<{ id: string; name?: string } | null>(null);
+  
   
   // Touch/swipe handling
   const touchStartX = useRef<number>(0);
@@ -641,12 +640,11 @@ export default function Pack() {
                           size="sm"
                           variant="ghost"
                           className="h-8 rounded-full text-[#ef4444] hover:text-[#ef4444] hover:bg-[#ef4444]/10 text-xs font-semibold"
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
-                            setBlockTarget({
-                              id: currentDog.owner_id,
-                              name: currentDog.owner?.display_name || undefined,
-                            });
+                            const { error } = await blockUser(currentDog.owner_id);
+                            if (error) toast.error('Failed to block user');
+                            else toast.success('User blocked');
                           }}
                         >
                           <ShieldBan className="w-3.5 h-3.5 mr-1" />
@@ -690,21 +688,6 @@ export default function Pack() {
       {/* Bottom Gradient */}
       <div className="fixed bottom-20 left-0 right-0 h-20 bg-gradient-to-t from-[#7CB69D]/50 to-transparent pointer-events-none" />
 
-      <BlockUserDialog
-        open={!!blockTarget}
-        onOpenChange={(open) => !open && setBlockTarget(null)}
-        userName={blockTarget?.name}
-        onConfirm={async (reason) => {
-          if (!blockTarget) return;
-          const { error } = await blockUser(blockTarget.id, reason);
-          if (error) {
-            toast.error('Failed to block user');
-          } else {
-            toast.success('User blocked.');
-          }
-          setBlockTarget(null);
-        }}
-      />
     </div>
   );
 }
