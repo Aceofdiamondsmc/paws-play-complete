@@ -1,57 +1,84 @@
 
 
-## Make Install Prompt Always Visible on the Me Tab
+## Fix Background Push Notifications for Real Events
 
-**Problem**: The `IOSInstallCard` component is hidden because `isStandalone()` returns `true` inside the Lovable preview iframe (and possibly on deployed standalone PWAs too). Every conditional gate we've tried has hidden it.
+### Current Problem
 
-**Solution**: Remove the `IOSInstallCard` component entirely and inline the install prompt directly in the Me tab's authenticated view. No `isIOS()` check, no `isStandalone()` check. Just a simple, always-visible, dismissible card with the install instructions.
+Test pushes from Admin Tools work in the background because they call the `send-test-notification` edge function directly from the browser (via `supabase.functions.invoke()`). However, **real event notifications (comments) are failing** because:
 
-### Changes
+1. The database trigger (`notify_on_comment`) calls the edge function via `pg_net`, and the OneSignal API **rejected the API key** with "Access denied" -- visible in the `net._http_response` table from Feb 18.
+2. There is **no like notification** edge function at all -- only comments trigger push notifications.
 
-**File: `src/pages/Me.tsx`**
+### Root Cause
 
-1. **Replace the `<IOSInstallCard />` reference (line 419)** with the card content rendered inline, using a simple `useState` + `localStorage` dismiss pattern directly in the `Me` component (no separate function that could have its own conditional logic).
+The `pg_net` HTTP call from the database trigger does **not include the Supabase `apikey` header**, but since `verify_jwt = false`, the edge function still processes the request. The edge function itself works -- the failure is at the OneSignal API level, where the `ONESIGNAL_REST_API_KEY` was invalid at the time of the last comment (Feb 18).
 
-2. **Remove the standalone `IOSInstallCard` function** (lines 463-509) since it's no longer needed.
+Since test pushes currently work, the key is now valid. The comment notification should work on the next comment. However, we should also add **like notifications** to match user expectations.
 
-3. **The inline card will**:
-   - Always render unless the user explicitly dismissed it (7-day localStorage suppression)
-   - Show a Share icon, title "Get Notifications on iPhone", and the 3-step instructions
-   - Have an X button to dismiss
-   - Match the uploaded screenshot style
+### Plan
 
-### Technical Detail
+#### 1. Create a `like-notification` Edge Function
 
-In the `Me` component's authenticated return block, replace:
-```jsx
-{/* iOS Install Prompt */}
-<IOSInstallCard />
+**New file: `supabase/functions/like-notification/index.ts`**
+
+- Triggered by a database webhook (same pattern as `comment-notification`)
+- Receives the new `post_likes` record
+- Looks up the post owner, skips self-likes
+- Sends push notification via OneSignal: "Username liked your post!"
+- Creates an in-app notification record in the `notifications` table
+
+#### 2. Create Database Trigger for Likes
+
+**Database migration:**
+
+```sql
+CREATE OR REPLACE FUNCTION public.notify_on_like()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  PERFORM net.http_post(
+    url := 'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/like-notification',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json'
+    ),
+    body := jsonb_build_object(
+      'type', 'INSERT',
+      'table', 'post_likes',
+      'record', row_to_json(NEW)
+    )
+  );
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_like_inserted
+  AFTER INSERT ON public.post_likes
+  FOR EACH ROW
+  EXECUTE FUNCTION public.notify_on_like();
 ```
 
-With a state variable `installDismissed` (checked from localStorage on mount) and inline JSX:
-```jsx
-{!installDismissed && (
-  <Card className="p-4 relative">
-    <button onClick={dismissInstall} className="absolute top-3 right-3 ...">
-      <X className="w-4 h-4" />
-    </button>
-    <div className="flex items-start gap-3">
-      <div className="w-10 h-10 rounded-full bg-primary/10 ...">
-        <Share className="w-5 h-5 text-primary" />
-      </div>
-      <div>
-        <h3 className="font-bold text-sm">Get Notifications on iPhone</h3>
-        <p>Install this app to your Home Screen to receive push notifications.</p>
-        <ol>
-          <li>Tap the Share button in Safari</li>
-          <li>Scroll down and tap "Add to Home Screen"</li>
-          <li>Tap "Add" in the top right</li>
-        </ol>
-      </div>
-    </div>
-  </Card>
-)}
+#### 3. Add Config for the New Function
+
+**File: `supabase/config.toml`**
+
+Add:
+```toml
+[functions.like-notification]
+verify_jwt = false
 ```
 
-The key difference: **zero platform detection checks**. The card shows for everyone unless manually dismissed.
+#### 4. Verify Comment Notifications Still Work
 
+After deploying, we should test by adding a comment on another user's post to confirm the OneSignal key now works for webhook-triggered notifications.
+
+### Summary of Changes
+
+| Change | Details |
+|--------|---------|
+| New edge function | `supabase/functions/like-notification/index.ts` |
+| Database migration | Add `notify_on_like` trigger on `post_likes` |
+| Config update | `supabase/config.toml` -- add like-notification entry |
+| Testing | Verify both comment and like notifications fire in background |
