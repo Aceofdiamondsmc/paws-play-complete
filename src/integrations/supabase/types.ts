@@ -1206,6 +1206,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1723,6 +1747,14 @@ export type Database = {
             }
             Returns: string
           }
+      block_user_and_decline_requests: {
+        Args: { p_blocked: string; p_blocker: string }
+        Returns: undefined
+      }
+      check_user_blocked: {
+        Args: { p_receiver_owner: string; p_requester: string }
+        Returns: boolean
+      }
       delete_storage_object: {
         Args: { object_path: string }
         Returns: undefined

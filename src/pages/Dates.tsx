@@ -1,10 +1,13 @@
-import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox } from 'lucide-react';
+import { useState } from 'react';
+import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox, ShieldBan } from 'lucide-react';
 import { CareScheduleSection } from '@/components/dates/CareScheduleSection';
+import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlaydates } from '@/hooks/usePlaydates';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -12,6 +15,7 @@ import datesBackground from '@/assets/dates-background.jpg';
 
 export default function Dates() {
   const { user, dogs } = useAuth();
+  const { blockUser } = useBlockedUsers();
   const { 
     pendingPlaydates, 
     incomingPendingPlaydates,
@@ -20,8 +24,23 @@ export default function Dates() {
     playdates, 
     loading, 
     updatePlaydateStatus,
-    acceptPlaydate 
+    acceptPlaydate,
+    refresh
   } = usePlaydates();
+
+  const [blockTarget, setBlockTarget] = useState<{ id: string; name?: string } | null>(null);
+
+  const handleBlockConfirm = async (reason?: string) => {
+    if (!blockTarget) return;
+    const { error } = await blockUser(blockTarget.id, reason);
+    if (error) {
+      toast.error('Failed to block user');
+    } else {
+      toast.success('User blocked. Their requests have been declined.');
+      refresh();
+    }
+    setBlockTarget(null);
+  };
 
   const handleAccept = async (playdateId: string) => {
     const { error } = await acceptPlaydate(playdateId);
@@ -113,6 +132,10 @@ export default function Dates() {
                       playdate={playdate}
                       onAccept={() => handleAccept(playdate.id)}
                       onDecline={() => handleDecline(playdate.id)}
+                      onBlock={() => setBlockTarget({
+                        id: playdate.requester_id,
+                        name: playdate.requesterProfile?.display_name || undefined,
+                      })}
                       showActions
                       isIncoming
                     />
@@ -172,6 +195,13 @@ export default function Dates() {
       <div className="px-4 pb-4">
         <CareScheduleSection />
       </div>
+
+      <BlockUserDialog
+        open={!!blockTarget}
+        onOpenChange={(open) => !open && setBlockTarget(null)}
+        userName={blockTarget?.name}
+        onConfirm={handleBlockConfirm}
+      />
     </div>
   );
 }
@@ -180,6 +210,7 @@ function PlaydateCard({
   playdate, 
   onAccept, 
   onDecline, 
+  onBlock,
   showActions = false,
   isIncoming = false,
   isOutgoing = false
@@ -187,6 +218,7 @@ function PlaydateCard({
   playdate: any; 
   onAccept?: () => void; 
   onDecline?: () => void;
+  onBlock?: () => void;
   showActions?: boolean;
   isIncoming?: boolean;
   isOutgoing?: boolean;
@@ -256,6 +288,11 @@ function PlaydateCard({
             <X className="w-4 h-4 mr-1" />
             Decline
           </Button>
+          {onBlock && (
+            <Button onClick={onBlock} variant="ghost" size="sm" className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10" title="Block this user">
+              <ShieldBan className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       )}
     </Card>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useBlockedUsers } from './useBlockedUsers';
 import type { PlaydateRequest, Dog, Profile } from '@/types';
 
 interface PlaydateWithDetails extends PlaydateRequest {
@@ -11,6 +12,7 @@ interface PlaydateWithDetails extends PlaydateRequest {
 
 export function usePlaydates() {
   const { user, dogs } = useAuth();
+  const { blockedUserIds } = useBlockedUsers();
   const [playdates, setPlaydates] = useState<PlaydateWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -69,7 +71,10 @@ export function usePlaydates() {
         senderDog: p.sender_dog_id ? dogMap.get(p.sender_dog_id) : undefined,
         receiverDog: p.receiver_dog_id ? dogMap.get(p.receiver_dog_id) : undefined,
         requesterProfile: p.requester_id ? profileMap.get(p.requester_id) : undefined
-      }));
+      })).filter((p: PlaydateWithDetails) => 
+        // Filter out playdates from blocked users (defense-in-depth)
+        !p.requester_id || !blockedUserIds.has(p.requester_id)
+      );
 
       setPlaydates(enrichedPlaydates);
     } catch (e) {
@@ -77,7 +82,7 @@ export function usePlaydates() {
     } finally {
       setLoading(false);
     }
-  }, [user, dogs]);
+  }, [user, dogs, blockedUserIds]);
 
   useEffect(() => {
     fetchPlaydates();
