@@ -102,6 +102,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
           setDogs([]);
+          // Unlink OneSignal identity on logout to prevent cross-user notifications
+          if ((window as any).OneSignalDeferred) {
+            (window as any).OneSignalDeferred.push(async (OneSignal: any) => {
+              try {
+                await OneSignal.logout();
+                console.log('OneSignal: identity unlinked on sign out');
+              } catch (e) {
+                console.log('OneSignal logout skipped');
+              }
+            });
+          }
         }
       }
     );
