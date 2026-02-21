@@ -1,34 +1,57 @@
 
 
-## Show iOS Install Card on All Devices (Not Just iOS)
+## Make Install Prompt Always Visible on the Me Tab
 
-**Problem**: The `IOSInstallCard` component currently checks `if (dismissed || !isIOS() || isStandalone()) return null;` -- meaning it only shows on iOS Safari when NOT installed as a PWA. On any other device (desktop, Android, or already-installed PWA), it's completely hidden.
+**Problem**: The `IOSInstallCard` component is hidden because `isStandalone()` returns `true` inside the Lovable preview iframe (and possibly on deployed standalone PWAs too). Every conditional gate we've tried has hidden it.
 
-**Solution**: Remove the iOS-only gate so the card always appears at the bottom of the Me tab (still dismissible). This matches the uploaded screenshot -- a persistent prompt encouraging users to install the app.
+**Solution**: Remove the `IOSInstallCard` component entirely and inline the install prompt directly in the Me tab's authenticated view. No `isIOS()` check, no `isStandalone()` check. Just a simple, always-visible, dismissible card with the install instructions.
 
 ### Changes
 
-**File: `src/pages/Me.tsx`** (line 477)
+**File: `src/pages/Me.tsx`**
 
-Update the guard condition in `IOSInstallCard` from:
+1. **Replace the `<IOSInstallCard />` reference (line 419)** with the card content rendered inline, using a simple `useState` + `localStorage` dismiss pattern directly in the `Me` component (no separate function that could have its own conditional logic).
 
-```js
-if (dismissed || !isIOS() || isStandalone()) return null;
+2. **Remove the standalone `IOSInstallCard` function** (lines 463-509) since it's no longer needed.
+
+3. **The inline card will**:
+   - Always render unless the user explicitly dismissed it (7-day localStorage suppression)
+   - Show a Share icon, title "Get Notifications on iPhone", and the 3-step instructions
+   - Have an X button to dismiss
+   - Match the uploaded screenshot style
+
+### Technical Detail
+
+In the `Me` component's authenticated return block, replace:
+```jsx
+{/* iOS Install Prompt */}
+<IOSInstallCard />
 ```
 
-to:
-
-```js
-if (dismissed || isStandalone()) return null;
+With a state variable `installDismissed` (checked from localStorage on mount) and inline JSX:
+```jsx
+{!installDismissed && (
+  <Card className="p-4 relative">
+    <button onClick={dismissInstall} className="absolute top-3 right-3 ...">
+      <X className="w-4 h-4" />
+    </button>
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 rounded-full bg-primary/10 ...">
+        <Share className="w-5 h-5 text-primary" />
+      </div>
+      <div>
+        <h3 className="font-bold text-sm">Get Notifications on iPhone</h3>
+        <p>Install this app to your Home Screen to receive push notifications.</p>
+        <ol>
+          <li>Tap the Share button in Safari</li>
+          <li>Scroll down and tap "Add to Home Screen"</li>
+          <li>Tap "Add" in the top right</li>
+        </ol>
+      </div>
+    </div>
+  </Card>
+)}
 ```
 
-This keeps the card hidden if:
-- The user dismissed it (7-day localStorage suppression)
-- The app is already installed as a PWA (standalone mode)
-
-But it will now show on **all devices/browsers**, not just iOS Safari. The content already matches the uploaded screenshot (Share icon, step-by-step instructions, dismiss X button).
-
-### Optional Enhancement
-
-If you'd like the card text to adapt per platform (e.g., different instructions for Android vs iOS), that can be a follow-up. For now this shows the same iOS-focused instructions to everyone, which is fine since the primary target audience is iPhone users browsing in Safari.
+The key difference: **zero platform detection checks**. The card shows for everyone unless manually dismissed.
 
