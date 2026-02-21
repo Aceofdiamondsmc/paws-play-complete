@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint, ShieldBan } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +8,9 @@ import { cn } from '@/lib/utils';
 import type { Dog as DogType, Profile, DogWithDistance } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useFriendships } from '@/hooks/useFriendships';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { RequestPlaydateModal } from '@/components/playdate/RequestPlaydateModal';
+import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
 import { toast } from 'sonner';
 import { UserPlus, UserCheck, Clock as ClockIcon } from 'lucide-react';
 
@@ -121,6 +123,7 @@ function formatDistanceMiles(meters: number | null | undefined): string {
 export default function Pack() {
   const { user, dogs: userDogs } = useAuth();
   const { friends, sentRequests, pendingRequests, sendFriendRequest } = useFriendships();
+  const { blockUser } = useBlockedUsers();
   const [searchParams, setSearchParams] = useSearchParams();
   const [discoveryDogs, setDiscoveryDogs] = useState<DogWithOwner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -129,6 +132,7 @@ export default function Pack() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
   const [playdateModalOpen, setPlaydateModalOpen] = useState(false);
+  const [blockTarget, setBlockTarget] = useState<{ id: string; name?: string } | null>(null);
   
   // Touch/swipe handling
   const touchStartX = useRef<number>(0);
@@ -619,19 +623,36 @@ export default function Pack() {
                       );
                     }
                     return (
-                      <Button
-                        size="sm"
-                        className="h-8 rounded-full bg-[#4ade80]/20 hover:bg-[#4ade80]/30 text-[#4ade80] border border-[#4ade80]/30 text-xs font-semibold"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const { error } = await sendFriendRequest(currentDog.owner_id);
-                          if (error) toast.error('Failed to send friend request');
-                          else toast.success('Friend request sent!');
-                        }}
-                      >
-                        <UserPlus className="w-3.5 h-3.5 mr-1" />
-                        Add Friend
-                      </Button>
+                      <div className="flex gap-1.5">
+                        <Button
+                          size="sm"
+                          className="h-8 rounded-full bg-[#4ade80]/20 hover:bg-[#4ade80]/30 text-[#4ade80] border border-[#4ade80]/30 text-xs font-semibold"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const { error } = await sendFriendRequest(currentDog.owner_id);
+                            if (error) toast.error('Failed to send friend request');
+                            else toast.success('Friend request sent!');
+                          }}
+                        >
+                          <UserPlus className="w-3.5 h-3.5 mr-1" />
+                          Add Friend
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 rounded-full text-[#ef4444] hover:text-[#ef4444] hover:bg-[#ef4444]/10 text-xs font-semibold"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setBlockTarget({
+                              id: currentDog.owner_id,
+                              name: currentDog.owner?.display_name || undefined,
+                            });
+                          }}
+                        >
+                          <ShieldBan className="w-3.5 h-3.5 mr-1" />
+                          Block
+                        </Button>
+                      </div>
                     );
                   })()}
                   {(!user || currentDog.owner_id === user?.id) && (
@@ -668,6 +689,22 @@ export default function Pack() {
 
       {/* Bottom Gradient */}
       <div className="fixed bottom-20 left-0 right-0 h-20 bg-gradient-to-t from-[#7CB69D]/50 to-transparent pointer-events-none" />
+
+      <BlockUserDialog
+        open={!!blockTarget}
+        onOpenChange={(open) => !open && setBlockTarget(null)}
+        userName={blockTarget?.name}
+        onConfirm={async (reason) => {
+          if (!blockTarget) return;
+          const { error } = await blockUser(blockTarget.id, reason);
+          if (error) {
+            toast.error('Failed to block user');
+          } else {
+            toast.success('User blocked.');
+          }
+          setBlockTarget(null);
+        }}
+      />
     </div>
   );
 }
