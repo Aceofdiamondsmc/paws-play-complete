@@ -86,7 +86,7 @@ export function OnboardingProfileSetup({ profile, onNext }: OnboardingProfileSet
           <Avatar className="w-28 h-28 ring-4 ring-primary/20">
             <AvatarImage src={avatarUrl || undefined} />
             <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-              {(displayName?.[0] || profile?.full_name?.[0] || '?').toUpperCase()}
+              {(displayName?.[0] || '?').toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <button
