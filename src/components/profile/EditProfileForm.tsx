@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ interface EditProfileFormProps {
     city?: string | null;
     state?: string | null;
     avatar_url?: string | null;
+    location_public?: boolean;
   } | null;
 }
 
@@ -36,6 +38,7 @@ export function EditProfileForm({ open, onClose, profile }: EditProfileFormProps
   const [city, setCity] = useState(profile?.city || '');
   const [state, setState] = useState(profile?.state || '');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
+  const [locationPublic, setLocationPublic] = useState(profile?.location_public !== false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
@@ -67,7 +70,8 @@ export function EditProfileForm({ open, onClose, profile }: EditProfileFormProps
         username: username.trim() || undefined,
         bio: bio.trim() || undefined,
         city: city.trim() || undefined,
-        state: state.trim() || undefined
+        state: state.trim() || undefined,
+        location_public: locationPublic
       });
 
       if (error) throw error;
@@ -163,6 +167,17 @@ export function EditProfileForm({ open, onClose, profile }: EditProfileFormProps
                 onChange={(e) => setState(e.target.value)}
                 placeholder="e.g., TX"
                 className="mt-1"
+              />
+            </div>
+
+            <div className="col-span-2 flex items-center justify-between py-1">
+              <Label htmlFor="locationPublic" className="text-sm cursor-pointer">
+                Show my city/state publicly
+              </Label>
+              <Switch
+                id="locationPublic"
+                checked={locationPublic}
+                onCheckedChange={setLocationPublic}
               />
             </div>
 
