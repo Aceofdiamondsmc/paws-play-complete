@@ -1,84 +1,79 @@
 
 
-## Fix Background Push Notifications for Real Events
+## Background Push Notifications for Care Reminders
 
 ### Current Problem
 
-Test pushes from Admin Tools work in the background because they call the `send-test-notification` edge function directly from the browser (via `supabase.functions.invoke()`). However, **real event notifications (comments) are failing** because:
+Care reminders (walk, feeding, medication, grooming, training) currently rely on **client-side polling** using the browser's native `Notification` API inside `useCareNotifications.tsx`. This only works while the app tab is actively open. When the user closes the app or locks their phone, no reminders fire.
 
-1. The database trigger (`notify_on_comment`) calls the edge function via `pg_net`, and the OneSignal API **rejected the API key** with "Access denied" -- visible in the `net._http_response` table from Feb 18.
-2. There is **no like notification** edge function at all -- only comments trigger push notifications.
+### Solution
 
-### Root Cause
+Create a **server-side cron job** that runs every minute, checks which reminders are due right now, and sends **OneSignal push notifications** to each user. This works even when the app is completely closed.
 
-The `pg_net` HTTP call from the database trigger does **not include the Supabase `apikey` header**, but since `verify_jwt = false`, the edge function still processes the request. The edge function itself works -- the failure is at the OneSignal API level, where the `ONESIGNAL_REST_API_KEY` was invalid at the time of the last comment (Feb 18).
+### Architecture
 
-Since test pushes currently work, the key is now valid. The comment notification should work on the next comment. However, we should also add **like notifications** to match user expectations.
+1. **New Edge Function**: `care-reminder-push` -- invoked every minute by `pg_cron`
+2. **Cron Job**: A `pg_cron` schedule that calls the edge function once per minute
+3. **Deduplication**: A new `care_reminder_sent_log` table to track which reminders have already fired today, preventing duplicate pushes
 
 ### Plan
 
-#### 1. Create a `like-notification` Edge Function
+#### 1. New Edge Function: `supabase/functions/care-reminder-push/index.ts`
 
-**New file: `supabase/functions/like-notification/index.ts`**
+- Query `care_reminders` for all enabled reminders where `reminder_time` matches the current minute (HH:MM)
+- Skip reminders that are snoozed (`snoozed_until` is in the future)
+- Skip reminders already sent today (checked against `care_reminder_sent_log`)
+- For each due reminder, send a OneSignal push notification using the user's external ID
+- Log the sent reminder to prevent duplicates
+- Use category-specific titles and emojis (same as the client-side logic):
+  - medication: "Time for [task_details]"
+  - feeding: "Time to feed: [task_details]"  
+  - walk: "Time to take your pup for a walk!"
+  - grooming: "Grooming reminder: [task_details]"
+  - training: "Training reminder: [task_details]"
 
-- Triggered by a database webhook (same pattern as `comment-notification`)
-- Receives the new `post_likes` record
-- Looks up the post owner, skips self-likes
-- Sends push notification via OneSignal: "Username liked your post!"
-- Creates an in-app notification record in the `notifications` table
+#### 2. Database Migration: Deduplication Table + Cron Job
 
-#### 2. Create Database Trigger for Likes
-
-**Database migration:**
-
+**New table**: `care_reminder_sent_log`
 ```sql
-CREATE OR REPLACE FUNCTION public.notify_on_like()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  PERFORM net.http_post(
-    url := 'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/like-notification',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json'
-    ),
-    body := jsonb_build_object(
-      'type', 'INSERT',
-      'table', 'post_likes',
-      'record', row_to_json(NEW)
-    )
-  );
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER on_like_inserted
-  AFTER INSERT ON public.post_likes
-  FOR EACH ROW
-  EXECUTE FUNCTION public.notify_on_like();
+CREATE TABLE care_reminder_sent_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  reminder_id uuid NOT NULL,
+  sent_date date NOT NULL DEFAULT CURRENT_DATE,
+  sent_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(reminder_id, sent_date)
+);
 ```
 
-#### 3. Add Config for the New Function
+**Cron job** (via `pg_cron` + `pg_net`):
+- Runs every minute (`* * * * *`)
+- Calls the `care-reminder-push` edge function
+- Includes the anon key in the Authorization header
 
-**File: `supabase/config.toml`**
+**Daily cleanup** (optional second cron):
+- Deletes rows from `care_reminder_sent_log` older than 2 days to keep the table small
+
+#### 3. Config Update: `supabase/config.toml`
 
 Add:
 ```toml
-[functions.like-notification]
+[functions.care-reminder-push]
 verify_jwt = false
 ```
-
-#### 4. Verify Comment Notifications Still Work
-
-After deploying, we should test by adding a comment on another user's post to confirm the OneSignal key now works for webhook-triggered notifications.
 
 ### Summary of Changes
 
 | Change | Details |
 |--------|---------|
-| New edge function | `supabase/functions/like-notification/index.ts` |
-| Database migration | Add `notify_on_like` trigger on `post_likes` |
-| Config update | `supabase/config.toml` -- add like-notification entry |
-| Testing | Verify both comment and like notifications fire in background |
+| New edge function | `supabase/functions/care-reminder-push/index.ts` |
+| New table | `care_reminder_sent_log` (deduplication) |
+| Cron job | `pg_cron` schedule every minute to invoke the function |
+| Cleanup cron | Daily purge of old sent logs |
+| Config | Add `care-reminder-push` to `config.toml` |
+
+### What This Fixes
+
+- Reminders will fire as push notifications even when the app is closed or the phone is locked
+- The existing in-app browser notifications continue to work as a fallback when the app is open
+- No changes needed to `useCareNotifications.tsx` -- the client-side logic remains for the in-app alert UI (Log Activity / Snooze buttons)
+
