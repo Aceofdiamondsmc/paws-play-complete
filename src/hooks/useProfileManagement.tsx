@@ -8,6 +8,7 @@ interface ProfileData {
   city?: string;
   state?: string;
   avatar_url?: string;
+  location_public?: boolean;
 }
 
 export function useProfile() {

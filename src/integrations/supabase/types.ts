@@ -932,6 +932,7 @@ export type Database = {
           id: string
           is_public: boolean
           latitude: number | null
+          location_public: boolean
           longitude: number | null
           onboarding_completed: boolean | null
           onesignal_player_id: string | null
@@ -949,6 +950,7 @@ export type Database = {
           id: string
           is_public?: boolean
           latitude?: number | null
+          location_public?: boolean
           longitude?: number | null
           onboarding_completed?: boolean | null
           onesignal_player_id?: string | null
@@ -966,6 +968,7 @@ export type Database = {
           id?: string
           is_public?: boolean
           latitude?: number | null
+          location_public?: boolean
           longitude?: number | null
           onboarding_completed?: boolean | null
           onesignal_player_id?: string | null
@@ -1454,21 +1457,21 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
-          city?: string | null
+          city?: never
           created_at?: string | null
           display_name?: string | null
           id?: string | null
-          state?: string | null
+          state?: never
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
-          city?: string | null
+          city?: never
           created_at?: string | null
           display_name?: string | null
           id?: string | null
-          state?: string | null
+          state?: never
           username?: string | null
         }
         Relationships: []

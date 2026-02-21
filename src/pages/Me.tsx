@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield } from 'lucide-react';
+import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X } from 'lucide-react';
+import { isIOS, isStandalone } from '@/lib/navigation-utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -290,6 +291,11 @@ export default function Me() {
               <p className="text-primary-foreground/60 text-sm mt-1 flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
                 {profile.city}, {profile.state}
+                {profile.location_public === false && (
+                  <span className="inline-flex items-center gap-0.5 ml-1 text-xs opacity-70">
+                    <EyeOff className="w-3 h-3" /> Hidden
+                  </span>
+                )}
               </p>
             )}
           </div>
@@ -409,6 +415,9 @@ export default function Me() {
           </Card>
         )}
 
+        {/* iOS Install Prompt */}
+        <IOSInstallCard />
+
         {/* Sign Out */}
         <Button 
           variant="outline" 
@@ -448,6 +457,55 @@ export default function Me() {
         profile={profile}
       />
     </div>
+  );
+}
+
+// iOS Install Card Component
+const IOS_DISMISS_KEY = 'ios-install-dismissed-at';
+
+function IOSInstallCard() {
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    const dismissedAt = localStorage.getItem(IOS_DISMISS_KEY);
+    if (dismissedAt) {
+      const daysSince = (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
+      if (daysSince < 7) setDismissed(true);
+    }
+  }, []);
+
+  if (dismissed || !isIOS() || isStandalone()) return null;
+
+  const handleDismiss = () => {
+    localStorage.setItem(IOS_DISMISS_KEY, String(Date.now()));
+    setDismissed(true);
+  };
+
+  return (
+    <Card className="p-4 relative">
+      <button
+        onClick={handleDismiss}
+        className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+      >
+        <X className="w-4 h-4" />
+      </button>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Share className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h3 className="font-bold text-sm">Get Notifications on iPhone</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Install this app to your Home Screen to receive push notifications.
+          </p>
+          <ol className="text-xs text-muted-foreground mt-2 space-y-1 list-decimal list-inside">
+            <li>Tap the <strong>Share</strong> button <Share className="w-3 h-3 inline" /> in Safari</li>
+            <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+            <li>Tap <strong>"Add"</strong> in the top right</li>
+          </ol>
+        </div>
+      </div>
+    </Card>
   );
 }
 
