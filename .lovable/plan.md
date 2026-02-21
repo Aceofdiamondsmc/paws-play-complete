@@ -1,32 +1,41 @@
 
 
-## Fix "Add Friend" Tap Causing Page Jump
+## Fix Friend Request Cycle (Send, Accept/Decline, Re-send)
 
-### The Problem
-Tapping "Add Friend" (or any button) on the Pack tab inadvertently triggers the swipe-to-next-dog logic. Here's why:
+### Problems Found
 
-1. You swipe to see a dog -- `touchEndX` gets set to some value (e.g. 150)
-2. You tap "Add Friend" -- `touchStartX` is set to your tap position (e.g. 300), but `touchMove` never fires so `touchEndX` stays at 150
-3. `touchEnd` fires -- `diff = 300 - 150 = 150`, which exceeds the 50px threshold, so it navigates to the next dog
+1. **"Failed to send friend request"**: The `sendFriendRequest` does a plain INSERT, which fails with a duplicate key error if a friendship row already exists (e.g., previously declined request, or tapping "Add Friend" twice).
+
+2. **No reverse-direction check**: The unique constraint is on `(requester_id, addressee_id)` only. If User A sends to User B, User B can also send to User A creating a second row -- but the UI doesn't detect the reverse direction properly.
+
+3. **Accept/Decline already exists in FriendsList** on the Me tab, but the Pack tab shows no way to accept incoming requests -- it just shows "Pending" for both sent AND incoming requests.
 
 ### The Fix
 
-**File: `src/pages/Pack.tsx` (line ~294-296, `handleTouchStart`)**
+**1. `src/hooks/useFriendships.tsx` -- Smart `sendFriendRequest`**
 
-Reset `touchEndX` alongside `touchStartX` when a new touch begins, so a simple tap always produces `diff = 0`:
+Before inserting, check if a friendship row already exists in either direction:
+- If a **declined** row exists (in either direction), update it back to `pending` with the current user as requester
+- If a **pending** row exists where the OTHER user is the requester (incoming request), auto-accept it instead (mutual interest)
+- If an **accepted** row exists, do nothing (already friends)
+- Only INSERT if no row exists at all
 
-```tsx
-const handleTouchStart = (e: React.TouchEvent) => {
-  touchStartX.current = e.touches[0].clientX;
-  touchEndX.current = e.touches[0].clientX;  // <-- add this line
-};
-```
+This eliminates the duplicate key error and handles all edge cases.
 
-This single-line fix ensures that if no `touchMove` event fires (i.e., it was a tap, not a swipe), the diff will be 0 and no navigation occurs.
+**2. `src/pages/Pack.tsx` -- Show "Accept" button for incoming requests**
 
-### Summary
+Currently, incoming requests show the same "Pending" badge as sent requests. Update the Pack Leader section so:
+- **Sent requests**: Show "Pending" badge (as now)
+- **Incoming requests**: Show an "Accept" button + "Decline" button, so users can respond directly from the Pack tab without going to Me
+
+**3. `src/components/profile/FriendsList.tsx` -- Already complete**
+
+The FriendsList already has Accept, Decline, Remove, Block, and Unblock functionality. No changes needed here.
+
+### Files to Change
 
 | File | Change |
 |------|--------|
-| `src/pages/Pack.tsx` | Reset `touchEndX` in `handleTouchStart` to prevent taps from triggering swipe navigation |
+| `src/hooks/useFriendships.tsx` | Rewrite `sendFriendRequest` to check for existing rows first; handle declined/reverse/duplicate cases |
+| `src/pages/Pack.tsx` | Split "Pending" state into sent vs incoming; show Accept/Decline buttons for incoming requests |
 
