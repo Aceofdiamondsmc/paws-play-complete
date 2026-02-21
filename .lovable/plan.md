@@ -1,30 +1,32 @@
 
 
-## Add Block/Unblock UI to Friends & Pack
+## Fix "Add Friend" Tap Causing Page Jump
 
-Two changes: (1) add a "Blocked Users" section with tap-to-unblock, and (2) make blocking simpler with a single tap (no dialog) in the Pack tab.
+### The Problem
+Tapping "Add Friend" (or any button) on the Pack tab inadvertently triggers the swipe-to-next-dog logic. Here's why:
 
-### What Changes
+1. You swipe to see a dog -- `touchEndX` gets set to some value (e.g. 150)
+2. You tap "Add Friend" -- `touchStartX` is set to your tap position (e.g. 300), but `touchMove` never fires so `touchEndX` stays at 150
+3. `touchEnd` fires -- `diff = 300 - 150 = 150`, which exceeds the 50px threshold, so it navigates to the next dog
 
-**1. `src/hooks/useBlockedUsers.tsx` -- Return full blocked user profiles**
+### The Fix
 
-Currently the hook only stores a `Set<string>` of blocked IDs. We'll also fetch display_name and avatar_url from `profiles` for each blocked user, returning a `blockedUsers` array of `{ id, display_name, avatar_url }` so the UI can render them.
+**File: `src/pages/Pack.tsx` (line ~294-296, `handleTouchStart`)**
 
-**2. `src/components/profile/FriendsList.tsx` -- Add "Blocked Users" section**
+Reset `touchEndX` alongside `touchStartX` when a new touch begins, so a simple tap always produces `diff = 0`:
 
-Add a collapsible section at the bottom of the FriendsList showing all blocked users. Each row displays their avatar, name, and a tap-to-**Unblock** button. Tapping it instantly unblocks them with a success toast. The section only appears when there are blocked users.
+```tsx
+const handleTouchStart = (e: React.TouchEvent) => {
+  touchStartX.current = e.touches[0].clientX;
+  touchEndX.current = e.touches[0].clientX;  // <-- add this line
+};
+```
 
-Also update the empty state check so the list still shows if there are blocked users even when there are no friends/requests.
-
-**3. `src/pages/Pack.tsx` -- Simplify block to single tap**
-
-On the Pack tab dog cards, the existing "Block" button currently opens the `BlockUserDialog`. We'll simplify this to a single tap that blocks immediately (no reason prompt) with a toast confirmation. This keeps the interaction lightweight for discovery. The full dialog with reason field remains available on the Dates tab and FriendsList for incoming requests where more context matters.
+This single-line fix ensures that if no `touchMove` event fires (i.e., it was a tap, not a swipe), the diff will be 0 and no navigation occurs.
 
 ### Summary
 
 | File | Change |
 |------|--------|
-| `src/hooks/useBlockedUsers.tsx` | Fetch and return blocked user profiles (name, avatar) |
-| `src/components/profile/FriendsList.tsx` | Add "Blocked Users" section with tap-to-unblock buttons |
-| `src/pages/Pack.tsx` | Simplify block to single-tap (no dialog) |
+| `src/pages/Pack.tsx` | Reset `touchEndX` in `handleTouchStart` to prevent taps from triggering swipe navigation |
 
