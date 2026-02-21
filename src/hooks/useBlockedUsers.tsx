@@ -2,9 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
+interface BlockedUserProfile {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
 export function useBlockedUsers() {
   const { user } = useAuth();
   const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
+  const [blockedUsers, setBlockedUsers] = useState<BlockedUserProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBlocked = useCallback(async () => {
@@ -13,7 +20,25 @@ export function useBlockedUsers() {
       .from('user_blocks')
       .select('blocked_id')
       .eq('blocker_id', user.id);
-    setBlockedUserIds(new Set((data || []).map((r: any) => r.blocked_id)));
+    const ids = (data || []).map((r: any) => r.blocked_id);
+    setBlockedUserIds(new Set(ids));
+
+    // Fetch profiles for blocked users
+    if (ids.length > 0) {
+      const { data: profiles } = await supabase
+        .from('public_profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', ids);
+      setBlockedUsers(
+        (profiles || []).map((p: any) => ({
+          id: p.id,
+          display_name: p.display_name,
+          avatar_url: p.avatar_url,
+        }))
+      );
+    } else {
+      setBlockedUsers([]);
+    }
     setLoading(false);
   }, [user]);
 
@@ -28,7 +53,6 @@ export function useBlockedUsers() {
       p_blocked: blockedId,
     });
     if (!error) {
-      // If there's a reason, update it
       if (reason) {
         await supabase
           .from('user_blocks')
@@ -37,6 +61,8 @@ export function useBlockedUsers() {
           .eq('blocked_id', blockedId);
       }
       setBlockedUserIds(prev => new Set([...prev, blockedId]));
+      // Refresh to get profile info
+      fetchBlocked();
     }
     return { error };
   };
@@ -54,11 +80,12 @@ export function useBlockedUsers() {
         next.delete(blockedId);
         return next;
       });
+      setBlockedUsers(prev => prev.filter(u => u.id !== blockedId));
     }
     return { error };
   };
 
   const isBlocked = (userId: string) => blockedUserIds.has(userId);
 
-  return { blockedUserIds, isBlocked, blockUser, unblockUser, loading, refresh: fetchBlocked };
+  return { blockedUserIds, blockedUsers, isBlocked, blockUser, unblockUser, loading, refresh: fetchBlocked };
 }
