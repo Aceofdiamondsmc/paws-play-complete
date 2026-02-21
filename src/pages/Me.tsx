@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X } from 'lucide-react';
-import { isIOS, isStandalone } from '@/lib/navigation-utils';
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -49,6 +49,19 @@ export default function Me() {
   const [vaccinationDog, setVaccinationDog] = useState<{ id: string; name: string } | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [installDismissed, setInstallDismissed] = useState(() => {
+    const dismissedAt = localStorage.getItem('ios-install-dismissed-at');
+    if (dismissedAt) {
+      const daysSince = (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
+      return daysSince < 7;
+    }
+    return false;
+  });
+
+  const dismissInstall = () => {
+    localStorage.setItem('ios-install-dismissed-at', String(Date.now()));
+    setInstallDismissed(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -415,8 +428,33 @@ export default function Me() {
           </Card>
         )}
 
-        {/* iOS Install Prompt */}
-        <IOSInstallCard />
+        {/* Install Prompt */}
+        {!installDismissed && (
+          <Card className="p-4 relative">
+            <button
+              onClick={dismissInstall}
+              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Share className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm">Get Notifications on iPhone</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Install this app to your Home Screen to receive push notifications.
+                </p>
+                <ol className="text-xs text-muted-foreground mt-2 space-y-1 list-decimal list-inside">
+                  <li>Tap the <strong>Share</strong> button <Share className="w-3 h-3 inline" /> in Safari</li>
+                  <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                  <li>Tap <strong>"Add"</strong> in the top right</li>
+                </ol>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Sign Out */}
         <Button 
@@ -460,54 +498,6 @@ export default function Me() {
   );
 }
 
-// iOS Install Card Component
-const IOS_DISMISS_KEY = 'ios-install-dismissed-at';
-
-function IOSInstallCard() {
-  const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    const dismissedAt = localStorage.getItem(IOS_DISMISS_KEY);
-    if (dismissedAt) {
-      const daysSince = (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
-      if (daysSince < 7) setDismissed(true);
-    }
-  }, []);
-
-  if (dismissed || isStandalone()) return null;
-
-  const handleDismiss = () => {
-    localStorage.setItem(IOS_DISMISS_KEY, String(Date.now()));
-    setDismissed(true);
-  };
-
-  return (
-    <Card className="p-4 relative">
-      <button
-        onClick={handleDismiss}
-        className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
-      >
-        <X className="w-4 h-4" />
-      </button>
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Share className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h3 className="font-bold text-sm">Get Notifications on iPhone</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Install this app to your Home Screen to receive push notifications.
-          </p>
-          <ol className="text-xs text-muted-foreground mt-2 space-y-1 list-decimal list-inside">
-            <li>Tap the <strong>Share</strong> button <Share className="w-3 h-3 inline" /> in Safari</li>
-            <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
-            <li>Tap <strong>"Add"</strong> in the top right</li>
-          </ol>
-        </div>
-      </div>
-    </Card>
-  );
-}
 
 // Pack Member Card Component
 function PackMemberCard({ 
