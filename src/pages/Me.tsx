@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X } from 'lucide-react';
+import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,6 +20,7 @@ import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { OnboardingFlow } from '@/components/profile/OnboardingFlow';
 import { NotificationsList } from '@/components/profile/NotificationsList';
 import { useAdmin } from '@/hooks/useAdmin';
+import { FriendsList } from '@/components/profile/FriendsList';
 import { toast } from 'sonner';
 
 // Pet-themed placeholder images
@@ -33,7 +34,8 @@ const DOG_AVATARS = [
 export default function Me() {
   const { user, profile, dogs, signIn, signUp, signInWithGoogle, signOut, loading, refreshProfile } = useAuth();
   const { isAdmin } = useAdmin();
-  const { friends } = useFriendships();
+  const { friends, pendingRequests } = useFriendships();
+  const [showFriendsList, setShowFriendsList] = useState(false);
   const { conversations, totalUnread } = useMessages();
   const navigate = useNavigate();
   
@@ -318,12 +320,23 @@ export default function Me() {
       <div className="p-4 -mt-10 space-y-4">
         {/* Profile Stats */}
         <div className="grid grid-cols-3 gap-3">
-          <Card className="p-4 text-center">
+          <Card 
+            className="p-4 text-center cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all relative"
+            onClick={() => setShowFriendsList(!showFriendsList)}
+          >
+            {pendingRequests.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center font-bold">
+                {pendingRequests.length}
+              </span>
+            )}
             <div className="flex items-center justify-center gap-1 text-primary mb-1">
               <Users className="w-4 h-4" />
             </div>
             <p className="text-2xl font-bold text-primary">{friends.length}</p>
-            <p className="text-xs text-muted-foreground">Friends</p>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-0.5">
+              Friends
+              {showFriendsList ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </p>
           </Card>
           <Card className="p-4 text-center">
             <div className="flex items-center justify-center gap-1 text-primary mb-1">
@@ -340,6 +353,17 @@ export default function Me() {
             <p className="text-xs text-muted-foreground">Playdates</p>
           </Card>
         </div>
+
+        {/* Friends List (expandable) */}
+        {showFriendsList && (
+          <Card className="p-4">
+            <h3 className="font-bold flex items-center gap-2 mb-3">
+              <Users className="w-5 h-5 text-primary" />
+              Friends
+            </h3>
+            <FriendsList />
+          </Card>
+        )}
 
         {/* Notifications Section */}
         <NotificationsList />
