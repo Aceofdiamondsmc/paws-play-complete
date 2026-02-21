@@ -1,84 +1,91 @@
 
 
-## Add "Block User" Feature to the Dates Tab
+## Add Friends Feature -- Full Implementation
 
-### What This Does
+This plan makes the existing `useFriendships` hook actually work by fixing the missing database policies, then adds UI in the two most sensible places: an "Add Friend" button on the Pack tab's dog profile cards, and a Friends List section on the Me tab.
 
-Adds a Block button on playdate request cards so users can block harassing or unwanted requesters. Once blocked:
-- All existing playdate requests from the blocked user are automatically declined
-- The blocked user can no longer send new playdate requests to the blocker
-- Blocked users are hidden from the Dates tab entirely
+### Problem: Missing Database Policies
 
-### Database Changes
+The `friendships` table currently only has a SELECT policy. The `useFriendships` hook already has `sendFriendRequest`, `acceptRequest`, `declineRequest`, and `removeFriend` functions, but they all silently fail because INSERT, UPDATE, and DELETE are blocked by RLS.
 
-#### 1. New `user_blocks` Table
+### Step 1: Database Migration -- Add Friendship RLS Policies
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | Primary key |
-| blocker_id | uuid | The user doing the blocking |
-| blocked_id | uuid | The user being blocked |
-| reason | text | Optional reason (for user's records) |
-| created_at | timestamptz | When the block was created |
+Add the missing policies to make the existing hook functional:
 
-Unique constraint on `(blocker_id, blocked_id)` to prevent duplicate blocks. RLS policies allow users to manage only their own blocks.
+| Policy | Command | Rule |
+|--------|---------|------|
+| Send friend request | INSERT | `requester_id = auth.uid()` |
+| Accept/decline requests | UPDATE | `addressee_id = auth.uid()` (only the recipient can respond) |
+| Remove friendship | DELETE | User is either `requester_id` or `addressee_id` |
 
-#### 2. Database Function: Block Enforcement
+### Step 2: "Add Friend" Button on Pack Tab
 
-A `security definer` function `check_user_blocked(requester uuid, receiver_owner uuid)` that checks the `user_blocks` table. This will be used in:
-- **Playdate insert policy**: Prevent blocked users from creating new requests (add a check to the `playdate_requests` INSERT policy)
-- **Playdate query filtering**: Filter out requests from blocked users when fetching playdates
+The Pack tab shows discovery dog cards with a "Pack Leader" section showing the dog's owner. This is the most natural place to add a friend button -- right next to the owner's name. The button will:
+- Show "Add Friend" if no friendship exists
+- Show "Pending" if a request has been sent
+- Show "Friends" with a checkmark if already friends
+- Be hidden if viewing your own dog
 
-#### 3. Block Action Function
+### Step 3: Friends List on Me Tab
 
-A database function `block_user_and_decline_requests(blocker uuid, blocked uuid)` that:
-1. Inserts a row into `user_blocks`
-2. Declines all pending playdate requests from the blocked user to the blocker's dogs
+The Me tab already shows a "Friends" count card (line 325). Tapping it will expand/open a friends list section showing:
+- Pending incoming requests with Accept/Decline buttons
+- Current friends list with avatars, names, and a Remove option
+- Sent requests showing "Pending" status
 
-### Frontend Changes
+This reuses the existing `useFriendships` hook which already categorizes friendships into `friends`, `pendingRequests`, and `sentRequests`.
 
-#### 1. New Hook: `useBlockedUsers.tsx`
+### Step 4: Friends Count Updates Automatically
 
-- `blockUser(blockedId, reason?)` -- calls the block function, auto-declines pending requests
-- `unblockUser(blockedId)` -- removes the block
-- `blockedUserIds` -- Set of blocked user IDs for client-side filtering
-- `isBlocked(userId)` -- quick check helper
+The Me tab already displays `friends.length` from `useFriendships()` (line 325). Since the hook re-fetches after every action, the count will update automatically once the RLS policies are fixed.
 
-#### 2. Updated `PlaydateCard` Component (in `Dates.tsx`)
+---
 
-- Add a **shield/ban icon button** on incoming playdate cards
-- Tapping it opens a confirmation dialog: "Block this user? They won't be able to send you playdate requests."
-- Optional reason text field
-- On confirm: calls `blockUser()`, shows success toast, card disappears
+### Technical Details
 
-#### 3. Updated `usePlaydates.tsx`
+**Database migration SQL:**
+```sql
+-- Allow users to send friend requests
+CREATE POLICY "Users can send friend requests"
+  ON public.friendships FOR INSERT
+  TO authenticated
+  WITH CHECK (requester_id = auth.uid() AND requester_id != addressee_id);
 
-- Import blocked user IDs from the block hook
-- Filter out playdates from blocked users in the returned lists
-- The block check also happens server-side via RLS, so this is defense-in-depth
+-- Allow addressee to accept/decline
+CREATE POLICY "Users can respond to friend requests"
+  ON public.friendships FOR UPDATE
+  TO authenticated
+  USING (addressee_id = auth.uid())
+  WITH CHECK (addressee_id = auth.uid());
 
-#### 4. Block Confirmation Dialog
+-- Allow either party to remove friendship
+CREATE POLICY "Users can remove friendships"
+  ON public.friendships FOR DELETE
+  TO authenticated
+  USING (requester_id = auth.uid() OR addressee_id = auth.uid());
+```
 
-A small `AlertDialog` component asking the user to confirm the block action with:
-- Warning text explaining what blocking does
-- Optional reason input
-- Confirm / Cancel buttons
+**New component: `src/components/profile/FriendsList.tsx`**
+- Renders three sections: Incoming Requests, Friends, Sent Requests
+- Each friend card shows avatar, name, city/state
+- Accept/Decline buttons on incoming requests
+- Remove button on existing friends
+- Uses `useFriendships` hook directly
 
-### Security Considerations
+**Pack tab changes (`src/pages/Pack.tsx`):**
+- Add an "Add Friend" / "Friends" / "Pending" button in the Pack Leader section
+- Calls `useFriendships().sendFriendRequest(ownerId)` on tap
+- Check existing friendship status to show the right button state
 
-- RLS on `user_blocks` ensures users can only see/manage their own blocks
-- The INSERT policy on `playdate_requests` is updated to reject requests from blocked users (server-side enforcement)
-- The block+decline function uses `security definer` to update requests across ownership boundaries
+**Me tab changes (`src/pages/Me.tsx`):**
+- Make the Friends stat card tappable to toggle showing `FriendsList`
+- Import and render `FriendsList` component when expanded
 
-### Summary of Changes
+### Summary of Files Changed
 
-| Change | Details |
-|--------|---------|
-| New table | `user_blocks` with RLS |
-| DB function | `block_user_and_decline_requests()` |
-| DB function | `check_user_blocked()` for RLS |
-| Updated RLS | `playdate_requests` INSERT checks blocks |
-| New hook | `src/hooks/useBlockedUsers.tsx` |
-| Updated | `src/pages/Dates.tsx` -- Block button + confirmation dialog |
-| Updated | `src/hooks/usePlaydates.tsx` -- filter blocked users |
-
+| File | Change |
+|------|--------|
+| New migration | Add INSERT/UPDATE/DELETE RLS policies to `friendships` |
+| `src/components/profile/FriendsList.tsx` | New component for friends list UI |
+| `src/pages/Pack.tsx` | Add Friend button in Pack Leader section |
+| `src/pages/Me.tsx` | Tappable Friends card that shows FriendsList |
