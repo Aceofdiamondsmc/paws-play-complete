@@ -1,12 +1,16 @@
-import React from 'react';
-import { UserPlus, UserCheck, UserX, Clock, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { UserPlus, UserCheck, UserX, Clock, X, ShieldBan } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useFriendships } from '@/hooks/useFriendships';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
+import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
 import { toast } from 'sonner';
 
 export function FriendsList() {
   const { friends, pendingRequests, sentRequests, loading, acceptRequest, declineRequest, removeFriend } = useFriendships();
+  const { blockUser } = useBlockedUsers();
+  const [blockTarget, setBlockTarget] = useState<{ id: string; name?: string } | null>(null);
 
   const handleAccept = async (friendshipId: string) => {
     const { error } = await acceptRequest(friendshipId);
@@ -73,6 +77,15 @@ export function FriendsList() {
                   </Button>
                   <Button size="sm" variant="ghost" className="h-8 w-8 rounded-full p-0" onClick={() => handleDecline(req.id)}>
                     <X className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10 px-2"
+                    onClick={() => setBlockTarget({ id: req.friend.id, name: req.friend.display_name || undefined })}
+                  >
+                    <ShieldBan className="w-3.5 h-3.5 mr-1" />
+                    Block
                   </Button>
                 </div>
               </div>
@@ -144,6 +157,22 @@ export function FriendsList() {
           </div>
         </div>
       )}
+
+      <BlockUserDialog
+        open={!!blockTarget}
+        onOpenChange={(open) => !open && setBlockTarget(null)}
+        userName={blockTarget?.name}
+        onConfirm={async (reason) => {
+          if (!blockTarget) return;
+          const { error } = await blockUser(blockTarget.id, reason);
+          if (error) {
+            toast.error('Failed to block user');
+          } else {
+            toast.success('User blocked.');
+          }
+          setBlockTarget(null);
+        }}
+      />
     </div>
   );
 }
