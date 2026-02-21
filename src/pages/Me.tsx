@@ -474,7 +474,7 @@ function IOSInstallCard() {
     }
   }, []);
 
-  if (dismissed || !isIOS() || isStandalone()) return null;
+  if (dismissed || isStandalone()) return null;
 
   const handleDismiss = () => {
     localStorage.setItem(IOS_DISMISS_KEY, String(Date.now()));
