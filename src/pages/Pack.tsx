@@ -121,7 +121,7 @@ function formatDistanceMiles(meters: number | null | undefined): string {
 
 export default function Pack() {
   const { user, dogs: userDogs } = useAuth();
-  const { friends, sentRequests, pendingRequests, sendFriendRequest } = useFriendships();
+  const { friends, sentRequests, pendingRequests, sendFriendRequest, acceptRequest, declineRequest } = useFriendships();
   const { blockUser } = useBlockedUsers();
   const [searchParams, setSearchParams] = useSearchParams();
   const [discoveryDogs, setDiscoveryDogs] = useState<DogWithOwner[]>([]);
@@ -614,12 +614,47 @@ export default function Pack() {
                         </span>
                       );
                     }
-                    if (isPending || isIncoming) {
+                    if (isPending) {
                       return (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f59e0b]/20 text-[#fbbf24] text-xs font-semibold border border-[#f59e0b]/30">
                           <ClockIcon className="w-3.5 h-3.5" />
                           Pending
                         </span>
+                      );
+                    }
+                    if (isIncoming) {
+                      const incomingReq = pendingRequests.find(r => r.friend.id === currentDog.owner_id);
+                      return (
+                        <div className="flex gap-1.5">
+                          <Button
+                            size="sm"
+                            className="h-8 rounded-full bg-[#4ade80]/20 hover:bg-[#4ade80]/30 text-[#4ade80] border border-[#4ade80]/30 text-xs font-semibold"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!incomingReq) return;
+                              const { error } = await acceptRequest(incomingReq.id);
+                              if (error) toast.error('Failed to accept request');
+                              else toast.success('Friend request accepted!');
+                            }}
+                          >
+                            <UserCheck className="w-3.5 h-3.5 mr-1" />
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 rounded-full text-[#ef4444] hover:text-[#ef4444] hover:bg-[#ef4444]/10 text-xs font-semibold"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!incomingReq) return;
+                              const { error } = await declineRequest(incomingReq.id);
+                              if (error) toast.error('Failed to decline request');
+                              else toast.success('Request declined');
+                            }}
+                          >
+                            Decline
+                          </Button>
+                        </div>
                       );
                     }
                     return (

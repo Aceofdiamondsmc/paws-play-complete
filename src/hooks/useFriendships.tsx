@@ -88,19 +88,81 @@ export function useFriendships() {
   const sendFriendRequest = async (addresseeId: string) => {
     if (!user) return { error: new Error('Not authenticated') };
 
-    const { error } = await supabase
-      .from('friendships')
-      .insert({
-        requester_id: user.id,
-        addressee_id: addresseeId,
-        status: 'pending'
-      });
+    try {
+      // Check if a friendship already exists in either direction
+      const { data: existing, error: fetchError } = await supabase
+        .from('friendships')
+        .select('*')
+        .or(
+          `and(requester_id.eq.${user.id},addressee_id.eq.${addresseeId}),and(requester_id.eq.${addresseeId},addressee_id.eq.${user.id})`
+        )
+        .maybeSingle();
 
-    if (!error) {
-      await fetchFriendships();
+      if (fetchError) throw fetchError;
+
+      if (existing) {
+        const f = existing as unknown as Friendship;
+
+        // Already friends
+        if (f.status === 'accepted') {
+          return { error: null };
+        }
+
+        // Incoming pending request from them → auto-accept (mutual interest)
+        if (f.status === 'pending' && f.addressee_id === user.id) {
+          const { error } = await supabase
+            .from('friendships')
+            .update({ status: 'accepted', updated_at: new Date().toISOString() })
+            .eq('id', f.id);
+          if (!error) await fetchFriendships();
+          return { error };
+        }
+
+        // Already sent a pending request
+        if (f.status === 'pending' && f.requester_id === user.id) {
+          return { error: null };
+        }
+
+        // Declined row exists → delete it and re-insert as fresh pending
+        if (f.status === 'declined') {
+          const { error: delError } = await supabase
+            .from('friendships')
+            .delete()
+            .eq('id', f.id);
+          if (delError) throw delError;
+
+          const { error: insError } = await supabase
+            .from('friendships')
+            .insert({
+              requester_id: user.id,
+              addressee_id: addresseeId,
+              status: 'pending'
+            });
+          if (!insError) await fetchFriendships();
+          return { error: insError };
+        }
+
+        // Blocked — don't allow
+        if (f.status === 'blocked') {
+          return { error: new Error('Cannot send request to this user') };
+        }
+      }
+
+      // No existing row — insert fresh
+      const { error } = await supabase
+        .from('friendships')
+        .insert({
+          requester_id: user.id,
+          addressee_id: addresseeId,
+          status: 'pending'
+        });
+
+      if (!error) await fetchFriendships();
+      return { error };
+    } catch (e: any) {
+      console.error('Error in sendFriendRequest:', e);
+      return { error: e };
     }
-
-    return { error };
   };
 
   const acceptRequest = async (friendshipId: string) => {
