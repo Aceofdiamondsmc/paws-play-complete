@@ -243,20 +243,6 @@ export type Database = {
             foreignKeyName: "dogs_owner_fk"
             columns: ["owner_id"]
             isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dogs_owner_fk"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe_backup_test"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dogs_owner_fk"
-            columns: ["owner_id"]
-            isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
@@ -299,20 +285,6 @@ export type Database = {
             foreignKeyName: "friendships_addressee_id_fkey"
             columns: ["addressee_id"]
             isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "friendships_addressee_id_fkey"
-            columns: ["addressee_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe_backup_test"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "friendships_addressee_id_fkey"
-            columns: ["addressee_id"]
-            isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
@@ -321,20 +293,6 @@ export type Database = {
             columns: ["requester_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "friendships_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "friendships_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe_backup_test"
             referencedColumns: ["id"]
           },
           {
@@ -971,7 +929,6 @@ export type Database = {
           created_at: string | null
           display_name: string | null
           fcm_token: string | null
-          full_name: string | null
           id: string
           is_public: boolean
           latitude: number | null
@@ -989,7 +946,6 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           fcm_token?: string | null
-          full_name?: string | null
           id: string
           is_public?: boolean
           latitude?: number | null
@@ -1007,7 +963,6 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           fcm_token?: string | null
-          full_name?: string | null
           id?: string
           is_public?: boolean
           latitude?: number | null
@@ -1333,20 +1288,6 @@ export type Database = {
             foreignKeyName: "dogs_owner_fk"
             columns: ["owner_id"]
             isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dogs_owner_fk"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe_backup_test"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dogs_owner_fk"
-            columns: ["owner_id"]
-            isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
@@ -1466,87 +1407,6 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles_safe: {
-        Row: {
-          avatar_url: string | null
-          bio: string | null
-          city: string | null
-          created_at: string | null
-          display_name: string | null
-          full_name: string | null
-          id: string | null
-          state: string | null
-          username: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          city?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          full_name?: string | null
-          id?: string | null
-          state?: string | null
-          username?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          city?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          full_name?: string | null
-          id?: string | null
-          state?: string | null
-          username?: string | null
-        }
-        Relationships: []
-      }
-      profiles_safe_backup_test: {
-        Row: {
-          avatar_url: string | null
-          bio: string | null
-          city: string | null
-          created_at: string | null
-          display_name: string | null
-          full_name: string | null
-          id: string | null
-          is_public: boolean | null
-          onboarding_completed: boolean | null
-          state: string | null
-          updated_at: string | null
-          username: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          city?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          full_name?: string | null
-          id?: string | null
-          is_public?: boolean | null
-          onboarding_completed?: boolean | null
-          state?: string | null
-          updated_at?: string | null
-          username?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          city?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          full_name?: string | null
-          id?: string | null
-          is_public?: boolean | null
-          onboarding_completed?: boolean | null
-          state?: string | null
-          updated_at?: string | null
-          username?: string | null
-        }
-        Relationships: []
-      }
       public_posts: {
         Row: {
           author_avatar_url: string | null
@@ -1587,7 +1447,6 @@ export type Database = {
           city: string | null
           created_at: string | null
           display_name: string | null
-          full_name: string | null
           id: string | null
           state: string | null
           username: string | null
@@ -1598,7 +1457,6 @@ export type Database = {
           city?: string | null
           created_at?: string | null
           display_name?: string | null
-          full_name?: string | null
           id?: string | null
           state?: string | null
           username?: string | null
@@ -1609,7 +1467,6 @@ export type Database = {
           city?: string | null
           created_at?: string | null
           display_name?: string | null
-          full_name?: string | null
           id?: string | null
           state?: string | null
           username?: string | null
