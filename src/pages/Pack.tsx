@@ -7,8 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { Dog as DogType, Profile, DogWithDistance } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
+import { useFriendships } from '@/hooks/useFriendships';
 import { RequestPlaydateModal } from '@/components/playdate/RequestPlaydateModal';
 import { toast } from 'sonner';
+import { UserPlus, UserCheck, Clock as ClockIcon } from 'lucide-react';
 
 interface DogWithOwner extends DogType {
   owner?: Profile;
@@ -118,6 +120,7 @@ function formatDistanceMiles(meters: number | null | undefined): string {
 
 export default function Pack() {
   const { user, dogs: userDogs } = useAuth();
+  const { friends, sentRequests, pendingRequests, sendFriendRequest } = useFriendships();
   const [searchParams, setSearchParams] = useSearchParams();
   const [discoveryDogs, setDiscoveryDogs] = useState<DogWithOwner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -594,7 +597,46 @@ export default function Pack() {
                     </Avatar>
                     <span className="font-semibold text-white">{currentDog.owner.display_name || 'Sarah Johnson'}</span>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                  {user && currentDog.owner_id !== user.id && (() => {
+                    const isFriend = friends.some(f => f.friend.id === currentDog.owner_id);
+                    const isPending = sentRequests.some(r => r.friend.id === currentDog.owner_id);
+                    const isIncoming = pendingRequests.some(r => r.friend.id === currentDog.owner_id);
+                    
+                    if (isFriend) {
+                      return (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#4ade80]/20 text-[#4ade80] text-xs font-semibold border border-[#4ade80]/30">
+                          <UserCheck className="w-3.5 h-3.5" />
+                          Friends
+                        </span>
+                      );
+                    }
+                    if (isPending || isIncoming) {
+                      return (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f59e0b]/20 text-[#fbbf24] text-xs font-semibold border border-[#f59e0b]/30">
+                          <ClockIcon className="w-3.5 h-3.5" />
+                          Pending
+                        </span>
+                      );
+                    }
+                    return (
+                      <Button
+                        size="sm"
+                        className="h-8 rounded-full bg-[#4ade80]/20 hover:bg-[#4ade80]/30 text-[#4ade80] border border-[#4ade80]/30 text-xs font-semibold"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const { error } = await sendFriendRequest(currentDog.owner_id);
+                          if (error) toast.error('Failed to send friend request');
+                          else toast.success('Friend request sent!');
+                        }}
+                      >
+                        <UserPlus className="w-3.5 h-3.5 mr-1" />
+                        Add Friend
+                      </Button>
+                    );
+                  })()}
+                  {(!user || currentDog.owner_id === user?.id) && (
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  )}
                 </div>
               </div>
             </div>
