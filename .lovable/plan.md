@@ -1,64 +1,43 @@
 
 
-## Simplify Message Send and Delete to Standard DB Operations Only
+## Fix: Remove Database Triggers Calling Non-Existent `realtime.send()`
 
-### Problem
-The `realtime.send` error is blocking all chat actions. While there are no explicit `channel.send()` calls, the extra database operations after the primary write (updating `conversations.last_message_at`, deleting messages before conversations) may be triggering cascading realtime errors that freeze the UI.
+### Root Cause
 
-### Changes
+The error **"function realtime.send(text, text, jsonb, boolean) does not exist"** is NOT coming from the app code -- it's coming from **two database triggers** on the `messages` table:
 
-#### 1. `src/hooks/useMessages.tsx` -- Simplify `sendMessage`
+1. `messages_broadcast_trg`
+2. `messages_broadcast_trigger`
 
-Remove the follow-up `conversations.update()` call. The function should ONLY insert into `public.messages`:
+Both triggers execute a function called `messages_broadcast_trigger()` which calls `realtime.send(...)`. This function does not exist in your Supabase instance, so every `INSERT` into `messages` fails.
 
-```typescript
-const sendMessage = async (content: string) => {
-  if (!user || !conversationId) return { error: new Error('Not ready') };
+The app code is correct -- it only uses `supabase.from('messages').insert()`. But the database itself is blocking the insert.
 
-  const { error } = await supabase.from('messages').insert({
-    conversation_id: conversationId,
-    sender_id: user.id,
-    content
-  });
+### Solution
 
-  return { error };
-};
+Run a SQL migration to:
+1. Drop both triggers from the `messages` table
+2. Drop the `messages_broadcast_trigger()` function
+
+The app already has `postgres_changes` Realtime subscriptions that will handle UI updates automatically -- these custom triggers are unnecessary.
+
+### Technical Details
+
+**SQL Migration:**
+
+```sql
+-- Drop the duplicate triggers that call the non-existent realtime.send()
+DROP TRIGGER IF EXISTS messages_broadcast_trg ON public.messages;
+DROP TRIGGER IF EXISTS messages_broadcast_trigger ON public.messages;
+
+-- Drop the trigger function itself
+DROP FUNCTION IF EXISTS public.messages_broadcast_trigger();
 ```
 
-The `last_message_at` update can be handled later via a database trigger if needed, keeping the client-side code minimal and non-blocking.
+**Files Modified:** None -- this is a database-only change.
 
-#### 2. `src/hooks/useMessages.tsx` -- Simplify `deleteConversation`
-
-Replace the two-step delete with a single `conversations` delete. If the database has no cascade constraint, the messages will remain orphaned but the conversation will be removed from the UI. (A cascade constraint or cleanup trigger can be added later.)
-
-```typescript
-const deleteConversation = async () => {
-  if (!conversationId) return { error: new Error('No conversation') };
-  try {
-    const { error } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', conversationId);
-    if (error) console.error('Error deleting conversation:', error);
-    return { error };
-  } catch (err: any) {
-    console.error('deleteConversation exception:', err);
-    return { error: err };
-  }
-};
-```
-
-#### 3. No changes to `ChatView.tsx`
-
-The try/catch error handling and toast feedback already in place are correct and stay as-is.
-
-#### 4. No changes to Realtime subscriptions
-
-The existing `postgres_changes` listeners remain -- they passively listen for database changes and update the UI. They do not send anything.
-
-### Files Modified
-
-| File | Change |
-|------|--------|
-| `src/hooks/useMessages.tsx` | Remove `conversations.update()` from `sendMessage`; simplify `deleteConversation` to single conversation delete |
+**What happens after:**
+- Message inserts will succeed because no trigger will try to call `realtime.send()`
+- The existing `postgres_changes` Realtime subscriptions in `useMessages.tsx` will continue to detect new messages and update the UI automatically
+- No app code changes are needed
 
