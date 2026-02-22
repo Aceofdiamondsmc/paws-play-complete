@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ export default function Me() {
   const [showFriendsList, setShowFriendsList] = useState(false);
   const { conversations, totalUnread } = useMessages();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -51,6 +52,15 @@ export default function Me() {
   const [vaccinationDog, setVaccinationDog] = useState<{ id: string; name: string } | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  // Deep-link: auto-open chat from ?chat= query param
+  useEffect(() => {
+    const chatId = searchParams.get('chat');
+    if (chatId) {
+      setSelectedConversation(chatId);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const [installDismissed, setInstallDismissed] = useState(() => {
     const dismissedAt = localStorage.getItem('ios-install-dismissed-at');
     if (dismissedAt) {
