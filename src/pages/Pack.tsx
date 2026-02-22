@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint, ShieldBan } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint, ShieldBan, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,7 @@ import type { Dog as DogType, Profile, DogWithDistance } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useFriendships } from '@/hooks/useFriendships';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
+import { useMessages } from '@/hooks/useMessages';
 import { RequestPlaydateModal } from '@/components/playdate/RequestPlaydateModal';
 import { toast } from 'sonner';
 import { UserPlus, UserCheck, Clock as ClockIcon } from 'lucide-react';
@@ -120,9 +121,26 @@ function formatDistanceMiles(meters: number | null | undefined): string {
 }
 
 export default function Pack() {
+  const packNavigate = useNavigate();
   const { user, dogs: userDogs } = useAuth();
   const { friends, sentRequests, pendingRequests, sendFriendRequest, acceptRequest, declineRequest } = useFriendships();
   const { blockUser } = useBlockedUsers();
+  const { startConversation } = useMessages();
+
+  const handleMessage = async (ownerId: string) => {
+    if (!user) {
+      packNavigate('/me');
+      return;
+    }
+    const { conversation, error } = await startConversation(ownerId);
+    if (error) {
+      toast.error('Failed to start conversation');
+      return;
+    }
+    if (conversation) {
+      packNavigate(`/me?chat=${conversation.id}`);
+    }
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const [discoveryDogs, setDiscoveryDogs] = useState<DogWithOwner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -671,6 +689,17 @@ export default function Pack() {
                         >
                           <UserPlus className="w-3.5 h-3.5 mr-1" />
                           Add Friend
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 rounded-full bg-[#3b82f6]/20 hover:bg-[#3b82f6]/30 text-[#60a5fa] border border-[#3b82f6]/30 text-xs font-semibold"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            handleMessage(currentDog.owner_id);
+                          }}
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                          Message
                         </Button>
                         <Button
                           size="sm"

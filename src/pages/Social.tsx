@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck, ImageOff } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck, ImageOff, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,6 +36,7 @@ import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
 import CommentsDrawer from '@/components/social/CommentsDrawer';
 import EditPostModal from '@/components/social/EditPostModal';
 import AdminEditPostModal from '@/components/social/AdminEditPostModal';
+import { useMessages } from '@/hooks/useMessages';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
@@ -101,6 +102,23 @@ export default function Social() {
   // Delete confirmation state
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   
+  const { startConversation } = useMessages();
+
+  const handleMessageAuthor = async (authorId: string) => {
+    if (!user) {
+      navigate('/me');
+      return;
+    }
+    const { conversation, error } = await startConversation(authorId);
+    if (error) {
+      toast.error('Failed to start conversation');
+      return;
+    }
+    if (conversation) {
+      navigate(`/me?chat=${conversation.id}`);
+    }
+  };
+
   // Admin edit state
   const [adminEditingPost, setAdminEditingPost] = useState<{
     id: string; content: string; pup_name: string; image_url: string; likes_count: number; comments_count: number; author_display_name?: string; author_name?: string;
@@ -433,6 +451,16 @@ export default function Social() {
                     >
                       <Share2 className="w-5 h-5" />
                     </button>
+
+                    {user && post.author_id !== user.id && (
+                      <button
+                        onClick={() => handleMessageAuthor(post.author_id)}
+                        className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
+                        aria-label="Message author"
+                      >
+                        <MessageSquare className="w-5 h-5" />
+                      </button>
+                    )}
 
                     <button
                       onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}

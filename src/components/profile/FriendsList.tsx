@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
-import { UserPlus, UserCheck, UserX, Clock, X, ShieldBan, ShieldOff, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { UserPlus, UserCheck, UserX, Clock, X, ShieldBan, ShieldOff, ChevronDown, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useFriendships } from '@/hooks/useFriendships';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
+import { useMessages } from '@/hooks/useMessages';
 import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
 import { toast } from 'sonner';
 
 export function FriendsList() {
+  const navigate = useNavigate();
   const { friends, pendingRequests, sentRequests, loading, acceptRequest, declineRequest, removeFriend } = useFriendships();
   const { blockUser, unblockUser, blockedUsers } = useBlockedUsers();
+  const { startConversation } = useMessages();
   const [blockTarget, setBlockTarget] = useState<{ id: string; name?: string } | null>(null);
   const [blockedOpen, setBlockedOpen] = useState(false);
+
+  const handleMessage = async (userId: string) => {
+    const { conversation, error } = await startConversation(userId);
+    if (error) {
+      toast.error('Failed to start conversation');
+      return;
+    }
+    if (conversation) {
+      navigate(`/me?chat=${conversation.id}`);
+    }
+  };
 
   const handleAccept = async (friendshipId: string) => {
     const { error } = await acceptRequest(friendshipId);
@@ -123,15 +138,26 @@ export function FriendsList() {
                     <p className="text-xs text-muted-foreground">{f.friend.city}, {f.friend.state}</p>
                   )}
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-8 rounded-full text-xs text-muted-foreground hover:text-destructive"
-                  onClick={() => handleRemove(f.id)}
-                >
-                  <UserX className="w-3.5 h-3.5 mr-1" />
-                  Remove
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-full p-0 text-primary hover:text-primary hover:bg-primary/10"
+                    onClick={() => handleMessage(f.friend.id)}
+                    title="Message"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-8 rounded-full text-xs text-muted-foreground hover:text-destructive"
+                    onClick={() => handleRemove(f.id)}
+                  >
+                    <UserX className="w-3.5 h-3.5 mr-1" />
+                    Remove
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

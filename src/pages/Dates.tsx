@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox, ShieldBan } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox, ShieldBan, MessageSquare } from 'lucide-react';
 import { CareScheduleSection } from '@/components/dates/CareScheduleSection';
 import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
 import { Button } from '@/components/ui/button';
@@ -8,14 +9,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlaydates } from '@/hooks/usePlaydates';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
+import { useMessages } from '@/hooks/useMessages';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import datesBackground from '@/assets/dates-background.jpg';
 
 export default function Dates() {
+  const navigate = useNavigate();
   const { user, dogs } = useAuth();
   const { blockUser } = useBlockedUsers();
+  const { startConversation } = useMessages();
   const { 
     pendingPlaydates, 
     incomingPendingPlaydates,
@@ -57,6 +61,17 @@ export default function Dates() {
       toast.error(error.message || 'Failed to decline playdate');
     } else {
       toast.info('Playdate declined');
+    }
+  };
+
+  const handleMessage = async (otherUserId: string) => {
+    const { conversation, error } = await startConversation(otherUserId);
+    if (error) {
+      toast.error('Failed to start conversation');
+      return;
+    }
+    if (conversation) {
+      navigate(`/me?chat=${conversation.id}`);
     }
   };
   
@@ -170,9 +185,18 @@ export default function Dates() {
               <p>No upcoming playdates</p>
             </div>
           ) : (
-            acceptedPlaydates.map(playdate => (
-              <PlaydateCard key={playdate.id} playdate={playdate} />
-            ))
+          acceptedPlaydates.map(playdate => {
+              const otherUserId = playdate.requester_id === user?.id
+                ? playdate.receiverDog?.owner_id
+                : playdate.requester_id;
+              return (
+                <PlaydateCard
+                  key={playdate.id}
+                  playdate={playdate}
+                  onMessage={otherUserId ? () => handleMessage(otherUserId) : undefined}
+                />
+              );
+            })
           )}
         </TabsContent>
 
@@ -211,6 +235,7 @@ function PlaydateCard({
   onAccept, 
   onDecline, 
   onBlock,
+  onMessage,
   showActions = false,
   isIncoming = false,
   isOutgoing = false
@@ -219,6 +244,7 @@ function PlaydateCard({
   onAccept?: () => void; 
   onDecline?: () => void;
   onBlock?: () => void;
+  onMessage?: () => void;
   showActions?: boolean;
   isIncoming?: boolean;
   isOutgoing?: boolean;
@@ -294,6 +320,15 @@ function PlaydateCard({
               Block
             </Button>
           )}
+        </div>
+      )}
+
+      {onMessage && !showActions && (
+        <div className="mt-3 pt-3 border-t border-border">
+          <Button onClick={onMessage} variant="outline" size="sm" className="w-full rounded-full">
+            <MessageSquare className="w-4 h-4 mr-1" />
+            Message
+          </Button>
         </div>
       )}
     </Card>
