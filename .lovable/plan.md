@@ -1,74 +1,51 @@
 
 
-## Fix Plan: Message Read Status, Dropdown Menu, and Push Notifications
+## Fix: Message Send Error and Three-Dot Menu
 
-### Issue 1: Unread Badge Not Clearing After Reading Messages
+### Issue 1: "null value in column 'url'" Error When Sending Messages
 
-**Root Cause:** The RLS (Row-Level Security) policies on the `messages` table only allow updates where `sender_id = auth.uid()`. When you open a conversation, the app tries to set `read_at` on messages sent by the *other* person, but RLS blocks this because you're not the sender. The update silently fails, so the unread count never goes down.
+**Root Cause:** The `notify_new_message()` database trigger function tries to read `SUPABASE_URL` from `vault.decrypted_secrets`, but that secret doesn't exist in the vault. This makes the URL `NULL`, crashing the `net.http_post` call and preventing the message from being inserted.
 
-**Fix:** Add a new RLS policy that allows conversation participants to update `read_at` on messages in their conversations (not just their own messages).
+**Fix:** Replace the trigger function with a version that hardcodes the Supabase URL and anon key, matching the pattern used by all other working notification triggers in the project.
 
-**SQL Migration:**
+**Database migration:**
 ```sql
-CREATE POLICY "Participants can mark messages as read"
-  ON public.messages
-  FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM conversations c
-      WHERE c.id = messages.conversation_id
-      AND (c.participant_1_id = auth.uid() OR c.participant_2_id = auth.uid())
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM conversations c
-      WHERE c.id = messages.conversation_id
-      AND (c.participant_1_id = auth.uid() OR c.participant_2_id = auth.uid())
-    )
+CREATE OR REPLACE FUNCTION public.notify_new_message()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  PERFORM net.http_post(
+    url := 'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/message-notification',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhhc2Jna2dnd25rdnJjZXppYWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MDU0NjYsImV4cCI6MjA4MzM4MTQ2Nn0.r3QfznSxZRokZHZAojxD4APUDE9q7pk3asR0V8e0rMg'
+    ),
+    body := jsonb_build_object('record', row_to_json(NEW))
   );
+  RETURN NEW;
+END;
+$$;
 ```
-
-Additionally, the `ChatView` component should call `refresh` on the message list when the user goes back, so the conversation list reflects the updated read status. The `onBack` callback in `Me.tsx` will be updated to also trigger a conversations refresh.
 
 ---
 
 ### Issue 2: Three-Dot Menu Not Working
 
-**Root Cause:** The `DropdownMenuItem` in `ChatView.tsx` has an indentation issue where `onClick` appears on a separate line from the opening tag attributes, but more critically, the `ChatView` renders at `z-[60]` and the `DropdownMenuContent` may render inside the fixed container. The `onClick` handler itself is syntactically fine, but I'll clean up the JSX formatting to ensure proper attribute binding and test reliability.
+**Root Cause:** The `ChatView` uses a `fixed inset-0 z-[60]` container. The Radix dropdown portal renders at `document.body` level but without a high enough z-index to appear above the chat overlay. Additionally, Radix `DropdownMenuItem` uses `onSelect` for its action event, not `onClick`.
 
-**Fix:** Clean up the JSX so `onClick` is properly on the `DropdownMenuItem` opening tag (same line as other attributes), ensuring no rendering issues.
-
----
-
-### Issue 3: No Push Notifications for New Messages
-
-**Root Cause:** There is no edge function or database trigger to send push notifications when a new message is received. Likes, comments, and friend requests all have dedicated notification edge functions, but messages do not.
-
-**Fix:** Create a new `message-notification` edge function and a database trigger on the `messages` table.
-
-The edge function will:
-1. Receive the new message INSERT event
-2. Look up the conversation to find the recipient
-3. Skip if sender = recipient (shouldn't happen, but safety check)
-4. Insert an in-app notification into the `notifications` table
-5. Send a push notification via OneSignal REST API to the recipient
-
-The database trigger will fire `AFTER INSERT` on `messages` and invoke the edge function via `pg_net`.
+**Fix in `src/components/profile/ChatView.tsx`:**
+- Add `className="z-[70]"` and `sideOffset={5}` to `DropdownMenuContent`
+- Change `onClick` to `onSelect` on the `DropdownMenuItem`
 
 ---
 
-### Technical Details
+### Summary of Changes
 
-**Files to create:**
-- `supabase/functions/message-notification/index.ts` -- New edge function
-
-**Files to modify:**
-- `src/components/profile/ChatView.tsx` -- Fix DropdownMenuItem formatting
-- `src/pages/Me.tsx` -- Refresh conversations list on chat back navigation
-
-**Database changes:**
-1. New RLS policy on `messages` for participant updates
-2. New trigger `on_message_insert_notify` on `messages` table
-3. Add `message-notification` to `supabase/config.toml` with `verify_jwt = false`
+| Change | Target |
+|--------|--------|
+| Replace `notify_new_message()` function | SQL migration |
+| Fix dropdown z-index and event handler | `src/components/profile/ChatView.tsx` |
 
