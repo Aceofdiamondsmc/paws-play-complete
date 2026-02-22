@@ -82,7 +82,7 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-            onClick={async () => {
+              onClick={async () => {
                 try {
                   const { error } = await deleteConversation();
                   if (error) {

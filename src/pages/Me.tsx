@@ -36,7 +36,7 @@ export default function Me() {
   const { isAdmin } = useAdmin();
   const { friends, pendingRequests } = useFriendships();
   const [showFriendsList, setShowFriendsList] = useState(false);
-  const { conversations, totalUnread } = useMessages();
+  const { conversations, totalUnread, refresh: refreshConversations } = useMessages();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -154,7 +154,10 @@ export default function Me() {
       <ChatView
         conversationId={selectedConversation}
         otherUser={selectedConvoData?.otherUser}
-        onBack={() => setSelectedConversation(null)}
+        onBack={() => {
+          setSelectedConversation(null);
+          refreshConversations();
+        }}
       />
     );
   }
