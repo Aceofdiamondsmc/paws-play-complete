@@ -1,54 +1,40 @@
 
 
-## Complete Messaging Flow: Connect Social, Dates, and Pack to Me Tab Conversations
+## Fix: Likes Counting by Two
 
-### Current State
-- The **Me tab** already has `MessageList` (shows conversations) and `ChatView` (full-screen chat) working correctly
-- The `useMessages` hook has a `startConversation(otherUserId)` function ready to use
-- **No other tab** currently has a way to initiate or open a conversation -- there are no "Message" buttons anywhere
+### Root Cause
 
-### What We'll Build
+The `usePosts` hook has **two independent systems** both updating the like count simultaneously:
 
-**1. Add "Message" button to Friends List (`src/components/profile/FriendsList.tsx`)**
-- Add a message icon button next to each accepted friend
-- Clicking it calls `startConversation`, then navigates to `/me?chat={conversationId}`
+1. **Optimistic update** in `likePost()` (lines 268-294): After the Supabase insert/delete succeeds, it immediately updates local state with `likesCount + 1` or `likesCount - 1`.
 
-**2. Add "Message" button to accepted Playdates on Dates tab (`src/pages/Dates.tsx`)**
-- On booked/accepted playdate cards, add a "Message" button so users can chat with the other dog's owner
-- Uses `startConversation` with the other participant's user ID
+2. **Realtime subscription** on `post_likes` (lines 148-175): Listens for INSERT/DELETE events on `post_likes` and also applies `likesCount + 1` or `likesCount - 1`.
 
-**3. Add "Message" button to Social tab post authors (`src/pages/Social.tsx`)**
-- Add a small message icon in the post action bar (next to like/comment/share)
-- Clicking it starts a conversation with the post author and navigates to the chat
+Both fire for the same action, so every like/unlike changes the count by 2.
 
-**4. Add "Message" button on Pack tab dog cards (`src/pages/Pack.tsx`)**
-- When viewing another user's dog, show a "Message" button alongside "Add Friend"
-- Starts a conversation with the dog's owner
+### The Fix
 
-**5. Handle deep-link routing to chat on Me tab (`src/pages/Me.tsx`)**
-- Support `?chat={conversationId}` query parameter so other tabs can navigate directly into a conversation
-- On mount, if `chat` param exists, auto-open that conversation in `ChatView`
+**File: `src/hooks/usePosts.tsx`**
+
+In the realtime subscription handler for `post_likes`, skip the count update when the event was triggered by the current user (since `likePost` already handled it optimistically):
+
+- On INSERT: if `newLike.user_id === currentUserId`, skip the `likesCount + 1` (already done)
+- On DELETE: if `oldLike.user_id === currentUserId`, skip the `likesCount - 1` (already done)
+
+This keeps the realtime subscription working for likes from **other users** (so the feed updates live) while preventing the double-count for the current user's own actions.
+
+Additionally, add a guard to `likePost` to prevent rapid double-taps:
+- Track an in-flight state per post ID
+- If a like/unlike is already in progress for that post, return early
 
 ### Technical Details
 
-| File | Changes |
-|------|---------|
-| `src/pages/Me.tsx` | Read `?chat=` query param on mount to auto-open a conversation |
-| `src/components/profile/FriendsList.tsx` | Add "Message" icon button per friend; use `startConversation` + navigate |
-| `src/pages/Dates.tsx` | Add "Message" button on accepted playdate cards; start conversation with other owner |
-| `src/pages/Social.tsx` | Add message icon in post action bar for logged-in users viewing others' posts |
-| `src/pages/Pack.tsx` | Add "Message" button on discovery dog cards next to "Add Friend" |
+| Change | Detail |
+|--------|--------|
+| `src/hooks/usePosts.tsx` realtime handler | Skip count update when `user_id` matches current user |
+| `src/hooks/usePosts.tsx` likePost | Add in-flight guard using a `Set<string>` ref to prevent double-tap race conditions |
 
-### Flow
-1. User taps "Message" on any tab (Social, Dates, Pack, or Friends list)
-2. `startConversation(otherUserId)` is called -- finds or creates a conversation row
-3. App navigates to `/me?chat={conversationId}`
-4. Me tab reads the query param and immediately opens `ChatView`
-5. User can send/receive messages; tapping "Back" returns to the Me tab profile view
+### Single File Changed
 
-### Edge Cases Handled
-- If a conversation already exists, `startConversation` returns the existing one (no duplicates)
-- Users cannot message themselves (button hidden on own posts/dogs)
-- Messages persist in the `messages` table with realtime subscription for live updates
-- Unread counts update automatically via the existing `useMessages` hook
+Only `src/hooks/usePosts.tsx` needs to be modified -- no UI changes required.
 
