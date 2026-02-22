@@ -1,48 +1,65 @@
 
 
-## Fix Relationship UI Across the App
+## Fix Chat Input Visibility and Add Delete Conversation
 
-### Problem
-On the **Pack tab**, when a friendship status is "Pending" or "Accepted", the Message and Block buttons disappear entirely -- replaced by a static badge. Users lose access to essential actions. The "Friends" badge also lacks an unfriend option.
+### Problem 1: Chat Input Hidden Behind Bottom Navigation
 
-### RLS Policy Status
-The friendships table **already has** a DELETE policy allowing either party to delete: `(requester_id = auth.uid()) OR (addressee_id = auth.uid())`. No database migration needed.
+The `ChatView` component already has a text input and send button, but the **bottom navigation bar covers them**. Both use `z-50` and `fixed` positioning. Since the BottomNav comes later in the DOM, it renders on top of the chat input.
 
-### Changes
+**Fix:** Increase the ChatView's z-index to `z-[60]` so it renders above the bottom nav, fully covering it.
 
-**1. Pack.tsx -- "Pack Leader" section (lines 622-720)**
+### Problem 2: No "Delete / Clear Conversation" Option
 
-Currently the code uses an if/else chain where each friendship state returns exclusively:
-- `isFriend` -> only a "Friends" badge
-- `isPending` -> only a "Pending" badge  
-- `isIncoming` -> Accept/Decline buttons
-- default -> Add Friend + Message + Block
+There is currently no way to delete a conversation or clear its messages.
 
-Replace with logic where **Message and Block are always visible** regardless of friendship status, and the friendship button changes based on state:
+**Fix:** Add a kebab menu (three-dot icon) in the ChatView header with a "Delete Conversation" option that:
+1. Deletes all messages in the conversation
+2. Deletes the conversation record itself
+3. Navigates back to the message list
 
-| Friendship State | Friendship Button | Message | Block |
-|-----------------|-------------------|---------|-------|
-| None | "Add Friend" | Visible | Visible |
-| Pending (sent) | "Pending" badge (no action) | Visible | Visible |
-| Pending (incoming) | Accept / Decline | Visible | Visible |
-| Accepted | "Unfriend" (via "..." dropdown menu) | Visible | Visible |
+### Problem 3: RLS Policies
 
-The "Unfriend" action will use the existing `removeFriend` function from `useFriendships`, which calls `DELETE` on the friendships row. After unfriending, the UI resets to show "Add Friend".
+Current state:
+- **INSERT on messages**: Already allowed for conversation participants (multiple policies exist)
+- **DELETE on messages**: Only allows `sender_id = auth.uid()` -- a user can only delete their own sent messages, not the other party's messages in a conversation
+- **DELETE on conversations**: Already allowed for participants (`participant_1_id` or `participant_2_id`)
 
-**2. FriendsList.tsx -- rename "Remove" to "Unfriend"**
+**Fix:** Add an RLS policy so participants can delete all messages in their conversations (not just their own). This is needed for the "Clear Conversation" feature. A SQL migration will add:
 
-Change the "Remove" button label to "Unfriend" for clarity and consistency.
+```sql
+CREATE POLICY "Participants can delete messages in their conversations"
+  ON public.messages
+  FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM conversations c
+      WHERE c.id = messages.conversation_id
+      AND (c.participant_1_id = auth.uid() OR c.participant_2_id = auth.uid())
+    )
+  );
+```
 
-**3. Social.tsx -- no changes needed**
+### Changes Summary
 
-The Message button is already always visible for other users' posts (line 455). No friendship-conditional hiding exists here.
+| File | Change |
+|------|--------|
+| **SQL Migration** | Add DELETE policy on `messages` for conversation participants |
+| `src/components/profile/ChatView.tsx` | Increase z-index to `z-[60]`; add kebab menu with "Delete Conversation" option using `DropdownMenu`; import `Trash2`, `MoreVertical` from lucide and dropdown components |
+| `src/hooks/useMessages.tsx` | Add `deleteConversation` function to `useConversationMessages` that deletes all messages then the conversation record |
 
 ### Technical Details
 
-| File | What Changes |
-|------|-------------|
-| `src/pages/Pack.tsx` | Refactor the Pack Leader friendship UI (lines 622-720) to always show Message and Block buttons; replace "Friends" badge with a dropdown containing "Unfriend"; import `MoreHorizontal` and `DropdownMenu` components; add `removeFriend` to the destructured `useFriendships()` return |
-| `src/components/profile/FriendsList.tsx` | Rename "Remove" label to "Unfriend" (line 158) |
+**ChatView header changes:**
+- Add a `MoreVertical` icon button in the header (right side)
+- Wrap in a `DropdownMenu` with a single "Delete Conversation" item (with `Trash2` icon, destructive styling)
+- On click: show confirmation via `AlertDialog`, then call `deleteConversation()`, then `onBack()`
 
-### No database changes required
-The DELETE policy `"Users can remove friendships"` already exists on the friendships table, permitting either party to delete the row.
+**deleteConversation function (in useMessages.tsx):**
+```typescript
+const deleteConversation = async () => {
+  // Step 1: Delete all messages in this conversation
+  await supabase.from('messages').delete().eq('conversation_id', conversationId);
+  // Step 2: Delete the conversation itself
+  await supabase.from('conversations').delete().eq('id', conversationId);
+};
+```
