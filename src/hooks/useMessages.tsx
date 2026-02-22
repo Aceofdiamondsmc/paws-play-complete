@@ -96,7 +96,7 @@ export function useMessages() {
 
     // Subscribe to new messages
     subscriptionRef.current = supabase
-      .channel('messages')
+      .channel('db-messages-list')
       .on(
         'postgres_changes',
         {
@@ -207,7 +207,7 @@ export function useConversationMessages(conversationId: string | null) {
     fetchMessages();
 
     subscriptionRef.current = supabase
-      .channel(`conversation:${conversationId}`)
+      .channel(`db-convo-${conversationId}`)
       .on(
         'postgres_changes',
         {
