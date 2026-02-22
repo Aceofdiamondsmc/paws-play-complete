@@ -248,9 +248,11 @@ export function useConversationMessages(conversationId: string | null) {
 
   const deleteConversation = async () => {
     if (!conversationId) return { error: new Error('No conversation') };
-    await supabase.from('messages').delete().eq('conversation_id', conversationId);
+    const { error: msgError } = await supabase.from('messages').delete().eq('conversation_id', conversationId);
+    if (msgError) console.error('Error deleting messages:', msgError);
     const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
-    return { error };
+    if (error) console.error('Error deleting conversation:', error);
+    return { error: msgError || error };
   };
 
   return {
