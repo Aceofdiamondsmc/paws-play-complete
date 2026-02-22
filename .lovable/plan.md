@@ -1,62 +1,58 @@
 
 
-## Fix Unresponsive Send and Delete Buttons in ChatView
+## Fix Unresponsive Send and Delete Buttons
 
-### Root Cause
-The `sendMessage` and `deleteConversation` functions work correctly in logic, but errors from Supabase (like RLS permission denied) are silently returned without any user-facing feedback. When `sendMessage` returns `{ error }`, the `handleSend` function only clears the input on success -- on failure it does nothing visible, making the button appear "unresponsive."
+### Problem
+The code logic for `sendMessage` and `deleteConversation` is structurally correct, but the buttons appear unresponsive. Since no console errors or network failures are visible, the most likely cause is that the Realtime `postgres_changes` subscription is failing silently on channel setup (due to the earlier Realtime RLS issues), which may cause the Supabase client to enter a bad state or the `subscribe()` call to throw an unhandled promise rejection that freezes subsequent operations.
 
 ### Changes
 
-**1. `src/components/profile/ChatView.tsx` -- Add error feedback with toast**
+#### 1. `src/hooks/useMessages.tsx` -- Defensive Realtime subscription + cascade delete
 
-- Import `toast` from `sonner`
-- In `handleSend`: if `sendMessage` returns an error, show a toast with the specific error message and log it to console
-- In the delete handler: if `deleteConversation` returns an error, show a toast and do NOT call `onBack()` (stay on screen so user knows it failed)
-- Log `console.error` in both cases for debugging
+**sendMessage** -- Already correct (inserts into `public.messages` first, then updates `conversations`). No change needed to the order of operations.
+
+**deleteConversation** -- There is NO foreign key cascade between `conversations` and `messages`, so the two-step delete must remain. However, swap the order: delete messages first (already done), then delete the conversation. Add a `try/catch` wrapper so an unhandled exception cannot freeze the UI.
+
+**Realtime subscriptions** -- Wrap both channel subscriptions (in `useMessages` and `useConversationMessages`) with error-handling callbacks on `.subscribe()` to prevent silent failures from blocking the component:
 
 ```typescript
-// In handleSend:
-const { error } = await sendMessage(newMessage.trim());
-setIsSending(false);
-if (error) {
-  console.error('Failed to send message:', error);
-  toast.error(`Message failed: ${error.message}`);
-  return;
-}
-setNewMessage('');
-
-// In delete handler:
-const { error } = await deleteConversation();
-if (error) {
-  console.error('Failed to delete conversation:', error);
-  toast.error(`Delete failed: ${error.message}`);
-  return;
-}
-onBack();
+.subscribe((status, err) => {
+  if (err) console.error('Realtime subscription error:', err);
+});
 ```
 
-**2. `src/hooks/useMessages.tsx` -- Add error logging in deleteConversation**
+#### 2. `src/components/profile/ChatView.tsx` -- Add try/catch safety
 
-- Log errors from the messages delete step (currently ignored):
+Wrap both `handleSend` and the delete handler in `try/catch` blocks so that even if Supabase throws an unexpected exception (not a returned error object), the UI will still recover and show a toast:
 
 ```typescript
-const deleteConversation = async () => {
-  if (!conversationId) return { error: new Error('No conversation') };
-  const { error: msgError } = await supabase.from('messages').delete().eq('conversation_id', conversationId);
-  if (msgError) console.error('Error deleting messages:', msgError);
-  const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
-  if (error) console.error('Error deleting conversation:', error);
-  return { error: msgError || error };
+const handleSend = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!newMessage.trim() || isSending) return;
+  setIsSending(true);
+  try {
+    const { error } = await sendMessage(newMessage.trim());
+    if (error) {
+      console.error('Failed to send message:', error);
+      toast.error(`Message failed: ${error.message}`);
+      return;
+    }
+    setNewMessage('');
+  } catch (err: any) {
+    console.error('Send exception:', err);
+    toast.error(`Send error: ${err?.message || 'Unknown error'}`);
+  } finally {
+    setIsSending(false);
+  }
 };
 ```
 
-### No database or RLS changes needed
-The conversations table correctly uses `participant_1_id`/`participant_2_id`, and the hook's queries match this schema. The RLS policies for INSERT on `messages` and DELETE on both tables are already in place. The toast feedback will surface any remaining permission errors so they can be diagnosed.
+Same pattern for the delete onClick handler.
 
-### Files Modified
+### Summary of files
 
 | File | Change |
 |------|--------|
-| `src/components/profile/ChatView.tsx` | Add `toast` import from sonner; show error toasts on send/delete failure |
-| `src/hooks/useMessages.tsx` | Log and return errors from message deletion step |
+| `src/hooks/useMessages.tsx` | Add error callback to `.subscribe()` on both Realtime channels; wrap `deleteConversation` in try/catch |
+| `src/components/profile/ChatView.tsx` | Wrap `handleSend` and delete handler in try/catch with finally block to always reset state |
 
