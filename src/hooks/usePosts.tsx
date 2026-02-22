@@ -30,6 +30,7 @@ export function usePosts() {
   const [newPostIds, setNewPostIds] = useState<Set<string>>(new Set());
   const channelRef = useRef<RealtimeChannel | null>(null);
   const userIdRef = useRef<string | null>(null);
+  const likingInFlight = useRef<Set<string>>(new Set());
 
   // Keep user ID in a ref to avoid stale closures in callbacks
   useEffect(() => {
@@ -175,24 +176,19 @@ export function usePosts() {
           
           if (payload.eventType === 'INSERT') {
             const newLike = payload.new as { post_id: string; user_id: string };
+            // Skip count update for current user — already handled optimistically
+            if (newLike.user_id === userIdRef.current) return;
             setPosts(prev => prev.map(p => 
               p.id === postId 
-                ? { 
-                    ...p, 
-                    likesCount: p.likesCount + 1,
-                    isLiked: userIdRef.current === newLike.user_id ? true : p.isLiked
-                  }
+                ? { ...p, likesCount: p.likesCount + 1 }
                 : p
             ));
           } else if (payload.eventType === 'DELETE') {
             const oldLike = payload.old as { post_id: string; user_id: string };
+            if (oldLike.user_id === userIdRef.current) return;
             setPosts(prev => prev.map(p => 
               p.id === postId 
-                ? { 
-                    ...p, 
-                    likesCount: Math.max(0, p.likesCount - 1),
-                    isLiked: userIdRef.current === oldLike.user_id ? false : p.isLiked
-                  }
+                ? { ...p, likesCount: Math.max(0, p.likesCount - 1) }
                 : p
             ));
           }
@@ -253,9 +249,12 @@ export function usePosts() {
 
   const likePost = async (postId: string) => {
     if (!user) return { error: new Error('Not authenticated') };
+    if (likingInFlight.current.has(postId)) return { error: null }; // prevent double-tap
 
     const post = posts.find(p => p.id === postId);
     if (!post) return { error: new Error('Post not found') };
+
+    likingInFlight.current.add(postId);
 
     if (post.isLiked) {
       // Unlike
@@ -265,11 +264,12 @@ export function usePosts() {
         .eq('post_id', postId)
         .eq('user_id', user.id);
 
+      likingInFlight.current.delete(postId);
       if (!error) {
         setPosts(prev =>
           prev.map(p =>
             p.id === postId
-              ? { ...p, isLiked: false, likesCount: p.likesCount - 1 }
+              ? { ...p, isLiked: false, likesCount: Math.max(0, p.likesCount - 1) }
               : p
           )
         );
@@ -283,6 +283,7 @@ export function usePosts() {
         user_id: user.id
       });
 
+      likingInFlight.current.delete(postId);
       if (!error) {
         setPosts(prev =>
           prev.map(p =>
