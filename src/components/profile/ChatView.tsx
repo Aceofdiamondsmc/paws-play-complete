@@ -1,11 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useConversationMessages } from '@/hooks/useMessages';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface ChatViewProps {
   conversationId: string;
@@ -18,7 +24,7 @@ interface ChatViewProps {
 
 export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
   const { user } = useAuth();
-  const { messages, loading, sendMessage } = useConversationMessages(conversationId);
+  const { messages, loading, sendMessage, deleteConversation } = useConversationMessages(conversationId);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -45,7 +51,7 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="fixed inset-0 z-[60] bg-background flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b bg-background/95 backdrop-blur-sm">
         <Button variant="ghost" size="icon" onClick={onBack}>
@@ -57,11 +63,30 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
             {otherUser?.display_name?.[0] || '?'}
           </AvatarFallback>
         </Avatar>
-        <h2 className="font-semibold">{otherUser?.display_name || 'Unknown User'}</h2>
+        <h2 className="font-semibold flex-1">{otherUser?.display_name || 'Unknown User'}</h2>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="w-5 h-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={async () => {
+                await deleteConversation();
+                onBack();
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Conversation
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-4">
         {loading ? (
           <div className="flex justify-center py-10">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
