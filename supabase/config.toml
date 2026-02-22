@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.send-test-notification]
 verify_jwt = false
+
+[functions.friend-request-notification]
+verify_jwt = false
