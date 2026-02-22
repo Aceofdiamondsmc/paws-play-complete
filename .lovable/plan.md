@@ -1,58 +1,64 @@
 
 
-## Fix Unresponsive Send and Delete Buttons
+## Simplify Message Send and Delete to Standard DB Operations Only
 
 ### Problem
-The code logic for `sendMessage` and `deleteConversation` is structurally correct, but the buttons appear unresponsive. Since no console errors or network failures are visible, the most likely cause is that the Realtime `postgres_changes` subscription is failing silently on channel setup (due to the earlier Realtime RLS issues), which may cause the Supabase client to enter a bad state or the `subscribe()` call to throw an unhandled promise rejection that freezes subsequent operations.
+The `realtime.send` error is blocking all chat actions. While there are no explicit `channel.send()` calls, the extra database operations after the primary write (updating `conversations.last_message_at`, deleting messages before conversations) may be triggering cascading realtime errors that freeze the UI.
 
 ### Changes
 
-#### 1. `src/hooks/useMessages.tsx` -- Defensive Realtime subscription + cascade delete
+#### 1. `src/hooks/useMessages.tsx` -- Simplify `sendMessage`
 
-**sendMessage** -- Already correct (inserts into `public.messages` first, then updates `conversations`). No change needed to the order of operations.
-
-**deleteConversation** -- There is NO foreign key cascade between `conversations` and `messages`, so the two-step delete must remain. However, swap the order: delete messages first (already done), then delete the conversation. Add a `try/catch` wrapper so an unhandled exception cannot freeze the UI.
-
-**Realtime subscriptions** -- Wrap both channel subscriptions (in `useMessages` and `useConversationMessages`) with error-handling callbacks on `.subscribe()` to prevent silent failures from blocking the component:
+Remove the follow-up `conversations.update()` call. The function should ONLY insert into `public.messages`:
 
 ```typescript
-.subscribe((status, err) => {
-  if (err) console.error('Realtime subscription error:', err);
-});
+const sendMessage = async (content: string) => {
+  if (!user || !conversationId) return { error: new Error('Not ready') };
+
+  const { error } = await supabase.from('messages').insert({
+    conversation_id: conversationId,
+    sender_id: user.id,
+    content
+  });
+
+  return { error };
+};
 ```
 
-#### 2. `src/components/profile/ChatView.tsx` -- Add try/catch safety
+The `last_message_at` update can be handled later via a database trigger if needed, keeping the client-side code minimal and non-blocking.
 
-Wrap both `handleSend` and the delete handler in `try/catch` blocks so that even if Supabase throws an unexpected exception (not a returned error object), the UI will still recover and show a toast:
+#### 2. `src/hooks/useMessages.tsx` -- Simplify `deleteConversation`
+
+Replace the two-step delete with a single `conversations` delete. If the database has no cascade constraint, the messages will remain orphaned but the conversation will be removed from the UI. (A cascade constraint or cleanup trigger can be added later.)
 
 ```typescript
-const handleSend = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!newMessage.trim() || isSending) return;
-  setIsSending(true);
+const deleteConversation = async () => {
+  if (!conversationId) return { error: new Error('No conversation') };
   try {
-    const { error } = await sendMessage(newMessage.trim());
-    if (error) {
-      console.error('Failed to send message:', error);
-      toast.error(`Message failed: ${error.message}`);
-      return;
-    }
-    setNewMessage('');
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', conversationId);
+    if (error) console.error('Error deleting conversation:', error);
+    return { error };
   } catch (err: any) {
-    console.error('Send exception:', err);
-    toast.error(`Send error: ${err?.message || 'Unknown error'}`);
-  } finally {
-    setIsSending(false);
+    console.error('deleteConversation exception:', err);
+    return { error: err };
   }
 };
 ```
 
-Same pattern for the delete onClick handler.
+#### 3. No changes to `ChatView.tsx`
 
-### Summary of files
+The try/catch error handling and toast feedback already in place are correct and stay as-is.
+
+#### 4. No changes to Realtime subscriptions
+
+The existing `postgres_changes` listeners remain -- they passively listen for database changes and update the UI. They do not send anything.
+
+### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/hooks/useMessages.tsx` | Add error callback to `.subscribe()` on both Realtime channels; wrap `deleteConversation` in try/catch |
-| `src/components/profile/ChatView.tsx` | Wrap `handleSend` and delete handler in try/catch with finally block to always reset state |
+| `src/hooks/useMessages.tsx` | Remove `conversations.update()` from `sendMessage`; simplify `deleteConversation` to single conversation delete |
 
