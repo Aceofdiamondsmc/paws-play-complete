@@ -236,7 +236,6 @@ export function useConversationMessages(conversationId: string | null) {
       content
     });
 
-    // Update conversation's last_message_at
     if (!error) {
       await supabase
         .from('conversations')
@@ -247,10 +246,18 @@ export function useConversationMessages(conversationId: string | null) {
     return { error };
   };
 
+  const deleteConversation = async () => {
+    if (!conversationId) return { error: new Error('No conversation') };
+    await supabase.from('messages').delete().eq('conversation_id', conversationId);
+    const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
+    return { error };
+  };
+
   return {
     messages,
     loading,
     sendMessage,
+    deleteConversation,
     refresh: fetchMessages
   };
 }
