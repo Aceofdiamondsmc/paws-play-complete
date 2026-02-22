@@ -1,30 +1,62 @@
 
 
-## No Code Changes Needed -- Everything Is Already Implemented
+## Fix Unresponsive Send and Delete Buttons in ChatView
 
-After reviewing the current state of the codebase, all the requested features are already in place from the last edit:
+### Root Cause
+The `sendMessage` and `deleteConversation` functions work correctly in logic, but errors from Supabase (like RLS permission denied) are silently returned without any user-facing feedback. When `sendMessage` returns `{ error }`, the `handleSend` function only clears the input on success -- on failure it does nothing visible, making the button appear "unresponsive."
 
-### Chat Input and Send Button
-The `ChatView.tsx` component (line 127-145) **always renders** the input field and send button at the bottom. There is no conditional check hiding them. The component structure is:
+### Changes
 
-1. **Header** (with back arrow, avatar, name, and kebab menu)
-2. **Message area** (shows "No messages yet" when empty, with `pb-20` padding)
-3. **Input form** (always visible, with text field and send button)
+**1. `src/components/profile/ChatView.tsx` -- Add error feedback with toast**
 
-The root container uses `z-[60]` which places it above the bottom navigation bar (`z-50`).
+- Import `toast` from `sonner`
+- In `handleSend`: if `sendMessage` returns an error, show a toast with the specific error message and log it to console
+- In the delete handler: if `deleteConversation` returns an error, show a toast and do NOT call `onBack()` (stay on screen so user knows it failed)
+- Log `console.error` in both cases for debugging
 
-### Delete Conversation
-The kebab menu ("...") is in the top-right of the header. Clicking "Delete Conversation" will:
-1. Delete all messages for that `conversation_id`
-2. Delete the conversation record
-3. Navigate back to the message list
+```typescript
+// In handleSend:
+const { error } = await sendMessage(newMessage.trim());
+setIsSending(false);
+if (error) {
+  console.error('Failed to send message:', error);
+  toast.error(`Message failed: ${error.message}`);
+  return;
+}
+setNewMessage('');
 
-### RLS Policies
-The migration adding `"Participants can delete messages in their conversations"` has been applied. Combined with the existing `conversations_delete_participant` policy, both the message and conversation deletions are authorized.
+// In delete handler:
+const { error } = await deleteConversation();
+if (error) {
+  console.error('Failed to delete conversation:', error);
+  toast.error(`Delete failed: ${error.message}`);
+  return;
+}
+onBack();
+```
 
-### If the Input Still Appears Hidden
-The most likely cause is the preview not reflecting the latest code. Try:
-- Refreshing the preview
-- Navigating away from the chat and back in
+**2. `src/hooks/useMessages.tsx` -- Add error logging in deleteConversation**
 
-No file changes are required -- the implementation is complete and correct.
+- Log errors from the messages delete step (currently ignored):
+
+```typescript
+const deleteConversation = async () => {
+  if (!conversationId) return { error: new Error('No conversation') };
+  const { error: msgError } = await supabase.from('messages').delete().eq('conversation_id', conversationId);
+  if (msgError) console.error('Error deleting messages:', msgError);
+  const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
+  if (error) console.error('Error deleting conversation:', error);
+  return { error: msgError || error };
+};
+```
+
+### No database or RLS changes needed
+The conversations table correctly uses `participant_1_id`/`participant_2_id`, and the hook's queries match this schema. The RLS policies for INSERT on `messages` and DELETE on both tables are already in place. The toast feedback will surface any remaining permission errors so they can be diagnosed.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/components/profile/ChatView.tsx` | Add `toast` import from sonner; show error toasts on send/delete failure |
+| `src/hooks/useMessages.tsx` | Log and return errors from message deletion step |
+
