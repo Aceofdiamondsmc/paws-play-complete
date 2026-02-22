@@ -1,40 +1,37 @@
 
 
-## Fix: Likes Counting by Two
+## Fix: "Unknown User" in Messages and Friends List
 
 ### Root Cause
 
-The `usePosts` hook has **two independent systems** both updating the like count simultaneously:
-
-1. **Optimistic update** in `likePost()` (lines 268-294): After the Supabase insert/delete succeeds, it immediately updates local state with `likesCount + 1` or `likesCount - 1`.
-
-2. **Realtime subscription** on `post_likes` (lines 148-175): Listens for INSERT/DELETE events on `post_likes` and also applies `likesCount + 1` or `likesCount - 1`.
-
-Both fire for the same action, so every like/unlike changes the count by 2.
+The `public_profiles` view is created with `security_invoker = on`, which means queries through it are subject to the `profiles` table's RLS policies. **Every SELECT policy on `profiles` restricts reads to `id = auth.uid()`** -- so users can only see their own profile row. When the messaging or friends code tries to fetch another user's display name via `public_profiles`, RLS blocks the query and the UI shows "Unknown User".
 
 ### The Fix
 
-**File: `src/hooks/usePosts.tsx`**
+Add a single new RLS policy to the `profiles` table:
 
-In the realtime subscription handler for `post_likes`, skip the count update when the event was triggered by the current user (since `likePost` already handled it optimistically):
+```sql
+CREATE POLICY "Authenticated users can read public profiles"
+  ON public.profiles
+  FOR SELECT
+  USING (is_public = true);
+```
 
-- On INSERT: if `newLike.user_id === currentUserId`, skip the `likesCount + 1` (already done)
-- On DELETE: if `oldLike.user_id === currentUserId`, skip the `likesCount - 1` (already done)
+This allows any authenticated user to SELECT rows where `is_public = true`. The `public_profiles` view already provides a safe layer by:
+- Only exposing `id`, `display_name`, `username`, `avatar_url`, `bio`, `city`, `state`, `created_at`
+- Hiding `latitude`, `longitude`, `fcm_token`, `onesignal_player_id`, and other sensitive fields
+- Conditionally hiding `city`/`state` based on the `location_public` flag
 
-This keeps the realtime subscription working for likes from **other users** (so the feed updates live) while preventing the double-count for the current user's own actions.
+### Security Considerations
+- Sensitive columns (GPS coordinates, device tokens) are **never** exposed through the view
+- The base table policy only grants access when `is_public = true` -- private profiles remain hidden
+- All application code already queries `public_profiles`, not the base `profiles` table directly
+- No changes to application code are needed -- this is a database-only fix
 
-Additionally, add a guard to `likePost` to prevent rapid double-taps:
-- Track an in-flight state per post ID
-- If a like/unlike is already in progress for that post, return early
+### Changes
 
-### Technical Details
-
-| Change | Detail |
-|--------|--------|
-| `src/hooks/usePosts.tsx` realtime handler | Skip count update when `user_id` matches current user |
-| `src/hooks/usePosts.tsx` likePost | Add in-flight guard using a `Set<string>` ref to prevent double-tap race conditions |
-
-### Single File Changed
-
-Only `src/hooks/usePosts.tsx` needs to be modified -- no UI changes required.
+| What | Detail |
+|------|--------|
+| **SQL Migration** | Add one new SELECT policy on `profiles` for `is_public = true` |
+| **Files changed** | 0 application files -- database policy only |
 
