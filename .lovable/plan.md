@@ -1,31 +1,57 @@
 
 
-## Make Care Reminders Work Globally (All Tabs)
+## Fix: Global Care Notifications
 
-### Problem
-The care reminder notification system (walk, medication, feeding alerts) only runs when the Dates tab is open because `useCareNotifications` is called exclusively inside `CareScheduleSection`, which is a child of the Dates page.
+### Root Cause
+The `CareNotificationProvider` approach is correct in principle, but two issues prevent it from working reliably:
+
+1. **Duplicate hook instances**: `CareScheduleSection` (line 66) still independently calls `useCareNotifications(reminders)`. When the user is on the Dates tab, two separate instances run with separate refs and state, potentially causing conflicts or double notifications.
+
+2. **Timing race**: The provider's `useCareReminders` fetches data asynchronously. The notification check runs immediately on mount with an empty `reminders` array, then the effect re-runs when data arrives -- but the initial empty-array run can mask issues.
 
 ### Solution
-Create a lightweight global provider component that runs the reminder-checking logic app-wide, independent of which tab is active.
 
-### Changes
+**1. Remove `useCareNotifications` from `CareScheduleSection`**
 
-**1. New file: `src/components/CareNotificationProvider.tsx`**
-- A wrapper component rendered inside `AppLayout` (so it's active on all tabs)
-- Fetches the user's care reminders from Supabase (same query as `useCareReminders`)
-- Passes them to `useCareNotifications` to run the 30-second/60-second polling intervals
-- Renders nothing visible -- it's purely a background service component
+Stop calling the hook directly in `CareScheduleSection`. Instead, lift the notification state so the global provider is the single source of truth.
 
-**2. Modified file: `src/components/layout/AppLayout.tsx`**
-- Import and render `<CareNotificationProvider />` alongside the existing layout elements
-- This ensures the polling starts as soon as the user enters any app tab
+**2. Create a React Context for care notification state**
 
-### How It Works
+Since `CareScheduleSection` needs access to `triggeredReminder`, `missedMedications`, `permissionStatus`, etc. for its UI banners, expose these via a context from the provider.
 
-The existing `CareScheduleSection` on the Dates tab will continue to work as before for the UI (showing reminders, logging activities, etc.). The new provider simply ensures the background notification polling runs regardless of which tab the user is on.
+**3. Update `CareNotificationProvider` to provide context**
+
+Wrap children (or use a standalone context) so any component can consume the notification state.
+
+### Files to Change
+
+| File | Change |
+|------|--------|
+| `src/components/CareNotificationProvider.tsx` | Convert to a context provider that exposes notification state from `useCareNotifications` |
+| `src/components/layout/AppLayout.tsx` | Wrap content with the care notification context provider |
+| `src/components/dates/CareScheduleSection.tsx` | Remove direct `useCareNotifications` call; consume from context instead |
 
 ### Technical Details
 
-- The provider fetches reminders once on mount and subscribes to realtime changes on the `care_reminders` table for the current user
-- `useCareNotifications` handles browser Notification API calls and missed medication checks using its existing 30s/60s intervals
-- No database changes needed -- this is purely a frontend wiring fix
+**New context shape:**
+```text
+CareNotificationContext {
+  permissionStatus
+  requestPermission()
+  triggeredReminder
+  clearTriggeredReminder()
+  missedMedications
+  hasMissedDose
+  clearMissedMedication()
+  reminders        // from useCareReminders
+  addReminder()
+  deleteReminder()
+  snoozeReminder()
+  loading
+}
+```
+
+- `CareNotificationProvider` will call both `useCareReminders()` and `useCareNotifications(reminders)` in a single place, then expose all values via React context.
+- `CareScheduleSection` will consume this context instead of calling the hooks directly, eliminating duplicate instances.
+- This guarantees exactly one notification polling loop runs globally, regardless of which tab is active.
+
