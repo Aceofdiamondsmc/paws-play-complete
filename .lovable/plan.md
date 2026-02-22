@@ -1,51 +1,31 @@
 
 
-## Fix: Message Send Error and Three-Dot Menu
+## Make Care Reminders Work Globally (All Tabs)
 
-### Issue 1: "null value in column 'url'" Error When Sending Messages
+### Problem
+The care reminder notification system (walk, medication, feeding alerts) only runs when the Dates tab is open because `useCareNotifications` is called exclusively inside `CareScheduleSection`, which is a child of the Dates page.
 
-**Root Cause:** The `notify_new_message()` database trigger function tries to read `SUPABASE_URL` from `vault.decrypted_secrets`, but that secret doesn't exist in the vault. This makes the URL `NULL`, crashing the `net.http_post` call and preventing the message from being inserted.
+### Solution
+Create a lightweight global provider component that runs the reminder-checking logic app-wide, independent of which tab is active.
 
-**Fix:** Replace the trigger function with a version that hardcodes the Supabase URL and anon key, matching the pattern used by all other working notification triggers in the project.
+### Changes
 
-**Database migration:**
-```sql
-CREATE OR REPLACE FUNCTION public.notify_new_message()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-BEGIN
-  PERFORM net.http_post(
-    url := 'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/message-notification',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhhc2Jna2dnd25rdnJjZXppYWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MDU0NjYsImV4cCI6MjA4MzM4MTQ2Nn0.r3QfznSxZRokZHZAojxD4APUDE9q7pk3asR0V8e0rMg'
-    ),
-    body := jsonb_build_object('record', row_to_json(NEW))
-  );
-  RETURN NEW;
-END;
-$$;
-```
+**1. New file: `src/components/CareNotificationProvider.tsx`**
+- A wrapper component rendered inside `AppLayout` (so it's active on all tabs)
+- Fetches the user's care reminders from Supabase (same query as `useCareReminders`)
+- Passes them to `useCareNotifications` to run the 30-second/60-second polling intervals
+- Renders nothing visible -- it's purely a background service component
 
----
+**2. Modified file: `src/components/layout/AppLayout.tsx`**
+- Import and render `<CareNotificationProvider />` alongside the existing layout elements
+- This ensures the polling starts as soon as the user enters any app tab
 
-### Issue 2: Three-Dot Menu Not Working
+### How It Works
 
-**Root Cause:** The `ChatView` uses a `fixed inset-0 z-[60]` container. The Radix dropdown portal renders at `document.body` level but without a high enough z-index to appear above the chat overlay. Additionally, Radix `DropdownMenuItem` uses `onSelect` for its action event, not `onClick`.
+The existing `CareScheduleSection` on the Dates tab will continue to work as before for the UI (showing reminders, logging activities, etc.). The new provider simply ensures the background notification polling runs regardless of which tab the user is on.
 
-**Fix in `src/components/profile/ChatView.tsx`:**
-- Add `className="z-[70]"` and `sideOffset={5}` to `DropdownMenuContent`
-- Change `onClick` to `onSelect` on the `DropdownMenuItem`
+### Technical Details
 
----
-
-### Summary of Changes
-
-| Change | Target |
-|--------|--------|
-| Replace `notify_new_message()` function | SQL migration |
-| Fix dropdown z-index and event handler | `src/components/profile/ChatView.tsx` |
-
+- The provider fetches reminders once on mount and subscribes to realtime changes on the `care_reminders` table for the current user
+- `useCareNotifications` handles browser Notification API calls and missed medication checks using its existing 30s/60s intervals
+- No database changes needed -- this is purely a frontend wiring fix
