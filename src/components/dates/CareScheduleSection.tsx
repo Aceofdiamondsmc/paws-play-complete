@@ -8,9 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Scissors, GraduationCap, Trash2, Plus, CheckCircle, AlertTriangle, Timer, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCareReminders } from '@/hooks/useCareReminders';
+import { useCareNotificationContext } from '@/components/CareNotificationProvider';
 import { useCareHistory } from '@/hooks/useCareHistory';
-import { useCareNotifications } from '@/hooks/useCareNotifications';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -53,9 +52,12 @@ function isReminderSnoozed(snoozedUntil: string | null): boolean {
 }
 
 export function CareScheduleSection() {
-  const { reminders, loading: remindersLoading, addReminder, deleteReminder, snoozeReminder } = useCareReminders();
-  const { history, loading: historyLoading, logActivity } = useCareHistory();
   const { 
+    reminders, 
+    loading: remindersLoading, 
+    addReminder, 
+    deleteReminder, 
+    snoozeReminder,
     permissionStatus, 
     requestPermission, 
     triggeredReminder, 
@@ -63,7 +65,8 @@ export function CareScheduleSection() {
     missedMedications,
     hasMissedDose,
     clearMissedMedication 
-  } = useCareNotifications(reminders);
+  } = useCareNotificationContext();
+  const { history, loading: historyLoading, logActivity } = useCareHistory();
 
   const [category, setCategory] = useState('walk');
   const [selectedTime, setSelectedTime] = useState('08:00');
