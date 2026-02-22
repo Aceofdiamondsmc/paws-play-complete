@@ -2,34 +2,31 @@
 
 ## Fix Chat Input Visibility and Add Delete Conversation
 
-### Problem 1: Chat Input Hidden Behind Bottom Navigation
+### Problem
+The ChatView input/send button exists but is hidden behind the BottomNav (both at `z-50`). Additionally, there's no way to delete a conversation.
 
-The `ChatView` component already has a text input and send button, but the **bottom navigation bar covers them**. Both use `z-50` and `fixed` positioning. Since the BottomNav comes later in the DOM, it renders on top of the chat input.
+### Changes
 
-**Fix:** Increase the ChatView's z-index to `z-[60]` so it renders above the bottom nav, fully covering it.
+**1. `src/components/profile/ChatView.tsx`**
+- Change `z-50` to `z-[60]` on the root div (line 48) so it renders above the bottom nav
+- Add `pb-20` to the messages scroll area (line 64) so the last message isn't hidden by the input
+- Add a kebab menu (`MoreVertical` icon) in the header with a "Delete Conversation" option
+- Import `MoreVertical`, `Trash2` from lucide and `DropdownMenu` components
+- On delete: call `deleteConversation()` then `onBack()`
 
-### Problem 2: No "Delete / Clear Conversation" Option
+**2. `src/hooks/useMessages.tsx`**
+- Add a `deleteConversation` function to `useConversationMessages` that:
+  1. Deletes all messages: `supabase.from('messages').delete().eq('conversation_id', conversationId)`
+  2. Deletes the conversation: `supabase.from('conversations').delete().eq('id', conversationId)`
+- Return `deleteConversation` from the hook
 
-There is currently no way to delete a conversation or clear its messages.
-
-**Fix:** Add a kebab menu (three-dot icon) in the ChatView header with a "Delete Conversation" option that:
-1. Deletes all messages in the conversation
-2. Deletes the conversation record itself
-3. Navigates back to the message list
-
-### Problem 3: RLS Policies
-
-Current state:
-- **INSERT on messages**: Already allowed for conversation participants (multiple policies exist)
-- **DELETE on messages**: Only allows `sender_id = auth.uid()` -- a user can only delete their own sent messages, not the other party's messages in a conversation
-- **DELETE on conversations**: Already allowed for participants (`participant_1_id` or `participant_2_id`)
-
-**Fix:** Add an RLS policy so participants can delete all messages in their conversations (not just their own). This is needed for the "Clear Conversation" feature. A SQL migration will add:
+**3. Database: RLS policy for message deletion**
+- Current DELETE policies on `messages` only allow `sender_id = auth.uid()` (users can only delete their own sent messages)
+- Need a new policy so conversation participants can delete all messages in their conversation:
 
 ```sql
 CREATE POLICY "Participants can delete messages in their conversations"
-  ON public.messages
-  FOR DELETE
+  ON public.messages FOR DELETE
   USING (
     EXISTS (
       SELECT 1 FROM conversations c
@@ -39,27 +36,11 @@ CREATE POLICY "Participants can delete messages in their conversations"
   );
 ```
 
-### Changes Summary
+### Summary
 
 | File | Change |
 |------|--------|
-| **SQL Migration** | Add DELETE policy on `messages` for conversation participants |
-| `src/components/profile/ChatView.tsx` | Increase z-index to `z-[60]`; add kebab menu with "Delete Conversation" option using `DropdownMenu`; import `Trash2`, `MoreVertical` from lucide and dropdown components |
-| `src/hooks/useMessages.tsx` | Add `deleteConversation` function to `useConversationMessages` that deletes all messages then the conversation record |
+| SQL Migration | Add DELETE policy on messages for conversation participants |
+| `src/components/profile/ChatView.tsx` | z-index to `z-[60]`, `pb-20` on message area, add delete menu in header |
+| `src/hooks/useMessages.tsx` | Add `deleteConversation` function |
 
-### Technical Details
-
-**ChatView header changes:**
-- Add a `MoreVertical` icon button in the header (right side)
-- Wrap in a `DropdownMenu` with a single "Delete Conversation" item (with `Trash2` icon, destructive styling)
-- On click: show confirmation via `AlertDialog`, then call `deleteConversation()`, then `onBack()`
-
-**deleteConversation function (in useMessages.tsx):**
-```typescript
-const deleteConversation = async () => {
-  // Step 1: Delete all messages in this conversation
-  await supabase.from('messages').delete().eq('conversation_id', conversationId);
-  // Step 2: Delete the conversation itself
-  await supabase.from('conversations').delete().eq('id', conversationId);
-};
-```
