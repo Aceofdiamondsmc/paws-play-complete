@@ -155,7 +155,7 @@ export function FriendsList() {
                     onClick={() => handleRemove(f.id)}
                   >
                     <UserX className="w-3.5 h-3.5 mr-1" />
-                    Remove
+                    Unfriend
                   </Button>
                 </div>
               </div>

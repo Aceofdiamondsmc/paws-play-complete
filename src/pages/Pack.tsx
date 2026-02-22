@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint, ShieldBan, MessageSquare } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint, ShieldBan, MessageSquare, MoreHorizontal, UserMinus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
@@ -123,7 +123,7 @@ function formatDistanceMiles(meters: number | null | undefined): string {
 export default function Pack() {
   const packNavigate = useNavigate();
   const { user, dogs: userDogs } = useAuth();
-  const { friends, sentRequests, pendingRequests, sendFriendRequest, acceptRequest, declineRequest } = useFriendships();
+  const { friends, sentRequests, pendingRequests, sendFriendRequest, acceptRequest, declineRequest, removeFriend } = useFriendships();
   const { blockUser } = useBlockedUsers();
   const { startConversation } = useMessages();
 
@@ -621,75 +621,82 @@ export default function Pack() {
                   </div>
                   {user && currentDog.owner_id !== user.id && (() => {
                     const isFriend = friends.some(f => f.friend.id === currentDog.owner_id);
+                    const friendshipRecord = friends.find(f => f.friend.id === currentDog.owner_id);
                     const isPending = sentRequests.some(r => r.friend.id === currentDog.owner_id);
                     const isIncoming = pendingRequests.some(r => r.friend.id === currentDog.owner_id);
+                    const incomingReq = pendingRequests.find(r => r.friend.id === currentDog.owner_id);
                     
-                    if (isFriend) {
-                      return (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#4ade80]/20 text-[#4ade80] text-xs font-semibold border border-[#4ade80]/30">
-                          <UserCheck className="w-3.5 h-3.5" />
-                          Friends
-                        </span>
-                      );
-                    }
-                    if (isPending) {
-                      return (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f59e0b]/20 text-[#fbbf24] text-xs font-semibold border border-[#f59e0b]/30">
-                          <ClockIcon className="w-3.5 h-3.5" />
-                          Pending
-                        </span>
-                      );
-                    }
-                    if (isIncoming) {
-                      const incomingReq = pendingRequests.find(r => r.friend.id === currentDog.owner_id);
-                      return (
-                        <div className="flex gap-1.5">
-                          <Button
-                            size="sm"
-                            className="h-8 rounded-full bg-[#4ade80]/20 hover:bg-[#4ade80]/30 text-[#4ade80] border border-[#4ade80]/30 text-xs font-semibold"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              if (!incomingReq) return;
-                              const { error } = await acceptRequest(incomingReq.id);
-                              if (error) toast.error('Failed to accept request');
-                              else toast.success('Friend request accepted!');
-                            }}
-                          >
-                            <UserCheck className="w-3.5 h-3.5 mr-1" />
-                            Accept
-                          </Button>
+                    return (
+                      <div className="flex flex-wrap gap-1.5">
+                        {/* Friendship-specific button */}
+                        {isFriend && friendshipRecord && (
                           <Button
                             size="sm"
                             variant="ghost"
                             className="h-8 rounded-full text-[#ef4444] hover:text-[#ef4444] hover:bg-[#ef4444]/10 text-xs font-semibold"
                             onClick={async (e) => {
                               e.stopPropagation();
-                              if (!incomingReq) return;
-                              const { error } = await declineRequest(incomingReq.id);
-                              if (error) toast.error('Failed to decline request');
-                              else toast.success('Request declined');
+                              const { error } = await removeFriend(friendshipRecord.id);
+                              if (error) toast.error('Failed to unfriend');
+                              else toast.success('Unfriended');
                             }}
                           >
-                            Decline
+                            <UserMinus className="w-3.5 h-3.5 mr-1" />
+                            Unfriend
                           </Button>
-                        </div>
-                      );
-                    }
-                    return (
-                      <div className="flex gap-1.5">
-                        <Button
-                          size="sm"
-                          className="h-8 rounded-full bg-[#4ade80]/20 hover:bg-[#4ade80]/30 text-[#4ade80] border border-[#4ade80]/30 text-xs font-semibold"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const { error } = await sendFriendRequest(currentDog.owner_id);
-                            if (error) toast.error('Failed to send friend request');
-                            else toast.success('Friend request sent!');
-                          }}
-                        >
-                          <UserPlus className="w-3.5 h-3.5 mr-1" />
-                          Add Friend
-                        </Button>
+                        )}
+                        {isPending && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f59e0b]/20 text-[#fbbf24] text-xs font-semibold border border-[#f59e0b]/30">
+                            <ClockIcon className="w-3.5 h-3.5" />
+                            Pending
+                          </span>
+                        )}
+                        {isIncoming && incomingReq && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="h-8 rounded-full bg-[#4ade80]/20 hover:bg-[#4ade80]/30 text-[#4ade80] border border-[#4ade80]/30 text-xs font-semibold"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const { error } = await acceptRequest(incomingReq.id);
+                                if (error) toast.error('Failed to accept request');
+                                else toast.success('Friend request accepted!');
+                              }}
+                            >
+                              <UserCheck className="w-3.5 h-3.5 mr-1" />
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 rounded-full text-[#ef4444] hover:text-[#ef4444] hover:bg-[#ef4444]/10 text-xs font-semibold"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const { error } = await declineRequest(incomingReq.id);
+                                if (error) toast.error('Failed to decline request');
+                                else toast.success('Request declined');
+                              }}
+                            >
+                              Decline
+                            </Button>
+                          </>
+                        )}
+                        {!isFriend && !isPending && !isIncoming && (
+                          <Button
+                            size="sm"
+                            className="h-8 rounded-full bg-[#4ade80]/20 hover:bg-[#4ade80]/30 text-[#4ade80] border border-[#4ade80]/30 text-xs font-semibold"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const { error } = await sendFriendRequest(currentDog.owner_id);
+                              if (error) toast.error('Failed to send friend request');
+                              else toast.success('Friend request sent!');
+                            }}
+                          >
+                            <UserPlus className="w-3.5 h-3.5 mr-1" />
+                            Add Friend
+                          </Button>
+                        )}
+                        {/* Message - always visible */}
                         <Button
                           size="sm"
                           className="h-8 rounded-full bg-[#3b82f6]/20 hover:bg-[#3b82f6]/30 text-[#60a5fa] border border-[#3b82f6]/30 text-xs font-semibold"
@@ -701,6 +708,7 @@ export default function Pack() {
                           <MessageSquare className="w-3.5 h-3.5 mr-1" />
                           Message
                         </Button>
+                        {/* Block - always visible */}
                         <Button
                           size="sm"
                           variant="ghost"
