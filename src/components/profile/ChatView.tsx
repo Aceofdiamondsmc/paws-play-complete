@@ -43,15 +43,20 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
     if (!newMessage.trim() || isSending) return;
 
     setIsSending(true);
-    const { error } = await sendMessage(newMessage.trim());
-    setIsSending(false);
-
-    if (error) {
-      console.error('Failed to send message:', error);
-      toast.error(`Message failed: ${error.message}`);
-      return;
+    try {
+      const { error } = await sendMessage(newMessage.trim());
+      if (error) {
+        console.error('Failed to send message:', error);
+        toast.error(`Message failed: ${error.message}`);
+        return;
+      }
+      setNewMessage('');
+    } catch (err: any) {
+      console.error('Send exception:', err);
+      toast.error(`Send error: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setIsSending(false);
     }
-    setNewMessage('');
   };
 
   return (
@@ -78,13 +83,18 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
             onClick={async () => {
-                const { error } = await deleteConversation();
-                if (error) {
-                  console.error('Failed to delete conversation:', error);
-                  toast.error(`Delete failed: ${error.message}`);
-                  return;
+                try {
+                  const { error } = await deleteConversation();
+                  if (error) {
+                    console.error('Failed to delete conversation:', error);
+                    toast.error(`Delete failed: ${error.message}`);
+                    return;
+                  }
+                  onBack();
+                } catch (err: any) {
+                  console.error('Delete exception:', err);
+                  toast.error(`Delete error: ${err?.message || 'Unknown error'}`);
                 }
-                onBack();
               }}
             >
               <Trash2 className="w-4 h-4 mr-2" />

@@ -108,7 +108,9 @@ export function useMessages() {
           fetchConversations();
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) console.error('Realtime subscription error (messages list):', err);
+      });
 
     return () => {
       if (subscriptionRef.current) {
@@ -218,7 +220,9 @@ export function useConversationMessages(conversationId: string | null) {
           setMessages(prev => [...prev, payload.new as Message]);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) console.error('Realtime subscription error (conversation):', err);
+      });
 
     return () => {
       if (subscriptionRef.current) {
@@ -248,11 +252,16 @@ export function useConversationMessages(conversationId: string | null) {
 
   const deleteConversation = async () => {
     if (!conversationId) return { error: new Error('No conversation') };
-    const { error: msgError } = await supabase.from('messages').delete().eq('conversation_id', conversationId);
-    if (msgError) console.error('Error deleting messages:', msgError);
-    const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
-    if (error) console.error('Error deleting conversation:', error);
-    return { error: msgError || error };
+    try {
+      const { error: msgError } = await supabase.from('messages').delete().eq('conversation_id', conversationId);
+      if (msgError) console.error('Error deleting messages:', msgError);
+      const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
+      if (error) console.error('Error deleting conversation:', error);
+      return { error: msgError || error };
+    } catch (err: any) {
+      console.error('deleteConversation exception:', err);
+      return { error: err };
+    }
   };
 
   return {
