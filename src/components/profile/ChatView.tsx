@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, MoreVertical, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,9 +46,12 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
     const { error } = await sendMessage(newMessage.trim());
     setIsSending(false);
 
-    if (!error) {
-      setNewMessage('');
+    if (error) {
+      console.error('Failed to send message:', error);
+      toast.error(`Message failed: ${error.message}`);
+      return;
     }
+    setNewMessage('');
   };
 
   return (
@@ -73,8 +77,13 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onClick={async () => {
-                await deleteConversation();
+            onClick={async () => {
+                const { error } = await deleteConversation();
+                if (error) {
+                  console.error('Failed to delete conversation:', error);
+                  toast.error(`Delete failed: ${error.message}`);
+                  return;
+                }
                 onBack();
               }}
             >
