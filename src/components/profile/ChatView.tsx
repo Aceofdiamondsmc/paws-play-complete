@@ -79,10 +79,11 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
               <MoreVertical className="w-5 h-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="z-[70]" sideOffset={5}>
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onClick={async () => {
+              onSelect={async (e) => {
+                e.preventDefault();
                 try {
                   const { error } = await deleteConversation();
                   if (error) {
