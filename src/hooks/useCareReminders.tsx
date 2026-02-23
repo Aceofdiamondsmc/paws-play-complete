@@ -36,10 +36,37 @@ export function useCareReminders() {
 
     if (error) {
       console.error('Error fetching care reminders:', error);
-    } else {
-      setReminders(data as CareReminder[]);
+      setLoading(false);
+      return;
     }
+
+    const remindersData = data as CareReminder[];
+    setReminders(remindersData);
     setLoading(false);
+
+    // Auto-sync timezone for existing reminders
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const mismatchedIds = remindersData
+      .filter((r) => r.user_timezone !== browserTimezone)
+      .map((r) => r.id);
+
+    if (mismatchedIds.length > 0) {
+      const { error: updateError } = await supabase
+        .from('care_reminders')
+        .update({ user_timezone: browserTimezone })
+        .in('id', mismatchedIds);
+
+      if (updateError) {
+        console.error('Error syncing reminder timezones:', updateError);
+      } else {
+        setReminders((prev) =>
+          prev.map((r) =>
+            mismatchedIds.includes(r.id) ? { ...r, user_timezone: browserTimezone } : r
+          )
+        );
+        console.log(`Synced ${mismatchedIds.length} reminder(s) to timezone: ${browserTimezone}`);
+      }
+    }
   }, [user]);
 
   useEffect(() => {
