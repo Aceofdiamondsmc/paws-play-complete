@@ -27,15 +27,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get current time in HH:MM format
     const now = new Date();
-    const currentHHMM = now.toTimeString().slice(0, 5); // "HH:MM"
-    console.log(`Checking reminders for ${currentHHMM}`);
+    console.log(`Server UTC time: ${now.toISOString()}`);
 
-    // Query all enabled reminders matching current minute
+    // Query all enabled reminders (including user_timezone)
     const { data: reminders, error: remindersError } = await supabase
       .from('care_reminders')
-      .select('id, user_id, category, task_details, reminder_time, snoozed_until')
+      .select('id, user_id, category, task_details, reminder_time, snoozed_until, user_timezone')
       .eq('is_enabled', true);
 
     if (remindersError) {
@@ -54,11 +52,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Filter reminders due right now
+    // Helper: get current HH:MM and YYYY-MM-DD in a given timezone
+    function getLocalTimeAndDate(utcNow: Date, timezone: string): { hhmm: string; dateStr: string } {
+      const localTimeStr = utcNow.toLocaleString('en-US', { timeZone: timezone, hour12: false });
+      const localDate = new Date(localTimeStr);
+      const hh = String(localDate.getHours()).padStart(2, '0');
+      const mm = String(localDate.getMinutes()).padStart(2, '0');
+      // Get local date string in YYYY-MM-DD
+      const yyyy = localDate.getFullYear();
+      const mo = String(localDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(localDate.getDate()).padStart(2, '0');
+      return { hhmm: `${hh}:${mm}`, dateStr: `${yyyy}-${mo}-${dd}` };
+    }
+
+    // Filter reminders due right now (per user's timezone)
     const dueReminders = reminders.filter((r) => {
-      // Match HH:MM from reminder_time (format "HH:mm:ss")
+      const tz = r.user_timezone || 'America/New_York';
+      const { hhmm: userHHMM } = getLocalTimeAndDate(now, tz);
       const reminderHHMM = r.reminder_time.slice(0, 5);
-      if (reminderHHMM !== currentHHMM) return false;
+
+      if (reminderHHMM !== userHHMM) return false;
 
       // Skip snoozed
       if (r.snoozed_until) {
@@ -78,29 +91,42 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check which have already been sent today
+    // Check which have already been sent today (using user's local date)
     const reminderIds = dueReminders.map((r) => r.id);
-    const today = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+    // Get all unique local dates for due reminders
+    const reminderLocalDates = new Map<string, string>();
+    for (const r of dueReminders) {
+      const tz = r.user_timezone || 'America/New_York';
+      const { dateStr } = getLocalTimeAndDate(now, tz);
+      reminderLocalDates.set(r.id, dateStr);
+    }
 
     const { data: alreadySent, error: sentError } = await supabase
       .from('care_reminder_sent_log')
-      .select('reminder_id')
-      .in('reminder_id', reminderIds)
-      .eq('sent_date', today);
+      .select('reminder_id, sent_date')
+      .in('reminder_id', reminderIds);
 
     if (sentError) {
       console.error('Error checking sent log:', sentError);
     }
 
-    const sentIds = new Set((alreadySent || []).map((s) => s.reminder_id));
-    const toSend = dueReminders.filter((r) => !sentIds.has(r.id));
+    // Filter out reminders already sent on their local date
+    const sentSet = new Set(
+      (alreadySent || []).map((s) => `${s.reminder_id}|${s.sent_date}`)
+    );
+    const toSend = dueReminders.filter((r) => {
+      const localDate = reminderLocalDates.get(r.id)!;
+      return !sentSet.has(`${r.id}|${localDate}`);
+    });
 
-    console.log(`${toSend.length} reminders to send (${sentIds.size} already sent today)`);
+    console.log(`${toSend.length} reminders to send (${sentSet.size} already sent)`);
 
     let sentCount = 0;
 
     for (const reminder of toSend) {
       const { title, body } = getNotificationContent(reminder.category, reminder.task_details);
+      const localDate = reminderLocalDates.get(reminder.id)!;
 
       try {
         const osResponse = await fetch('https://api.onesignal.com/notifications', {
@@ -122,10 +148,10 @@ Deno.serve(async (req) => {
         const osResult = await osResponse.json();
         console.log(`Push for reminder ${reminder.id}:`, JSON.stringify(osResult));
 
-        // Log as sent
+        // Log as sent using user's local date
         const { error: logError } = await supabase
           .from('care_reminder_sent_log')
-          .insert({ reminder_id: reminder.id, sent_date: today });
+          .insert({ reminder_id: reminder.id, sent_date: localDate });
 
         if (logError) {
           console.error(`Failed to log sent reminder ${reminder.id}:`, logError);
