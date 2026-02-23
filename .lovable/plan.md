@@ -1,57 +1,73 @@
 
 
-## Fix: Global Care Notifications
+## Fix: Timezone-Aware Care Reminder Notifications
 
 ### Root Cause
-The `CareNotificationProvider` approach is correct in principle, but two issues prevent it from working reliably:
 
-1. **Duplicate hook instances**: `CareScheduleSection` (line 66) still independently calls `useCareNotifications(reminders)`. When the user is on the Dates tab, two separate instances run with separate refs and state, potentially causing conflicts or double notifications.
+The edge function `care-reminder-push` runs on the server in **UTC**. It compares the current UTC time against `reminder_time`, which is stored in the user's **local time**. So a reminder set for 8:30 AM Eastern fires when the server clock reads 08:30 UTC -- which is 3:30 AM Eastern. This is why you're getting a "Dog Walk Reminder" at 3:30 AM.
 
-2. **Timing race**: The provider's `useCareReminders` fetches data asynchronously. The notification check runs immediately on mount with an empty `reminders` array, then the effect re-runs when data arrives -- but the initial empty-array run can mask issues.
+The client-side notifications (`useCareNotifications`) already work correctly because `format(now, 'HH:mm')` uses the browser's local clock. The problem is **only** in the server-side push function.
 
-### Solution
+### Plan
 
-**1. Remove `useCareNotifications` from `CareScheduleSection`**
+#### 1. Database Migration -- Add `user_timezone` column
 
-Stop calling the hook directly in `CareScheduleSection`. Instead, lift the notification state so the global provider is the single source of truth.
+Add a timezone column to `care_reminders` so the server knows each user's timezone.
 
-**2. Create a React Context for care notification state**
+```sql
+ALTER TABLE care_reminders
+ADD COLUMN user_timezone text DEFAULT 'America/New_York';
+```
 
-Since `CareScheduleSection` needs access to `triggeredReminder`, `missedMedications`, `permissionStatus`, etc. for its UI banners, expose these via a context from the provider.
+Default is `America/New_York` so all existing reminders immediately work for Eastern time users.
 
-**3. Update `CareNotificationProvider` to provide context**
+#### 2. Update `src/hooks/useCareReminders.tsx` -- Save timezone on create
 
-Wrap children (or use a standalone context) so any component can consume the notification state.
+When creating a new reminder, automatically capture the browser's timezone:
 
-### Files to Change
+- Use `Intl.DateTimeFormat().resolvedOptions().timeZone` (e.g., `"America/New_York"`)
+- Include it in the insert payload as `user_timezone`
+- Add `user_timezone` to the `CareReminder` interface
+
+#### 3. Fix `supabase/functions/care-reminder-push/index.ts` -- Convert UTC to user's local time
+
+Instead of comparing against raw UTC:
+
+**Before (broken):**
+```text
+const currentHHMM = now.toTimeString().slice(0, 5); // UTC!
+```
+
+**After (fixed):**
+```text
+// For each reminder, convert current UTC time to the user's timezone
+const userLocalTime = new Date(
+  now.toLocaleString('en-US', { timeZone: reminder.user_timezone || 'America/New_York' })
+);
+const userHHMM = userLocalTime.toTimeString().slice(0, 5);
+```
+
+Also fix `today` date calculation to use the user's local date (not UTC date) for the sent-log dedup check.
+
+Key changes to the edge function:
+- Fetch `user_timezone` in the SELECT query
+- Move the time-matching logic to compare per-reminder using the user's timezone
+- Use user-local date for the `sent_date` dedup log
+
+#### 4. Update `src/components/CareNotificationProvider.tsx` -- No changes needed
+
+The context provider and client-side polling already work correctly since the browser uses local time. The global provider pattern is already in place from the previous fix.
+
+### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/CareNotificationProvider.tsx` | Convert to a context provider that exposes notification state from `useCareNotifications` |
-| `src/components/layout/AppLayout.tsx` | Wrap content with the care notification context provider |
-| `src/components/dates/CareScheduleSection.tsx` | Remove direct `useCareNotifications` call; consume from context instead |
+| Database migration | Add `user_timezone` column to `care_reminders` |
+| `src/hooks/useCareReminders.tsx` | Add `user_timezone` to interface; save browser timezone on insert |
+| `supabase/functions/care-reminder-push/index.ts` | Convert UTC to user's local timezone before matching reminder times |
 
-### Technical Details
+### Why This Fixes Both Issues
 
-**New context shape:**
-```text
-CareNotificationContext {
-  permissionStatus
-  requestPermission()
-  triggeredReminder
-  clearTriggeredReminder()
-  missedMedications
-  hasMissedDose
-  clearMissedMedication()
-  reminders        // from useCareReminders
-  addReminder()
-  deleteReminder()
-  snoozeReminder()
-  loading
-}
-```
-
-- `CareNotificationProvider` will call both `useCareReminders()` and `useCareNotifications(reminders)` in a single place, then expose all values via React context.
-- `CareScheduleSection` will consume this context instead of calling the hooks directly, eliminating duplicate instances.
-- This guarantees exactly one notification polling loop runs globally, regardless of which tab is active.
+1. **Wrong time notifications**: The edge function will now correctly compare 8:30 AM Eastern against 8:30 AM Eastern (not 8:30 UTC)
+2. **Background/all-tab support**: The server-side `pg_cron` job already runs every minute regardless of whether the app is open. Once the timezone logic is fixed, push notifications via OneSignal will arrive at the correct time even when the app is closed or on any tab.
 
