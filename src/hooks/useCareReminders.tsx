@@ -13,6 +13,7 @@ export interface CareReminder {
   task_details: string | null;
   created_at: string;
   snoozed_until: string | null;
+  user_timezone: string | null;
 }
 
 export function useCareReminders() {
@@ -54,6 +55,8 @@ export function useCareReminders() {
   }) => {
     if (!user) return { error: new Error('Not authenticated') };
 
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     const { data, error } = await supabase
       .from('care_reminders')
       .insert({
@@ -64,6 +67,7 @@ export function useCareReminders() {
         category: reminder.category,
         task_details: reminder.task_details || null,
         is_enabled: true,
+        user_timezone: userTimezone,
       })
       .select()
       .maybeSingle();

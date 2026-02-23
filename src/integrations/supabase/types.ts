@@ -111,6 +111,7 @@ export type Database = {
           snoozed_until: string | null
           task_details: string | null
           user_id: string | null
+          user_timezone: string | null
         }
         Insert: {
           category?: string | null
@@ -124,6 +125,7 @@ export type Database = {
           snoozed_until?: string | null
           task_details?: string | null
           user_id?: string | null
+          user_timezone?: string | null
         }
         Update: {
           category?: string | null
@@ -137,6 +139,7 @@ export type Database = {
           snoozed_until?: string | null
           task_details?: string | null
           user_id?: string | null
+          user_timezone?: string | null
         }
         Relationships: []
       }

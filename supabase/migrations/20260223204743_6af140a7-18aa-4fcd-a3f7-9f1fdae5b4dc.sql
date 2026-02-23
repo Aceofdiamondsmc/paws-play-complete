@@ -1,0 +1,1 @@
+ALTER TABLE care_reminders ADD COLUMN user_timezone text DEFAULT 'America/New_York';
