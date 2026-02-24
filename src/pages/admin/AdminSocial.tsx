@@ -215,7 +215,11 @@ export default function AdminSocial() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {post.image_url ? (
+                      {post.video_url ? (
+                        <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+                          <Video className="h-6 w-6 text-primary" />
+                        </div>
+                      ) : post.image_url ? (
                         <div className="w-16 h-16 rounded-md overflow-hidden bg-muted">
                           <AspectRatio ratio={1}>
                             <img
