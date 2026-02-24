@@ -28,6 +28,7 @@ interface AdminEditPostModalProps {
   initialVideoUrl: string;
   initialLikesCount?: number;
   initialCommentsCount?: number;
+  initialAuthorAvatarUrl?: string;
   onPostUpdated: () => void;
 }
 
