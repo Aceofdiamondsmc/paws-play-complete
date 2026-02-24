@@ -85,7 +85,7 @@ function NotificationItem({
 }
 
 export function NotificationsList() {
-  const { notifications, loading, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, loading, unreadCount, markAsRead, deleteNotification, clearAll } = useNotifications();
 
   if (loading) {
     return (
