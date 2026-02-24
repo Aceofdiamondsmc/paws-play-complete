@@ -117,6 +117,57 @@ export default function AdminEditPostModal({
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="py-3 space-y-4">
+            {/* Author Avatar */}
+            <div className="space-y-2">
+              <Label>Author Avatar</Label>
+              <div className="flex items-center gap-3">
+                <Avatar className="w-14 h-14 border-2 border-primary/30">
+                  <AvatarImage src={authorAvatarUrl || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+                    {authorName?.[0]?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const { url, error } = await uploadImage(file, 'post-images');
+                    if (error) {
+                      toast.error(error.message || 'Upload failed');
+                    } else if (url) {
+                      setAuthorAvatarUrl(url);
+                    }
+                    if (avatarInputRef.current) avatarInputRef.current.value = '';
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                  Upload
+                </Button>
+                {authorAvatarUrl && (
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setAuthorAvatarUrl('')} className="h-8 w-8">
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Input
+                value={authorAvatarUrl}
+                onChange={(e) => setAuthorAvatarUrl(e.target.value)}
+                placeholder="Or paste avatar URL..."
+              />
+              <p className="text-xs text-muted-foreground">Leave blank to use profile avatar</p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="admin-author-name">Author Display Name</Label>
               <Input
