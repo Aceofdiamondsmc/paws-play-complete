@@ -1,72 +1,93 @@
 
 
-## Add Video Upload Support to Social Tab
+## Fix: Input Fields Hidden by Mobile Keyboard
 
-### Overview
-Enable users to upload and view videos in social posts, alongside the existing image upload flow. Videos will be stored in the same `post-images` Supabase storage bucket and referenced via a new `video_url` column on the `posts` table.
+### Problem
+On mobile devices, when the virtual keyboard opens, the text input areas in the **Social post form**, **Chat messages**, and **Comments drawer** get pushed behind the keyboard or bottom navigation bar, making it impossible to see what you're typing.
 
-### Changes
+### Root Causes
+1. **ChatView**: Uses `fixed inset-0` layout but the input form at the bottom doesn't account for the virtual keyboard resizing the viewport.
+2. **CreatePostForm / Social page**: The textarea is inline in a scrollable page with `pb-24` for the bottom nav, but when the keyboard opens the textarea doesn't scroll into view.
+3. **CommentsDrawer**: Similar issue -- the sticky input at the bottom can be obscured.
+4. **BottomNav**: The fixed bottom nav (z-50, h-20) sits on top of inputs when the keyboard is open.
 
-#### 1. Database Migration -- Add `video_url` column
-- Add `video_url text` column to the `posts` table (nullable, default null)
-- Update the `public_posts` view to include the new `video_url` column so the feed can display videos
+### Solution
 
-```text
-ALTER TABLE posts ADD COLUMN video_url text;
--- Recreate public_posts view to include video_url
+#### 1. Add a global CSS fix for mobile keyboard behavior
+In `src/index.css`, add styles that:
+- Hide the bottom nav when an input/textarea is focused (keyboard is open)
+- Use `100dvh` (dynamic viewport height) where appropriate so layouts adapt when the keyboard appears
+
+#### 2. Update `src/components/layout/BottomNav.tsx`
+- Add a state that tracks whether an input is focused anywhere in the app
+- Hide the bottom nav when the keyboard is likely open (input focused) to free up screen space
+- Use a `focusin`/`focusout` event listener on `document` to detect input focus
+
+#### 3. Update `src/components/profile/ChatView.tsx`
+- Change the outer container from `fixed inset-0` to use `100dvh` height so it shrinks when the mobile keyboard opens
+- Add `pb-safe` or safe-area padding to the input form
+- Auto-scroll to bottom when the input is focused (keyboard opens)
+
+#### 4. Update `src/components/social/CreatePostForm.tsx`
+- Add an `onFocus` handler to the textarea that scrolls it into view after a short delay (to wait for the keyboard animation)
+- This ensures the user can always see what they're typing
+
+#### 5. Update `src/components/social/CommentsDrawer.tsx`
+- Add an `onFocus` handler to the comment input that scrolls the input into view
+- Ensure the drawer's sticky input remains visible above the keyboard
+
+### Technical Details
+
+**BottomNav keyboard detection:**
+```typescript
+// Listen for focusin/focusout on input/textarea elements
+useEffect(() => {
+  const onFocusIn = (e: FocusEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      setKeyboardOpen(true);
+    }
+  };
+  const onFocusOut = () => setKeyboardOpen(false);
+  document.addEventListener('focusin', onFocusIn);
+  document.addEventListener('focusout', onFocusOut);
+  return () => { ... };
+}, []);
+// When keyboardOpen is true, hide the nav with display:none or translate-y
 ```
 
-#### 2. Update `src/types/index.ts` -- Add `video_url` to Post interface
-- Add `video_url: string | null` to the `Post` interface
+**ChatView fix:**
+```
+- className="fixed inset-0 z-[60] ..."
++ className="fixed inset-x-0 top-0 z-[60] flex flex-col" style={{ height: '100dvh' }}
+```
+Plus adding a `visualViewport` resize listener to re-scroll to bottom when the keyboard opens.
 
-#### 3. Update `src/components/social/CreatePostForm.tsx` -- Accept video files
-- Expand the file input `accept` attribute to include video types (`video/*`)
-- Detect whether the selected file is a video or image
-- Show a `<video>` preview instead of `<img>` when a video is selected
-- Pass `videoUrl` through to the `onPost` callback
-- Add a video icon button alongside the existing image/camera buttons
+**CreatePostForm textarea scroll-into-view:**
+```tsx
+<Textarea
+  onFocus={(e) => {
+    setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+  }}
+  ...
+/>
+```
 
-#### 4. Update `src/components/social/PhotoUploadSheet.tsx` -- Accept video files
-- Expand file input `accept` to include `video/*`
-- Detect video vs image and show appropriate preview (`<video>` with controls)
-- Upload videos to the `post-images` bucket (same as images)
-- Save the video URL to the `video_url` column when creating the post
-- Increase the file size limit for videos (e.g., 50MB)
-- Skip HEIC conversion for video files
+**CommentsDrawer input scroll-into-view:**
+```tsx
+<Input
+  onFocus={(e) => {
+    setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+  }}
+  ...
+/>
+```
 
-#### 5. Update `src/hooks/usePosts.tsx` -- Handle `video_url`
-- Include `video_url` in the enriched post data from `public_posts` view
-- Pass `video_url` through to the `PostWithDetails` interface
-- Update `createPost` to accept an optional `videoUrl` parameter and save it
-
-#### 6. Update `src/pages/Social.tsx` -- Render videos in the feed
-- When a post has `video_url`, render a `<video>` element with controls (play, pause, muted autoplay optional) instead of the `PostImage` component
-- Maintain the same `AspectRatio` wrapper and rounded styling
-- Support both image and video on the same post (image takes priority if both exist, or show video)
-
-#### 7. Update `src/hooks/useImageUpload.tsx` -- Support video uploads
-- Skip HEIC conversion when the file is a video (check `file.type.startsWith('video/')`)
-- No other changes needed -- the upload logic works for any file type
-
-#### 8. Update Admin pages
-- `src/pages/admin/AdminSocial.tsx`: Show video thumbnail/icon in the posts table when `video_url` is present
-
-### File Summary
+### Files Changed
 
 | File | Change |
 |------|--------|
-| Database migration | Add `video_url` column to `posts`, update `public_posts` view |
-| `src/types/index.ts` | Add `video_url` to Post interface |
-| `src/hooks/usePosts.tsx` | Include `video_url` in data flow and `createPost` |
-| `src/hooks/useImageUpload.tsx` | Skip HEIC conversion for video files |
-| `src/components/social/CreatePostForm.tsx` | Accept video files, video preview, pass video URL |
-| `src/components/social/PhotoUploadSheet.tsx` | Accept video files, video preview, upload and save video URL |
-| `src/pages/Social.tsx` | Render `<video>` element for posts with video_url |
-| `src/pages/admin/AdminSocial.tsx` | Show video indicator in admin table |
-
-### Technical Notes
-- Videos will be stored in the existing `post-images` Supabase storage bucket (no new bucket needed)
-- File size limit for videos: 50MB (vs 10MB for images)
-- Video formats supported: MP4, MOV, WebM, and other browser-native formats
-- The `<video>` element will use `controls`, `playsInline`, and `preload="metadata"` for good mobile UX
-- The existing storage cleanup triggers on the `posts` table only reference `image_url` -- a second trigger will be added for `video_url` cleanup on delete/update
+| `src/index.css` | Add `dvh` utility and keyboard-aware CSS |
+| `src/components/layout/BottomNav.tsx` | Hide nav when keyboard is open |
+| `src/components/profile/ChatView.tsx` | Use `100dvh`, scroll-on-focus |
+| `src/components/social/CreatePostForm.tsx` | Scroll textarea into view on focus |
+| `src/components/social/CommentsDrawer.tsx` | Scroll input into view on focus |
