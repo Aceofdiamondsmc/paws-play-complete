@@ -101,6 +101,7 @@ export interface Post {
   dog_id: string | null;
   content: string;
   image_url: string | null;
+  video_url: string | null;
   pup_name: string | null;
   visibility: 'public' | 'private';
   created_at: string | null;
