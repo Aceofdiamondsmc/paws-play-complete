@@ -33,6 +33,7 @@ interface Post {
   author_id: string;
   content: string;
   image_url: string | null;
+  video_url: string | null;
   pup_name: string | null;
   author_display_name: string | null;
   likes_count: number;
