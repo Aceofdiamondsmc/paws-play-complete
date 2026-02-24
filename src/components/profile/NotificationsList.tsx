@@ -124,12 +124,12 @@ export function NotificationsList() {
             </Badge>
           )}
         </h3>
-        {unreadCount > 0 && (
+        {notifications.length > 0 && (
           <Button 
             size="sm" 
             variant="ghost" 
             className="text-xs h-7 gap-1"
-            onClick={markAllAsRead}
+            onClick={clearAll}
           >
             <Check className="w-3 h-3" />
             Clear All
