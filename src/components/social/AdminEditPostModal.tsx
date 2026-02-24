@@ -44,6 +44,7 @@ export default function AdminEditPostModal({
   initialVideoUrl,
   initialLikesCount = 0,
   initialCommentsCount = 0,
+  initialAuthorAvatarUrl = '',
   onPostUpdated,
 }: AdminEditPostModalProps) {
   const [content, setContent] = useState(initialContent);
