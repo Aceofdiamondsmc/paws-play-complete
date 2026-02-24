@@ -1,40 +1,45 @@
 
 
-## Fix: Video Posts Not Fully Supported in Admin Social
+## Professional Video Previews Across the App
 
 ### Problem
-Video posts created on the Social tab are stored correctly in the database (with `video_url`), and appear in the Admin Social table with a video icon. However, the **AdminEditPostModal** has no awareness of video URLs -- it only handles `image_url`. This means:
-- Admins can't see or preview the video when editing a post
-- Admins can't upload or change video URLs
-- The video URL is preserved on save (since it's not in the update payload), but it's invisible to the admin
+When you select or record a video in the create post form (and admin edit modal), you see a bare `<video>` element that shows a black rectangle requiring you to press play. This feels unpolished.
 
 ### Solution
-Add video URL support to the AdminEditPostModal, including:
-1. Display a video preview when the post has a `video_url`
-2. Allow uploading or pasting a video URL
-3. Include `video_url` in the save/update payload
-4. Pass `video_url` from AdminSocial to the edit modal
+Make video previews auto-play silently as looping clips -- the same way Instagram, TikTok, and other professional apps handle inline video previews. No play button needed; the video just plays immediately as a muted, looping preview so you can see what you recorded.
+
+### Changes
+
+**`src/components/social/CreatePostForm.tsx` (line 219)**
+- Change `<video src={previewUrl} controls playsInline preload="metadata" .../>` to add `autoPlay muted loop` and remove `controls`
+- This makes the preview silently loop so you instantly see your video content without tapping anything
+
+**`src/components/social/AdminEditPostModal.tsx` (lines 241-245)**
+- Same treatment: add `autoPlay muted loop playsInline` and remove `controls` on the admin video preview
+- Gives admins an instant silent preview of the video content
+
+### Technical Details
+
+Both changes are one-line attribute swaps:
+
+```tsx
+// Before (both files)
+<video src={url} controls className="..." />
+
+// After
+<video src={url} autoPlay muted loop playsInline className="..." />
+```
+
+- **`autoPlay`**: starts playback immediately -- no tap needed
+- **`muted`**: required for autoplay to work on all browsers (Chrome, Safari policy)
+- **`loop`**: keeps the preview playing continuously
+- **`playsInline`**: prevents fullscreen takeover on iOS
+- No `controls` shown since this is just a preview; the full player with controls is shown in the feed via VideoPlayer
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/social/AdminEditPostModal.tsx` | Add `initialVideoUrl` prop, video state, video upload/URL input, video preview, include `video_url` in save |
-| `src/pages/admin/AdminSocial.tsx` | Pass `initialVideoUrl={editingPost?.video_url ?? ''}` to AdminEditPostModal |
-
-### Technical Details
-
-**AdminEditPostModal.tsx**
-- Add new prop `initialVideoUrl: string` to the interface
-- Add `videoUrl` state, initialized from `initialVideoUrl`
-- Add a "Video" section below the existing Image section with:
-  - Upload button (accepts `video/*`) 
-  - URL text input for manual entry
-  - Video preview element when a URL is present
-  - Clear (X) button to remove the video
-- Update `handleSave` to include `video_url: videoUrl.trim() || null` in the update payload
-- When a video is uploaded, set `videoUrl` to the public URL from Supabase storage
-
-**AdminSocial.tsx**
-- Add `initialVideoUrl={editingPost?.video_url ?? ''}` prop to the `<AdminEditPostModal>` component
+| `src/components/social/CreatePostForm.tsx` | Video preview: add `autoPlay muted loop`, remove `controls` |
+| `src/components/social/AdminEditPostModal.tsx` | Video preview: add `autoPlay muted loop playsInline`, remove `controls` |
 
