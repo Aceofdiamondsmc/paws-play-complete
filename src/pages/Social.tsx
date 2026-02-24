@@ -345,6 +345,7 @@ export default function Social() {
                             content: post.content || '',
                             pup_name: post.pup_name || post.dogName || '',
                             image_url: post.image_url || '',
+                            video_url: (post as any).video_url || '',
                             likes_count: post.likesCount,
                             comments_count: post.commentsCount,
                             author_display_name: (post as any).author_display_name || '',
