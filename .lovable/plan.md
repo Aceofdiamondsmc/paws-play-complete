@@ -1,60 +1,40 @@
 
 
-## Fix: Notifications Appearing Permanent on Me Tab
+## Fix: Video Posts Not Fully Supported in Admin Social
 
 ### Problem
-When you tap "Clear All" on the Me tab, notifications are only marked as read -- they stay in the list forever with a dimmed style. There's no way to actually dismiss or remove them. Over time, the list grows endlessly with stale notifications.
+Video posts created on the Social tab are stored correctly in the database (with `video_url`), and appear in the Admin Social table with a video icon. However, the **AdminEditPostModal** has no awareness of video URLs -- it only handles `image_url`. This means:
+- Admins can't see or preview the video when editing a post
+- Admins can't upload or change video URLs
+- The video URL is preserved on save (since it's not in the update payload), but it's invisible to the admin
 
 ### Solution
-Make notifications behave like a proper inbox:
-
-1. **"Clear All" actually clears** -- deletes all notifications from the database, not just marks them as read
-2. **Individual dismiss** -- add an X button on each notification so users can remove one at a time
-3. **Auto-hide old read notifications** -- only show the last 24 hours of read notifications; unread ones always show regardless of age
-
-### Changes
-
-**`src/hooks/useNotifications.tsx`**
-- Add a `deleteNotification(id)` function that removes a single notification from the DB and local state
-- Change `markAllAsRead` to `clearAll` -- deletes all notifications for the user from the DB and resets local state to empty
-- Filter fetched notifications: show all unread + read notifications from the last 24 hours only
-
-**`src/components/profile/NotificationsList.tsx`**
-- Add an X button to each notification item for individual dismissal
-- Rename "Clear All" button behavior to actually delete notifications
-- Clicking a notification marks it as read (existing behavior stays)
-
-### Technical Details
-
-**Delete single notification:**
-```tsx
-const deleteNotification = async (id: string) => {
-  await supabase.from('notifications').delete().eq('id', id);
-  setNotifications(prev => prev.filter(n => n.id !== id));
-  // update unread count if it was unread
-};
-```
-
-**Clear all:**
-```tsx
-const clearAll = async () => {
-  await supabase.from('notifications').delete().eq('user_id', user.id);
-  setNotifications([]);
-  setUnreadCount(0);
-};
-```
-
-**24-hour read filter (in fetch):**
-```tsx
-// After fetching, filter out read notifications older than 24h
-const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-const filtered = data.filter(n => !n.read || n.created_at > cutoff);
-```
+Add video URL support to the AdminEditPostModal, including:
+1. Display a video preview when the post has a `video_url`
+2. Allow uploading or pasting a video URL
+3. Include `video_url` in the save/update payload
+4. Pass `video_url` from AdminSocial to the edit modal
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/hooks/useNotifications.tsx` | Add `deleteNotification`, change `markAllAsRead` to delete all, add 24h read filter |
-| `src/components/profile/NotificationsList.tsx` | Add X dismiss button per notification, wire up clear all to delete |
+| `src/components/social/AdminEditPostModal.tsx` | Add `initialVideoUrl` prop, video state, video upload/URL input, video preview, include `video_url` in save |
+| `src/pages/admin/AdminSocial.tsx` | Pass `initialVideoUrl={editingPost?.video_url ?? ''}` to AdminEditPostModal |
+
+### Technical Details
+
+**AdminEditPostModal.tsx**
+- Add new prop `initialVideoUrl: string` to the interface
+- Add `videoUrl` state, initialized from `initialVideoUrl`
+- Add a "Video" section below the existing Image section with:
+  - Upload button (accepts `video/*`) 
+  - URL text input for manual entry
+  - Video preview element when a URL is present
+  - Clear (X) button to remove the video
+- Update `handleSave` to include `video_url: videoUrl.trim() || null` in the update payload
+- When a video is uploaded, set `videoUrl` to the public URL from Supabase storage
+
+**AdminSocial.tsx**
+- Add `initialVideoUrl={editingPost?.video_url ?? ''}` prop to the `<AdminEditPostModal>` component
 
