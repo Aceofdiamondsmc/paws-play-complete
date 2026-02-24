@@ -150,6 +150,7 @@ export function NotificationsList() {
               key={notification.id}
               notification={notification}
               onMarkAsRead={markAsRead}
+              onDelete={deleteNotification}
             />
           ))}
         </div>

@@ -128,6 +128,7 @@ export function useNotifications() {
     unreadCount,
     refetch: fetchNotifications,
     markAsRead,
-    markAllAsRead,
+    deleteNotification,
+    clearAll,
   };
 }
