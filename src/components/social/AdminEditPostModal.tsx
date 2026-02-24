@@ -240,7 +240,10 @@ export default function AdminEditPostModal({
             {videoUrl && (
               <video
                 src={videoUrl}
-                controls
+                autoPlay
+                muted
+                loop
+                playsInline
                 className="mt-2 rounded-lg max-h-40 w-full border border-border"
               />
             )}
