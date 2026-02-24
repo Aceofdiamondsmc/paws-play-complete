@@ -122,7 +122,7 @@ export default function Social() {
 
   // Admin edit state
   const [adminEditingPost, setAdminEditingPost] = useState<{
-    id: string; content: string; pup_name: string; image_url: string; likes_count: number; comments_count: number; author_display_name?: string; author_name?: string;
+    id: string; content: string; pup_name: string; image_url: string; video_url: string; likes_count: number; comments_count: number; author_display_name?: string; author_name?: string;
   } | null>(null);
 
   const handleDeletePost = async () => {
@@ -345,6 +345,7 @@ export default function Social() {
                             content: post.content || '',
                             pup_name: post.pup_name || post.dogName || '',
                             image_url: post.image_url || '',
+                            video_url: (post as any).video_url || '',
                             likes_count: post.likesCount,
                             comments_count: post.commentsCount,
                             author_display_name: (post as any).author_display_name || '',
@@ -532,6 +533,7 @@ export default function Social() {
         initialContent={adminEditingPost?.content || ''}
         initialPupName={adminEditingPost?.pup_name || ''}
         initialImageUrl={adminEditingPost?.image_url || ''}
+        initialVideoUrl={adminEditingPost?.video_url || ''}
         initialAuthorName={adminEditingPost?.author_display_name || adminEditingPost?.author_name || ''}
         initialLikesCount={adminEditingPost?.likes_count || 0}
         initialCommentsCount={adminEditingPost?.comments_count || 0}

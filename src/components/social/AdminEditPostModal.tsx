@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useImageUpload } from '@/hooks/useImageUpload';
-import { Upload, Loader2, X } from 'lucide-react';
+import { Upload, Loader2, X, Video } from 'lucide-react';
 
 interface AdminEditPostModalProps {
   open: boolean;
@@ -23,6 +23,7 @@ interface AdminEditPostModalProps {
   initialPupName: string;
   initialImageUrl: string;
   initialAuthorName: string;
+  initialVideoUrl: string;
   initialLikesCount?: number;
   initialCommentsCount?: number;
   onPostUpdated: () => void;
@@ -36,6 +37,7 @@ export default function AdminEditPostModal({
   initialPupName,
   initialImageUrl,
   initialAuthorName,
+  initialVideoUrl,
   initialLikesCount = 0,
   initialCommentsCount = 0,
   onPostUpdated,
@@ -43,23 +45,26 @@ export default function AdminEditPostModal({
   const [content, setContent] = useState(initialContent);
   const [pupName, setPupName] = useState(initialPupName);
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
+  const [videoUrl, setVideoUrl] = useState(initialVideoUrl);
   const [authorName, setAuthorName] = useState(initialAuthorName);
   const [likesCount, setLikesCount] = useState(initialLikesCount);
   const [commentsCount, setCommentsCount] = useState(initialCommentsCount);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { uploadImage, uploading } = useImageUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       setContent(initialContent);
       setPupName(initialPupName);
       setImageUrl(initialImageUrl);
+      setVideoUrl(initialVideoUrl);
       setAuthorName(initialAuthorName);
       setLikesCount(initialLikesCount);
       setCommentsCount(initialCommentsCount);
     }
-  }, [open, initialContent, initialPupName, initialImageUrl, initialAuthorName, initialLikesCount, initialCommentsCount]);
+  }, [open, initialContent, initialPupName, initialImageUrl, initialVideoUrl, initialAuthorName, initialLikesCount, initialCommentsCount]);
 
   const handleSave = async () => {
     if (!postId || !content.trim()) return;
@@ -72,6 +77,7 @@ export default function AdminEditPostModal({
           content: content.trim(),
           pup_name: pupName.trim() || null,
           image_url: imageUrl.trim() || null,
+          video_url: videoUrl.trim() || null,
           author_display_name: authorName.trim() || null,
           likes_count: likesCount,
           comments_count: commentsCount,
@@ -186,6 +192,56 @@ export default function AdminEditPostModal({
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
+              />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Video</Label>
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const { url, error } = await uploadImage(file, 'post-images');
+                if (error) {
+                  toast.error(error.message || 'Video upload failed');
+                } else if (url) {
+                  setVideoUrl(url);
+                }
+                if (videoInputRef.current) videoInputRef.current.value = '';
+              }}
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Video className="h-4 w-4 mr-2" />}
+                {uploading ? 'Uploading...' : 'Upload Video'}
+              </Button>
+              {videoUrl && (
+                <Button type="button" variant="ghost" size="icon" onClick={() => setVideoUrl('')} className="h-8 w-8">
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Input
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder="Or paste a video URL..."
+            />
+            {videoUrl && (
+              <video
+                src={videoUrl}
+                controls
+                className="mt-2 rounded-lg max-h-40 w-full border border-border"
               />
             )}
           </div>
