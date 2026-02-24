@@ -540,6 +540,7 @@ export default function Social() {
         initialAuthorName={adminEditingPost?.author_display_name || adminEditingPost?.author_name || ''}
         initialLikesCount={adminEditingPost?.likes_count || 0}
         initialCommentsCount={adminEditingPost?.comments_count || 0}
+        initialAuthorAvatarUrl={adminEditingPost?.author_avatar_url || ''}
         onPostUpdated={refresh}
       />
 
