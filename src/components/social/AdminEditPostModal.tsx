@@ -55,9 +55,11 @@ export default function AdminEditPostModal({
   const [likesCount, setLikesCount] = useState(initialLikesCount);
   const [commentsCount, setCommentsCount] = useState(initialCommentsCount);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authorAvatarUrl, setAuthorAvatarUrl] = useState(initialAuthorAvatarUrl);
   const { uploadImage, uploading } = useImageUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
