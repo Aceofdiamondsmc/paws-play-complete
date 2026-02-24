@@ -36,10 +36,12 @@ const getNotificationBgColor = (type: string) => {
 
 function NotificationItem({ 
   notification, 
-  onMarkAsRead 
+  onMarkAsRead,
+  onDelete,
 }: { 
   notification: Notification; 
   onMarkAsRead: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const timeAgo = notification.created_at
     ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })
@@ -71,6 +73,13 @@ function NotificationItem({
         </p>
         <p className="text-xs text-muted-foreground mt-1">{timeAgo}</p>
       </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(notification.id); }}
+        className="shrink-0 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Dismiss notification"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
