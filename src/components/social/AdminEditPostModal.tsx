@@ -23,6 +23,7 @@ interface AdminEditPostModalProps {
   initialPupName: string;
   initialImageUrl: string;
   initialAuthorName: string;
+  initialVideoUrl: string;
   initialLikesCount?: number;
   initialCommentsCount?: number;
   onPostUpdated: () => void;
