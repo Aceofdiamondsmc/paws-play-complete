@@ -59,6 +59,7 @@ export default function AdminEditPostModal({
       setContent(initialContent);
       setPupName(initialPupName);
       setImageUrl(initialImageUrl);
+      setVideoUrl(initialVideoUrl);
       setAuthorName(initialAuthorName);
       setLikesCount(initialLikesCount);
       setCommentsCount(initialCommentsCount);
