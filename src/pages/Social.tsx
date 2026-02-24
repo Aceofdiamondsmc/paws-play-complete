@@ -122,7 +122,7 @@ export default function Social() {
 
   // Admin edit state
   const [adminEditingPost, setAdminEditingPost] = useState<{
-    id: string; content: string; pup_name: string; image_url: string; video_url: string; likes_count: number; comments_count: number; author_display_name?: string; author_name?: string;
+    id: string; content: string; pup_name: string; image_url: string; video_url: string; likes_count: number; comments_count: number; author_display_name?: string; author_name?: string; author_avatar_url?: string;
   } | null>(null);
 
   const handleDeletePost = async () => {
