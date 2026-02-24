@@ -36,6 +36,7 @@ import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
 import CommentsDrawer from '@/components/social/CommentsDrawer';
 import EditPostModal from '@/components/social/EditPostModal';
 import AdminEditPostModal from '@/components/social/AdminEditPostModal';
+import VideoPlayer from '@/components/social/VideoPlayer';
 import { useMessages } from '@/hooks/useMessages';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
@@ -408,13 +409,7 @@ export default function Social() {
                   {/* Media (Image or Video) */}
                   {post.video_url && (
                     <div className="mt-3 overflow-hidden rounded-xl border border-border">
-                      <video
-                        src={post.video_url}
-                        controls
-                        playsInline
-                        preload="metadata"
-                        className="w-full max-h-[500px] object-contain bg-black"
-                      />
+                      <VideoPlayer src={post.video_url} />
                     </div>
                   )}
                   {post.image_url && !post.video_url && (
