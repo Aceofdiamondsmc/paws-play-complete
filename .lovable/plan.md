@@ -1,53 +1,93 @@
 
 
-## Redesign: Admin Edit Post Modal
+## Admin Posting on the Social Tab
 
-### Problem
-The modal crams 7+ form sections (author name, content, pup name, image upload, video upload, likes count, comments count) into a fixed-height dialog with no scrolling. On most screens, the Save button gets pushed below the viewport and is nearly impossible to find. The layout feels cluttered and unprofessional.
+### Approach
 
-### Solution
-Transform the modal into a clean, scrollable, well-organized admin editor:
+Rather than editing user profile pictures (which is complex and invasive), the better professional approach is to let administrators **post as "Admin" / "PawsPlay Team"** directly from the Social tab. The database already has an `author_display_name` field on the `posts` table -- we just need to surface it in the create post flow for admins.
 
-1. **Scrollable body** -- wrap the form fields in a `ScrollArea` with a max height so the modal never overflows the screen
-2. **Sticky footer** -- keep Cancel and Save buttons always visible at the bottom with a subtle top border separator
-3. **Collapsible media sections** -- group Image and Video into a single "Media" section using `Collapsible`, so they don't dominate the form when not needed
-4. **Visual hierarchy** -- add section dividers and tighter spacing to make the form scannable
-5. **Prominent Save button** -- make Save visually distinct (larger, full-width on mobile)
+### How It Will Work
+
+- When an admin is logged in, the Create Post form shows an **extra field** at the top: a text input for "Post as" with a placeholder like "PawsPlay Team"
+- If the admin fills it in, the post appears in the feed under that custom name instead of their personal profile name
+- If left blank, the post appears as their normal user account (default behavior)
+- A small shield badge appears next to admin-branded posts so users know it's official
 
 ### Changes
 
-**`src/components/social/AdminEditPostModal.tsx`**
+**1. `src/hooks/usePosts.tsx`**
+- Update `createPost` to accept an optional `authorDisplayName` parameter
+- Include `author_display_name` in the insert payload when provided
 
-- Import `ScrollArea` from UI components
-- Wrap the form body (`div.py-4.space-y-4`) in a `ScrollArea` with `className="max-h-[60vh]"` so the content scrolls while header and footer stay fixed
-- Add a top border to `DialogFooter` for visual separation (`border-t pt-4`)
-- Group Image and Video sections under a collapsible "Media" area using `Collapsible` + `CollapsibleTrigger` + `CollapsibleContent` -- defaults to open if media exists, closed if not
-- Make the Save button more prominent: `w-full sm:w-auto` sizing
-- Reduce overall padding/spacing slightly for a tighter, more professional feel
+**2. `src/components/social/CreatePostForm.tsx`**
+- Add an `isAdmin` prop
+- When `isAdmin` is true, render a "Post as" input field above the content area (with a ShieldCheck icon)
+- Pass the custom name up through `onPost` callback
+
+**3. `src/pages/Social.tsx`**
+- Pass `isAdmin` to `CreatePostForm`
+- Update `handlePost` to forward the author display name to `createPost`
 
 ### Technical Details
 
-The key structural change:
+**CreatePostForm.tsx** -- new prop and field:
+```tsx
+interface CreatePostFormProps {
+  onPost: (content: string, imageUrl?: string, isReview?: boolean, 
+           parkId?: string, rating?: number, videoUrl?: string,
+           authorDisplayName?: string) => Promise<void>;
+  isPosting: boolean;
+  isAdmin?: boolean;
+}
+```
 
-```text
-DialogContent
-  +-- DialogHeader (fixed)
-  +-- ScrollArea max-h-[60vh]  <-- NEW wrapper
-  |     +-- Author Name
-  |     +-- Content
-  |     +-- Pup Name
-  |     +-- Collapsible "Media"  <-- groups image + video
-  |     |     +-- Image upload/preview
-  |     |     +-- Video upload/preview
-  |     +-- Likes / Comments counts
-  +-- DialogFooter border-t (fixed, always visible)
-        +-- Cancel
-        +-- Save Changes (prominent)
+When `isAdmin` is true, render above the textarea:
+```tsx
+<div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
+  <ShieldCheck className="w-5 h-5 text-primary" />
+  <Input
+    placeholder="Post as (e.g. PawsPlay Team)..."
+    value={adminDisplayName}
+    onChange={...}
+    className="flex-1"
+  />
+</div>
+```
+
+**usePosts.tsx** -- updated createPost signature:
+```tsx
+const createPost = async (
+  content: string, 
+  imageUrl?: string, 
+  visibility = 'public', 
+  videoUrl?: string,
+  authorDisplayName?: string
+) => {
+  await supabase.from('posts').insert({
+    author_id: user.id,
+    content,
+    image_url: imageUrl,
+    video_url: videoUrl,
+    visibility,
+    author_display_name: authorDisplayName || null,
+  });
+};
+```
+
+**Social.tsx** -- wire it up:
+```tsx
+<CreatePostForm 
+  onPost={handlePost} 
+  isPosting={isPosting} 
+  isAdmin={isAdmin} 
+/>
 ```
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/social/AdminEditPostModal.tsx` | Add ScrollArea wrapper, sticky footer with border, collapsible media section, prominent save button |
+| `src/hooks/usePosts.tsx` | Add `authorDisplayName` param to `createPost`, include in insert |
+| `src/components/social/CreatePostForm.tsx` | Add `isAdmin` prop, "Post as" input for admins, pass name through `onPost` |
+| `src/pages/Social.tsx` | Pass `isAdmin` to CreatePostForm, forward display name in `handlePost` |
 
