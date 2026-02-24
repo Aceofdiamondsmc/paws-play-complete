@@ -60,7 +60,7 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-background flex flex-col">
+    <div className="fixed inset-x-0 top-0 z-[60] bg-background flex flex-col" style={{ height: '100dvh' }}>
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b bg-background/95 backdrop-blur-sm">
         <Button variant="ghost" size="icon" onClick={onBack}>
@@ -106,7 +106,7 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {loading ? (
           <div className="flex justify-center py-10">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -149,6 +149,7 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onFocus={() => setTimeout(() => scrollToBottom(), 300)}
             placeholder="Type a message..."
             className="flex-1 rounded-full"
             disabled={isSending}
