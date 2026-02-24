@@ -36,8 +36,10 @@ export function useNotifications() {
       if (error) {
         console.error('Error fetching notifications:', error);
       } else {
-        setNotifications(data || []);
-        setUnreadCount(data?.filter(n => !n.read).length || 0);
+        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const filtered = (data || []).filter(n => !n.read || (n.created_at && n.created_at > cutoff));
+        setNotifications(filtered);
+        setUnreadCount(filtered.filter(n => !n.read).length);
       }
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
