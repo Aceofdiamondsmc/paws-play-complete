@@ -142,10 +142,11 @@ export default function Social() {
     isReview?: boolean, 
     parkId?: string, 
     rating?: number,
-    videoUrl?: string
+    videoUrl?: string,
+    authorDisplayName?: string
   ) => {
     setIsPosting(true);
-    await createPost(content, imageUrl, 'public', videoUrl);
+    await createPost(content, imageUrl, 'public', videoUrl, authorDisplayName);
     setIsPosting(false);
   };
 
