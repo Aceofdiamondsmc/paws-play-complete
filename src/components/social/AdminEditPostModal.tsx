@@ -10,10 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useImageUpload } from '@/hooks/useImageUpload';
-import { Upload, Loader2, X, Video } from 'lucide-react';
+import { Upload, Loader2, X, Video, ChevronDown } from 'lucide-react';
 
 interface AdminEditPostModalProps {
   open: boolean;
@@ -106,173 +108,183 @@ export default function AdminEditPostModal({
             <span>Admin Edit Post</span>
           </DialogTitle>
         </DialogHeader>
-        <div className="py-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="admin-author-name">Author Display Name</Label>
-            <Input
-              id="admin-author-name"
-              value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-              placeholder="Override author name for this post..."
-            />
-            <p className="text-xs text-muted-foreground">Leave blank to use profile name</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="admin-content">Content</Label>
-            <Textarea
-              id="admin-content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Post content..."
-              className="min-h-[100px] resize-none"
-              maxLength={1000}
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {content.length}/1000
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="admin-pup-name">Pup Name</Label>
-            <Input
-              id="admin-pup-name"
-              value={pupName}
-              onChange={(e) => setPupName(e.target.value)}
-              placeholder="e.g. Bella, Max, Ace..."
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Image</Label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const { url, error } = await uploadImage(file, 'post-images');
-                if (error) {
-                  toast.error(error.message || 'Upload failed');
-                } else if (url) {
-                  setImageUrl(url);
-                }
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }}
-            />
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                {uploading ? 'Uploading...' : 'Upload Image'}
-              </Button>
-              {imageUrl && (
-                <Button type="button" variant="ghost" size="icon" onClick={() => setImageUrl('')} className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            <Input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="Or paste an image URL..."
-            />
-            {imageUrl && (
-              <img
-                src={imageUrl}
-                alt="Preview"
-                className="mt-2 rounded-lg max-h-40 object-cover w-full border border-border"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Video</Label>
-            <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/*"
-              className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const { url, error } = await uploadImage(file, 'post-images');
-                if (error) {
-                  toast.error(error.message || 'Video upload failed');
-                } else if (url) {
-                  setVideoUrl(url);
-                }
-                if (videoInputRef.current) videoInputRef.current.value = '';
-              }}
-            />
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => videoInputRef.current?.click()}
-                disabled={uploading}
-              >
-                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Video className="h-4 w-4 mr-2" />}
-                {uploading ? 'Uploading...' : 'Upload Video'}
-              </Button>
-              {videoUrl && (
-                <Button type="button" variant="ghost" size="icon" onClick={() => setVideoUrl('')} className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            <Input
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="Or paste a video URL..."
-            />
-            {videoUrl && (
-              <video
-                src={videoUrl}
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="mt-2 rounded-lg max-h-40 w-full border border-border"
-              />
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        <ScrollArea className="max-h-[60vh] pr-4">
+          <div className="py-3 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="admin-likes-count">Likes Count</Label>
+              <Label htmlFor="admin-author-name">Author Display Name</Label>
               <Input
-                id="admin-likes-count"
-                type="number"
-                min={0}
-                value={likesCount}
-                onChange={(e) => setLikesCount(Math.max(0, parseInt(e.target.value) || 0))}
+                id="admin-author-name"
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+                placeholder="Override author name for this post..."
+              />
+              <p className="text-xs text-muted-foreground">Leave blank to use profile name</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="admin-content">Content</Label>
+              <Textarea
+                id="admin-content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Post content..."
+                className="min-h-[100px] resize-none"
+                maxLength={1000}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {content.length}/1000
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="admin-pup-name">Pup Name</Label>
+              <Input
+                id="admin-pup-name"
+                value={pupName}
+                onChange={(e) => setPupName(e.target.value)}
+                placeholder="e.g. Bella, Max, Ace..."
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="admin-comments-count">Comments Count</Label>
-              <Input
-                id="admin-comments-count"
-                type="number"
-                min={0}
-                value={commentsCount}
-                onChange={(e) => setCommentsCount(Math.max(0, parseInt(e.target.value) || 0))}
-              />
+
+            <Collapsible defaultOpen={!!(imageUrl || videoUrl)}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-medium text-foreground hover:text-foreground/80 transition-colors">
+                <span>Media</span>
+                <ChevronDown className="h-4 w-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Image</Label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const { url, error } = await uploadImage(file, 'post-images');
+                      if (error) {
+                        toast.error(error.message || 'Upload failed');
+                      } else if (url) {
+                        setImageUrl(url);
+                      }
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                      {uploading ? 'Uploading...' : 'Upload Image'}
+                    </Button>
+                    {imageUrl && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setImageUrl('')} className="h-8 w-8">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <Input
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="Or paste an image URL..."
+                  />
+                  {imageUrl && (
+                    <img
+                      src={imageUrl}
+                      alt="Preview"
+                      className="mt-2 rounded-lg max-h-40 object-cover w-full border border-border"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Video</Label>
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const { url, error } = await uploadImage(file, 'post-images');
+                      if (error) {
+                        toast.error(error.message || 'Video upload failed');
+                      } else if (url) {
+                        setVideoUrl(url);
+                      }
+                      if (videoInputRef.current) videoInputRef.current.value = '';
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => videoInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Video className="h-4 w-4 mr-2" />}
+                      {uploading ? 'Uploading...' : 'Upload Video'}
+                    </Button>
+                    {videoUrl && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setVideoUrl('')} className="h-8 w-8">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <Input
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    placeholder="Or paste a video URL..."
+                  />
+                  {videoUrl && (
+                    <video
+                      src={videoUrl}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="mt-2 rounded-lg max-h-40 w-full border border-border"
+                    />
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="admin-likes-count">Likes Count</Label>
+                <Input
+                  id="admin-likes-count"
+                  type="number"
+                  min={0}
+                  value={likesCount}
+                  onChange={(e) => setLikesCount(Math.max(0, parseInt(e.target.value) || 0))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="admin-comments-count">Comments Count</Label>
+                <Input
+                  id="admin-comments-count"
+                  type="number"
+                  min={0}
+                  value={commentsCount}
+                  onChange={(e) => setCommentsCount(Math.max(0, parseInt(e.target.value) || 0))}
+                />
+              </div>
             </div>
           </div>
-        </div>
-        <DialogFooter className="gap-2 sm:gap-0">
+        </ScrollArea>
+        <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -283,6 +295,7 @@ export default function AdminEditPostModal({
           <Button
             onClick={handleSave}
             disabled={isSubmitting || !content.trim()}
+            className="w-full sm:w-auto"
           >
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </Button>
