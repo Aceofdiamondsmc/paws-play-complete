@@ -60,11 +60,12 @@ function StarRatingInput({
   );
 }
 
-export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProps) {
+export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePostFormProps) {
   const { allParks } = useParks();
   const { uploadImage, uploading } = useImageUpload();
   const [content, setContent] = useState('');
   const [isReview, setIsReview] = useState(false);
+  const [adminDisplayName, setAdminDisplayName] = useState('');
   const [selectedParkId, setSelectedParkId] = useState<string>('');
   const [rating, setRating] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
