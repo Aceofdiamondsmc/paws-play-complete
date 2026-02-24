@@ -37,6 +37,7 @@ export default function AdminEditPostModal({
   initialPupName,
   initialImageUrl,
   initialAuthorName,
+  initialVideoUrl,
   initialLikesCount = 0,
   initialCommentsCount = 0,
   onPostUpdated,
@@ -44,12 +45,14 @@ export default function AdminEditPostModal({
   const [content, setContent] = useState(initialContent);
   const [pupName, setPupName] = useState(initialPupName);
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
+  const [videoUrl, setVideoUrl] = useState(initialVideoUrl);
   const [authorName, setAuthorName] = useState(initialAuthorName);
   const [likesCount, setLikesCount] = useState(initialLikesCount);
   const [commentsCount, setCommentsCount] = useState(initialCommentsCount);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { uploadImage, uploading } = useImageUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
