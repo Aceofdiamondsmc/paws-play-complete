@@ -64,7 +64,7 @@ export default function AdminEditPostModal({
       setLikesCount(initialLikesCount);
       setCommentsCount(initialCommentsCount);
     }
-  }, [open, initialContent, initialPupName, initialImageUrl, initialAuthorName, initialLikesCount, initialCommentsCount]);
+  }, [open, initialContent, initialPupName, initialImageUrl, initialVideoUrl, initialAuthorName, initialLikesCount, initialCommentsCount]);
 
   const handleSave = async () => {
     if (!postId || !content.trim()) return;
