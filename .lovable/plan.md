@@ -1,45 +1,53 @@
 
 
-## Professional Video Previews Across the App
+## Redesign: Admin Edit Post Modal
 
 ### Problem
-When you select or record a video in the create post form (and admin edit modal), you see a bare `<video>` element that shows a black rectangle requiring you to press play. This feels unpolished.
+The modal crams 7+ form sections (author name, content, pup name, image upload, video upload, likes count, comments count) into a fixed-height dialog with no scrolling. On most screens, the Save button gets pushed below the viewport and is nearly impossible to find. The layout feels cluttered and unprofessional.
 
 ### Solution
-Make video previews auto-play silently as looping clips -- the same way Instagram, TikTok, and other professional apps handle inline video previews. No play button needed; the video just plays immediately as a muted, looping preview so you can see what you recorded.
+Transform the modal into a clean, scrollable, well-organized admin editor:
+
+1. **Scrollable body** -- wrap the form fields in a `ScrollArea` with a max height so the modal never overflows the screen
+2. **Sticky footer** -- keep Cancel and Save buttons always visible at the bottom with a subtle top border separator
+3. **Collapsible media sections** -- group Image and Video into a single "Media" section using `Collapsible`, so they don't dominate the form when not needed
+4. **Visual hierarchy** -- add section dividers and tighter spacing to make the form scannable
+5. **Prominent Save button** -- make Save visually distinct (larger, full-width on mobile)
 
 ### Changes
 
-**`src/components/social/CreatePostForm.tsx` (line 219)**
-- Change `<video src={previewUrl} controls playsInline preload="metadata" .../>` to add `autoPlay muted loop` and remove `controls`
-- This makes the preview silently loop so you instantly see your video content without tapping anything
+**`src/components/social/AdminEditPostModal.tsx`**
 
-**`src/components/social/AdminEditPostModal.tsx` (lines 241-245)**
-- Same treatment: add `autoPlay muted loop playsInline` and remove `controls` on the admin video preview
-- Gives admins an instant silent preview of the video content
+- Import `ScrollArea` from UI components
+- Wrap the form body (`div.py-4.space-y-4`) in a `ScrollArea` with `className="max-h-[60vh]"` so the content scrolls while header and footer stay fixed
+- Add a top border to `DialogFooter` for visual separation (`border-t pt-4`)
+- Group Image and Video sections under a collapsible "Media" area using `Collapsible` + `CollapsibleTrigger` + `CollapsibleContent` -- defaults to open if media exists, closed if not
+- Make the Save button more prominent: `w-full sm:w-auto` sizing
+- Reduce overall padding/spacing slightly for a tighter, more professional feel
 
 ### Technical Details
 
-Both changes are one-line attribute swaps:
+The key structural change:
 
-```tsx
-// Before (both files)
-<video src={url} controls className="..." />
-
-// After
-<video src={url} autoPlay muted loop playsInline className="..." />
+```text
+DialogContent
+  +-- DialogHeader (fixed)
+  +-- ScrollArea max-h-[60vh]  <-- NEW wrapper
+  |     +-- Author Name
+  |     +-- Content
+  |     +-- Pup Name
+  |     +-- Collapsible "Media"  <-- groups image + video
+  |     |     +-- Image upload/preview
+  |     |     +-- Video upload/preview
+  |     +-- Likes / Comments counts
+  +-- DialogFooter border-t (fixed, always visible)
+        +-- Cancel
+        +-- Save Changes (prominent)
 ```
-
-- **`autoPlay`**: starts playback immediately -- no tap needed
-- **`muted`**: required for autoplay to work on all browsers (Chrome, Safari policy)
-- **`loop`**: keeps the preview playing continuously
-- **`playsInline`**: prevents fullscreen takeover on iOS
-- No `controls` shown since this is just a preview; the full player with controls is shown in the feed via VideoPlayer
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/social/CreatePostForm.tsx` | Video preview: add `autoPlay muted loop`, remove `controls` |
-| `src/components/social/AdminEditPostModal.tsx` | Video preview: add `autoPlay muted loop playsInline`, remove `controls` |
+| `src/components/social/AdminEditPostModal.tsx` | Add ScrollArea wrapper, sticky footer with border, collapsible media section, prominent save button |
 
