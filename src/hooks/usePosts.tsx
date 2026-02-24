@@ -230,15 +230,16 @@ export function usePosts() {
     };
   }, []); // Empty deps - subscription stays stable
 
-  const createPost = async (content: string, imageUrl?: string, visibility: 'public' | 'private' = 'public') => {
+  const createPost = async (content: string, imageUrl?: string, visibility: 'public' | 'private' = 'public', videoUrl?: string) => {
     if (!user) return { error: new Error('Not authenticated') };
 
     const { error } = await supabase.from('posts').insert({
       author_id: user.id,
       content,
       image_url: imageUrl,
+      video_url: videoUrl,
       visibility
-    });
+    } as any);
 
     if (!error) {
       await fetchPosts();

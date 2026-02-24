@@ -21,13 +21,15 @@ export function useImageUpload() {
     try {
       setUploading(true);
 
-      // Convert HEIC/HEIF to JPEG if needed
-      file = await ensureJpeg(file, () => {
-        toast({
-          title: "Processing image... 📸",
-          description: "Converting for best compatibility.",
+      // Convert HEIC/HEIF to JPEG if needed (skip for video files)
+      if (!file.type.startsWith('video/')) {
+        file = await ensureJpeg(file, () => {
+          toast({
+            title: "Processing image... 📸",
+            description: "Converting for best compatibility.",
+          });
         });
-      });
+      }
 
       // Create unique file path: userId/timestamp-randomstring.extension
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';

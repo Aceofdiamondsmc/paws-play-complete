@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/table';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Pencil, Search, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Pencil, Search, Loader2, Image as ImageIcon, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import AdminEditPostModal from '@/components/social/AdminEditPostModal';
 
@@ -33,6 +33,7 @@ interface Post {
   author_id: string;
   content: string;
   image_url: string | null;
+  video_url: string | null;
   pup_name: string | null;
   author_display_name: string | null;
   likes_count: number;
@@ -214,7 +215,11 @@ export default function AdminSocial() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {post.image_url ? (
+                      {post.video_url ? (
+                        <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+                          <Video className="h-6 w-6 text-primary" />
+                        </div>
+                      ) : post.image_url ? (
                         <div className="w-16 h-16 rounded-md overflow-hidden bg-muted">
                           <AspectRatio ratio={1}>
                             <img

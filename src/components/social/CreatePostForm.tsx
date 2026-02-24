@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Image as ImageIcon, MapPin, Star, X, Camera, Loader2 } from 'lucide-react';
+import { Plus, Image as ImageIcon, MapPin, Star, X, Camera, Loader2, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,7 +19,7 @@ import { toast } from '@/hooks/use-toast';
 import { ensureJpeg } from '@/lib/heic-convert';
 
 interface CreatePostFormProps {
-  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number) => Promise<void>;
+  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string) => Promise<void>;
   isPosting: boolean;
 }
 
@@ -65,46 +65,51 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
   const [isReview, setIsReview] = useState(false);
   const [selectedParkId, setSelectedParkId] = useState<string>('');
   const [rating, setRating] = useState(0);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [isVideo, setIsVideo] = useState(false);
   const [processing, setProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawFile = e.target.files?.[0];
     if (rawFile) {
       try {
         setProcessing(true);
-        const file = await ensureJpeg(rawFile, () => {
-          toast({
-            title: "Processing image... 📸",
-            description: "Converting for best compatibility. One moment!",
+        const fileIsVideo = rawFile.type.startsWith('video/');
+        setIsVideo(fileIsVideo);
+
+        if (fileIsVideo) {
+          // Validate video size (50MB max)
+          if (rawFile.size > 50 * 1024 * 1024) {
+            toast({ title: "File too large", description: "Videos must be under 50MB.", variant: "destructive" });
+            return;
+          }
+          setMediaFile(rawFile);
+          setPreviewUrl(URL.createObjectURL(rawFile));
+        } else {
+          const file = await ensureJpeg(rawFile, () => {
+            toast({ title: "Processing image... 📸", description: "Converting for best compatibility. One moment!" });
           });
-        });
-        setImageFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPreviewImage(reader.result as string);
-        };
-        reader.readAsDataURL(file);
+          setMediaFile(file);
+          const reader = new FileReader();
+          reader.onloadend = () => setPreviewUrl(reader.result as string);
+          reader.readAsDataURL(file);
+        }
       } catch (err) {
-        toast({
-          title: "Image error",
-          description: "Could not process this image. Please try a different one.",
-          variant: "destructive",
-        });
+        toast({ title: "Media error", description: "Could not process this file. Please try a different one.", variant: "destructive" });
       } finally {
         setProcessing(false);
       }
     }
   };
 
-  const removeImage = () => {
-    setPreviewImage(null);
-    setImageFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const removeMedia = () => {
+    if (previewUrl && isVideo) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setMediaFile(null);
+    setIsVideo(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = async () => {
@@ -112,19 +117,19 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
     if (isReview && (!selectedParkId || rating === 0)) return;
     
     let uploadedImageUrl: string | undefined;
+    let uploadedVideoUrl: string | undefined;
     
-    // Upload image to Supabase Storage if one was selected
-    if (imageFile) {
-      const { url, error } = await uploadImage(imageFile);
+    if (mediaFile) {
+      const { url, error } = await uploadImage(mediaFile);
       if (error) {
-        toast({
-          title: "Upload failed",
-          description: "Could not upload image. Please try again.",
-          variant: "destructive",
-        });
+        toast({ title: "Upload failed", description: "Could not upload file. Please try again.", variant: "destructive" });
         return;
       }
-      uploadedImageUrl = url || undefined;
+      if (isVideo) {
+        uploadedVideoUrl = url || undefined;
+      } else {
+        uploadedImageUrl = url || undefined;
+      }
     }
     
     await onPost(
@@ -132,7 +137,8 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
       uploadedImageUrl,
       isReview,
       isReview ? selectedParkId : undefined,
-      isReview ? rating : undefined
+      isReview ? rating : undefined,
+      uploadedVideoUrl
     );
     
     // Reset form
@@ -140,11 +146,7 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
     setIsReview(false);
     setSelectedParkId('');
     setRating(0);
-    setPreviewImage(null);
-    setImageFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    removeMedia();
   };
 
   const canPost = content.trim() && (!isReview || (selectedParkId && rating > 0));
@@ -155,32 +157,17 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
       {/* Post Type Toggle */}
       <div className="flex items-center justify-between mb-3 pb-3 border-b border-border">
         <div className="flex items-center gap-2">
-          <MapPin className={cn(
-            "w-5 h-5 transition-colors",
-            isReview ? "text-primary" : "text-muted-foreground"
-          )} />
-          <Label 
-            htmlFor="review-toggle" 
-            className={cn(
-              "font-semibold cursor-pointer transition-colors",
-              isReview ? "text-primary" : "text-muted-foreground"
-            )}
-          >
+          <MapPin className={cn("w-5 h-5 transition-colors", isReview ? "text-primary" : "text-muted-foreground")} />
+          <Label htmlFor="review-toggle" className={cn("font-semibold cursor-pointer transition-colors", isReview ? "text-primary" : "text-muted-foreground")}>
             Park Review
           </Label>
         </div>
-        <Switch
-          id="review-toggle"
-          checked={isReview}
-          onCheckedChange={setIsReview}
-          className="data-[state=checked]:bg-primary"
-        />
+        <Switch id="review-toggle" checked={isReview} onCheckedChange={setIsReview} className="data-[state=checked]:bg-primary" />
       </div>
 
       {/* Park Review Fields */}
       {isReview && (
         <div className="space-y-4 mb-4 p-3 bg-primary/5 rounded-xl border border-primary/20">
-          {/* Park Selector */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
               <MapPin className="w-4 h-4 text-primary" />
@@ -201,15 +188,11 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="no-parks" disabled>
-                    No parks available
-                  </SelectItem>
+                  <SelectItem value="no-parks" disabled>No parks available</SelectItem>
                 )}
               </SelectContent>
             </Select>
           </div>
-
-          {/* Star Rating */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
               <Star className="w-4 h-4 text-primary" />
@@ -222,25 +205,22 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
 
       {/* Post Content */}
       <Textarea
-        placeholder={isReview 
-          ? "Share your experience at this park... What did your pup think? 🐾" 
-          : "Share something with the pack... 🐾"
-        }
+        placeholder={isReview ? "Share your experience at this park... What did your pup think? 🐾" : "Share something with the pack... 🐾"}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         className="min-h-[80px] resize-none border-0 p-0 focus-visible:ring-0 bg-transparent text-foreground"
       />
 
-      {/* Image Preview */}
-      {previewImage && (
+      {/* Media Preview */}
+      {previewUrl && (
         <div className="relative mt-3">
-          <img
-            src={previewImage}
-            alt="Preview"
-            className="rounded-xl w-full max-h-48 object-cover border border-border"
-          />
+          {isVideo ? (
+            <video src={previewUrl} controls playsInline preload="metadata" className="rounded-xl w-full max-h-48 object-cover border border-border" />
+          ) : (
+            <img src={previewUrl} alt="Preview" className="rounded-xl w-full max-h-48 object-cover border border-border" />
+          )}
           <button
-            onClick={removeImage}
+            onClick={removeMedia}
             className="absolute top-2 right-2 w-8 h-8 bg-destructive/90 hover:bg-destructive rounded-full flex items-center justify-center transition-colors"
           >
             <X className="w-4 h-4 text-destructive-foreground" />
@@ -254,39 +234,22 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,.heic,.heif"
-            onChange={handleImageSelect}
+            accept="image/*,video/*,.heic,.heif"
+            onChange={handleFileSelect}
             className="hidden"
           />
-          <Button 
-            type="button"
-            variant="ghost" 
-            size="sm" 
-            className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-            onClick={() => fileInputRef.current?.click()}
-          >
+          <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => fileInputRef.current?.click()}>
             <ImageIcon className="w-5 h-5" />
           </Button>
-          <Button 
-            type="button"
-            variant="ghost" 
-            size="sm" 
-            className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-            onClick={() => fileInputRef.current?.click()}
-          >
+          <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => fileInputRef.current?.click()}>
             <Camera className="w-5 h-5" />
           </Button>
+          <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => fileInputRef.current?.click()}>
+            <Video className="w-5 h-5" />
+          </Button>
         </div>
-        <Button
-          onClick={handleSubmit}
-          disabled={!canPost || isSubmitting}
-          className="rounded-full bg-primary hover:bg-primary/90 px-6"
-        >
-          {isSubmitting ? (
-            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-          ) : (
-            <Plus className="w-4 h-4 mr-1" />
-          )}
+        <Button onClick={handleSubmit} disabled={!canPost || isSubmitting} className="rounded-full bg-primary hover:bg-primary/90 px-6">
+          {isSubmitting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
           {uploading ? 'Uploading...' : isReview ? 'Post Review' : 'Post'}
         </Button>
       </div>

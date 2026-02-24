@@ -1475,6 +1475,7 @@ export type Database = {
           likes_count: number | null
           pup_name: string | null
           updated_at: string | null
+          video_url: string | null
           visibility: Database["public"]["Enums"]["post_visibility"] | null
         }
         Relationships: [

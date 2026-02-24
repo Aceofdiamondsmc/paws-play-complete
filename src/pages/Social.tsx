@@ -140,11 +140,11 @@ export default function Social() {
     imageUrl?: string, 
     isReview?: boolean, 
     parkId?: string, 
-    rating?: number
+    rating?: number,
+    videoUrl?: string
   ) => {
     setIsPosting(true);
-    // For now just create basic post - you can extend createPost to handle reviews
-    await createPost(content, imageUrl);
+    await createPost(content, imageUrl, 'public', videoUrl);
     setIsPosting(false);
   };
 
@@ -405,8 +405,19 @@ export default function Social() {
                     </div>
                   )}
                   
-                  {/* Image(s) */}
-                  {post.image_url && (
+                  {/* Media (Image or Video) */}
+                  {post.video_url && (
+                    <div className="mt-3 overflow-hidden rounded-xl border border-border">
+                      <video
+                        src={post.video_url}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full max-h-[500px] object-contain bg-black"
+                      />
+                    </div>
+                  )}
+                  {post.image_url && !post.video_url && (
                     <div className="mt-3 overflow-hidden rounded-xl border border-border">
                       <AspectRatio ratio={1}>
                         <PostImage
