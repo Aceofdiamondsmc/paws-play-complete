@@ -532,6 +532,7 @@ export default function Social() {
         initialContent={adminEditingPost?.content || ''}
         initialPupName={adminEditingPost?.pup_name || ''}
         initialImageUrl={adminEditingPost?.image_url || ''}
+        initialVideoUrl={adminEditingPost?.video_url || ''}
         initialAuthorName={adminEditingPost?.author_display_name || adminEditingPost?.author_name || ''}
         initialLikesCount={adminEditingPost?.likes_count || 0}
         initialCommentsCount={adminEditingPost?.comments_count || 0}
