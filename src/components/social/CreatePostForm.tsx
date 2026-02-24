@@ -216,7 +216,7 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
       {previewUrl && (
         <div className="relative mt-3">
           {isVideo ? (
-            <video src={previewUrl} controls playsInline preload="metadata" className="rounded-xl w-full max-h-48 object-cover border border-border" />
+            <video src={previewUrl} autoPlay muted loop playsInline className="rounded-xl w-full max-h-48 object-cover border border-border" />
           ) : (
             <img src={previewUrl} alt="Preview" className="rounded-xl w-full max-h-48 object-cover border border-border" />
           )}
