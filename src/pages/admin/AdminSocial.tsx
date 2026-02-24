@@ -307,6 +307,7 @@ export default function AdminSocial() {
         initialPupName={editingPost?.pup_name ?? ''}
         initialImageUrl={editingPost?.image_url ?? ''}
         initialAuthorName={editingPost?.author_display_name || (editingPost ? getAuthorName(editingPost) : '')}
+        initialVideoUrl={editingPost?.video_url ?? ''}
         initialLikesCount={editingPost?.likes_count ?? 0}
         initialCommentsCount={editingPost?.comments_count ?? 0}
         onPostUpdated={fetchPosts}

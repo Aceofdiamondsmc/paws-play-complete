@@ -196,6 +196,56 @@ export default function AdminEditPostModal({
             )}
           </div>
 
+          <div className="space-y-2">
+            <Label>Video</Label>
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const { url, error } = await uploadImage(file, 'post-images');
+                if (error) {
+                  toast.error(error.message || 'Video upload failed');
+                } else if (url) {
+                  setVideoUrl(url);
+                }
+                if (videoInputRef.current) videoInputRef.current.value = '';
+              }}
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Video className="h-4 w-4 mr-2" />}
+                {uploading ? 'Uploading...' : 'Upload Video'}
+              </Button>
+              {videoUrl && (
+                <Button type="button" variant="ghost" size="icon" onClick={() => setVideoUrl('')} className="h-8 w-8">
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Input
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder="Or paste a video URL..."
+            />
+            {videoUrl && (
+              <video
+                src={videoUrl}
+                controls
+                className="mt-2 rounded-lg max-h-40 w-full border border-border"
+              />
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="admin-likes-count">Likes Count</Label>
