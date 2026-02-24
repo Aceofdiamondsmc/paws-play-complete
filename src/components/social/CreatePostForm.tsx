@@ -208,6 +208,19 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
         </div>
       )}
 
+      {/* Admin "Post as" field */}
+      {isAdmin && (
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
+          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+          <Input
+            placeholder="Post as (e.g. PawsPlay Team)..."
+            value={adminDisplayName}
+            onChange={(e) => setAdminDisplayName(e.target.value)}
+            className="flex-1 h-9 text-sm border-primary/30"
+          />
+        </div>
+      )}
+
       {/* Post Content */}
       <Textarea
         placeholder={isReview ? "Share your experience at this park... What did your pup think? 🐾" : "Share something with the pack... 🐾"}

@@ -273,7 +273,7 @@ export default function Social() {
       <div className="p-4 space-y-4">
         {/* Create Post Form - only show if user is logged in */}
         {user && (
-          <CreatePostForm onPost={handlePost} isPosting={isPosting} />
+          <CreatePostForm onPost={handlePost} isPosting={isPosting} isAdmin={isAdmin} />
         )}
 
         {/* Posts Feed */}
