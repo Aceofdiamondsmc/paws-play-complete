@@ -142,10 +142,11 @@ export default function Social() {
     isReview?: boolean, 
     parkId?: string, 
     rating?: number,
-    videoUrl?: string
+    videoUrl?: string,
+    authorDisplayName?: string
   ) => {
     setIsPosting(true);
-    await createPost(content, imageUrl, 'public', videoUrl);
+    await createPost(content, imageUrl, 'public', videoUrl, authorDisplayName);
     setIsPosting(false);
   };
 
@@ -272,7 +273,7 @@ export default function Social() {
       <div className="p-4 space-y-4">
         {/* Create Post Form - only show if user is logged in */}
         {user && (
-          <CreatePostForm onPost={handlePost} isPosting={isPosting} />
+          <CreatePostForm onPost={handlePost} isPosting={isPosting} isAdmin={isAdmin} />
         )}
 
         {/* Posts Feed */}
@@ -310,9 +311,10 @@ export default function Social() {
                     <div>
                       <button
                         onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
-                        className="font-bold text-foreground text-base hover:underline focus:outline-none focus:underline text-left"
+                        className="font-bold text-foreground text-base hover:underline focus:outline-none focus:underline text-left flex items-center gap-1.5"
                       >
-                        {post.author?.display_name || post.author?.username || 'Anonymous'}
+                        {post.author_display_name || post.author?.display_name || post.author?.username || 'Anonymous'}
+                        {post.author_display_name && <ShieldCheck className="w-4 h-4 text-primary" />}
                       </button>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>

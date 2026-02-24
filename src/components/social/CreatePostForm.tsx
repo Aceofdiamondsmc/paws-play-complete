@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Image as ImageIcon, MapPin, Star, X, Camera, Loader2, Video } from 'lucide-react';
+import { Plus, Image as ImageIcon, MapPin, Star, X, Camera, Loader2, Video, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,13 +14,15 @@ import {
 } from '@/components/ui/select';
 import { useParks } from '@/hooks/useParks';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { ensureJpeg } from '@/lib/heic-convert';
 
 interface CreatePostFormProps {
-  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string) => Promise<void>;
+  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string, authorDisplayName?: string) => Promise<void>;
   isPosting: boolean;
+  isAdmin?: boolean;
 }
 
 // Interactive star rating input
@@ -58,11 +60,12 @@ function StarRatingInput({
   );
 }
 
-export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProps) {
+export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePostFormProps) {
   const { allParks } = useParks();
   const { uploadImage, uploading } = useImageUpload();
   const [content, setContent] = useState('');
   const [isReview, setIsReview] = useState(false);
+  const [adminDisplayName, setAdminDisplayName] = useState('');
   const [selectedParkId, setSelectedParkId] = useState<string>('');
   const [rating, setRating] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -138,7 +141,8 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
       isReview,
       isReview ? selectedParkId : undefined,
       isReview ? rating : undefined,
-      uploadedVideoUrl
+      uploadedVideoUrl,
+      adminDisplayName.trim() || undefined
     );
     
     // Reset form
@@ -146,6 +150,7 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
     setIsReview(false);
     setSelectedParkId('');
     setRating(0);
+    setAdminDisplayName('');
     removeMedia();
   };
 
@@ -200,6 +205,19 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
             </Label>
             <StarRatingInput value={rating} onChange={setRating} />
           </div>
+        </div>
+      )}
+
+      {/* Admin "Post as" field */}
+      {isAdmin && (
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
+          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+          <Input
+            placeholder="Post as (e.g. PawsPlay Team)..."
+            value={adminDisplayName}
+            onChange={(e) => setAdminDisplayName(e.target.value)}
+            className="flex-1 h-9 text-sm border-primary/30"
+          />
         </div>
       )}
 
