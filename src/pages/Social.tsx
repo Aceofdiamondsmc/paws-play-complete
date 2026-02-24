@@ -310,12 +310,11 @@ export default function Social() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <button
-312:                         onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
-313:                         className="font-bold text-foreground text-base hover:underline focus:outline-none focus:underline text-left flex items-center gap-1.5"
-314:                       >
-315:                         {post.author_display_name || post.author?.display_name || post.author?.username || 'Anonymous'}
-316:                         {post.author_display_name && <ShieldCheck className="w-4 h-4 text-primary" />}
-317:                       </button>
+                        onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
+                        className="font-bold text-foreground text-base hover:underline focus:outline-none focus:underline text-left flex items-center gap-1.5"
+                      >
+                        {post.author_display_name || post.author?.display_name || post.author?.username || 'Anonymous'}
+                        {post.author_display_name && <ShieldCheck className="w-4 h-4 text-primary" />}
                       </button>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>
