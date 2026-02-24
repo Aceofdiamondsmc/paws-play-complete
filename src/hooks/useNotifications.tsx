@@ -36,8 +36,10 @@ export function useNotifications() {
       if (error) {
         console.error('Error fetching notifications:', error);
       } else {
-        setNotifications(data || []);
-        setUnreadCount(data?.filter(n => !n.read).length || 0);
+        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const filtered = (data || []).filter(n => !n.read || (n.created_at && n.created_at > cutoff));
+        setNotifications(filtered);
+        setUnreadCount(filtered.filter(n => !n.read).length);
       }
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
@@ -60,13 +62,31 @@ export function useNotifications() {
     }
   };
 
-  const markAllAsRead = async () => {
-    if (!user) return;
-
-    const { error } = await supabase.rpc('mark_all_notifications_as_read');
+  const deleteNotification = async (notificationId: string) => {
+    const notification = notifications.find(n => n.id === notificationId);
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId);
 
     if (!error) {
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      if (notification && !notification.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    }
+  };
+
+  const clearAll = async () => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (!error) {
+      setNotifications([]);
       setUnreadCount(0);
     }
   };
@@ -108,6 +128,7 @@ export function useNotifications() {
     unreadCount,
     refetch: fetchNotifications,
     markAsRead,
-    markAllAsRead,
+    deleteNotification,
+    clearAll,
   };
 }

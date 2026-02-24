@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Heart, MessageCircle, Users, Check } from 'lucide-react';
+import { Bell, Heart, MessageCircle, Users, Check, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,10 +36,12 @@ const getNotificationBgColor = (type: string) => {
 
 function NotificationItem({ 
   notification, 
-  onMarkAsRead 
+  onMarkAsRead,
+  onDelete,
 }: { 
   notification: Notification; 
   onMarkAsRead: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const timeAgo = notification.created_at
     ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })
@@ -71,12 +73,19 @@ function NotificationItem({
         </p>
         <p className="text-xs text-muted-foreground mt-1">{timeAgo}</p>
       </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(notification.id); }}
+        className="shrink-0 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Dismiss notification"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
 
 export function NotificationsList() {
-  const { notifications, loading, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, loading, unreadCount, markAsRead, deleteNotification, clearAll } = useNotifications();
 
   if (loading) {
     return (
@@ -115,12 +124,12 @@ export function NotificationsList() {
             </Badge>
           )}
         </h3>
-        {unreadCount > 0 && (
+        {notifications.length > 0 && (
           <Button 
             size="sm" 
             variant="ghost" 
             className="text-xs h-7 gap-1"
-            onClick={markAllAsRead}
+            onClick={clearAll}
           >
             <Check className="w-3 h-3" />
             Clear All
@@ -141,6 +150,7 @@ export function NotificationsList() {
               key={notification.id}
               notification={notification}
               onMarkAsRead={markAsRead}
+              onDelete={deleteNotification}
             />
           ))}
         </div>
