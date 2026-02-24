@@ -845,6 +845,7 @@ export type Database = {
       }
       posts: {
         Row: {
+          author_avatar_url: string | null
           author_display_name: string | null
           author_id: string
           comments_count: number
@@ -860,6 +861,7 @@ export type Database = {
           visibility: Database["public"]["Enums"]["post_visibility"]
         }
         Insert: {
+          author_avatar_url?: string | null
           author_display_name?: string | null
           author_id: string
           comments_count?: number
@@ -875,6 +877,7 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["post_visibility"]
         }
         Update: {
+          author_avatar_url?: string | null
           author_display_name?: string | null
           author_id?: string
           comments_count?: number
