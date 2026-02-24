@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/table';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Pencil, Search, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Pencil, Search, Loader2, Image as ImageIcon, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import AdminEditPostModal from '@/components/social/AdminEditPostModal';
 
