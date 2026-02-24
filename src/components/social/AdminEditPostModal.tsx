@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useImageUpload } from '@/hooks/useImageUpload';
-import { Upload, Loader2, X } from 'lucide-react';
+import { Upload, Loader2, X, Video } from 'lucide-react';
 
 interface AdminEditPostModalProps {
   open: boolean;
