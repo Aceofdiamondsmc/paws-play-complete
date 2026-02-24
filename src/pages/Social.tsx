@@ -342,7 +342,7 @@ export default function Social() {
                       {/* Admin Edit Button */}
                       {isAdmin && (
                         <button
-                          onClick={() => setAdminEditingPost({
+                        onClick={() => setAdminEditingPost({
                             id: post.id,
                             content: post.content || '',
                             pup_name: post.pup_name || post.dogName || '',
@@ -352,6 +352,7 @@ export default function Social() {
                             comments_count: post.commentsCount,
                             author_display_name: (post as any).author_display_name || '',
                             author_name: post.author?.display_name || '',
+                            author_avatar_url: post.author?.avatar_url || '',
                           })}
                           className="p-1.5 rounded-full hover:bg-primary/10 transition-colors text-primary/60 hover:text-primary"
                           aria-label="Admin edit post"
