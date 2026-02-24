@@ -14,13 +14,15 @@ import {
 } from '@/components/ui/select';
 import { useParks } from '@/hooks/useParks';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { ensureJpeg } from '@/lib/heic-convert';
 
 interface CreatePostFormProps {
-  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string) => Promise<void>;
+  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string, authorDisplayName?: string) => Promise<void>;
   isPosting: boolean;
+  isAdmin?: boolean;
 }
 
 // Interactive star rating input
