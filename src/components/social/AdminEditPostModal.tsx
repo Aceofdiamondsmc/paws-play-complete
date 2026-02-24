@@ -87,6 +87,7 @@ export default function AdminEditPostModal({
           image_url: imageUrl.trim() || null,
           video_url: videoUrl.trim() || null,
           author_display_name: authorName.trim() || null,
+          author_avatar_url: authorAvatarUrl.trim() || null,
           likes_count: likesCount,
           comments_count: commentsCount,
           updated_at: new Date().toISOString(),
