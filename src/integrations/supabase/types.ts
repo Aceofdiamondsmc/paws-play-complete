@@ -856,6 +856,7 @@ export type Database = {
           likes_count: number
           pup_name: string | null
           updated_at: string
+          video_url: string | null
           visibility: Database["public"]["Enums"]["post_visibility"]
         }
         Insert: {
@@ -870,6 +871,7 @@ export type Database = {
           likes_count?: number
           pup_name?: string | null
           updated_at?: string
+          video_url?: string | null
           visibility?: Database["public"]["Enums"]["post_visibility"]
         }
         Update: {
@@ -884,6 +886,7 @@ export type Database = {
           likes_count?: number
           pup_name?: string | null
           updated_at?: string
+          video_url?: string | null
           visibility?: Database["public"]["Enums"]["post_visibility"]
         }
         Relationships: [
