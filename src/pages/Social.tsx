@@ -409,13 +409,7 @@ export default function Social() {
                   {/* Media (Image or Video) */}
                   {post.video_url && (
                     <div className="mt-3 overflow-hidden rounded-xl border border-border">
-                      <video
-                        src={post.video_url}
-                        controls
-                        playsInline
-                        preload="metadata"
-                        className="w-full max-h-[500px] object-contain bg-black"
-                      />
+                      <VideoPlayer src={post.video_url} />
                     </div>
                   )}
                   {post.image_url && !post.video_url && (
