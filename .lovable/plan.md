@@ -1,63 +1,60 @@
 
 
-## Add Video Thumbnail/Cover to Social Feed
+## Fix: Notifications Appearing Permanent on Me Tab
 
 ### Problem
-Videos in the Social feed show as a blank video player until the user hits play, which looks unappealing and gives no visual preview of the content.
+When you tap "Clear All" on the Me tab, notifications are only marked as read -- they stay in the list forever with a dimmed style. There's no way to actually dismiss or remove them. Over time, the list grows endlessly with stale notifications.
 
 ### Solution
-Replace the bare `<video>` element with a poster-based approach that generates a thumbnail from the video's first frame, displayed as a cover image with a play button overlay. When tapped, it switches to the full video player.
+Make notifications behave like a proper inbox:
 
-### How It Works
-1. **Auto-generate a poster frame**: Use the browser's native `<video>` element off-screen to capture the first frame of the video onto a `<canvas>`, producing a data URL used as the cover image.
-2. **Play button overlay**: Show the cover image with a centered play icon. Tapping it reveals the actual video player and auto-plays.
-3. **Fallback**: If frame extraction fails (e.g., CORS), show a branded gradient placeholder with a play icon.
+1. **"Clear All" actually clears** -- deletes all notifications from the database, not just marks them as read
+2. **Individual dismiss** -- add an X button on each notification so users can remove one at a time
+3. **Auto-hide old read notifications** -- only show the last 24 hours of read notifications; unread ones always show regardless of age
+
+### Changes
+
+**`src/hooks/useNotifications.tsx`**
+- Add a `deleteNotification(id)` function that removes a single notification from the DB and local state
+- Change `markAllAsRead` to `clearAll` -- deletes all notifications for the user from the DB and resets local state to empty
+- Filter fetched notifications: show all unread + read notifications from the last 24 hours only
+
+**`src/components/profile/NotificationsList.tsx`**
+- Add an X button to each notification item for individual dismissal
+- Rename "Clear All" button behavior to actually delete notifications
+- Clicking a notification marks it as read (existing behavior stays)
 
 ### Technical Details
 
-**New component: `src/components/social/VideoPlayer.tsx`**
-
-A self-contained component that:
-- Accepts a `src` (video URL) prop
-- On mount, loads the video in a hidden `<video>` element, seeks to 0.5s, draws the frame to a canvas, and stores the resulting data URL as `poster`
-- Renders in two states:
-  - **Cover mode** (default): Shows the poster image (or gradient fallback) with a semi-transparent play button overlay
-  - **Playing mode**: Shows the standard `<video controls>` element with `autoPlay`
-
+**Delete single notification:**
 ```tsx
-// Pseudocode
-function VideoPlayer({ src }) {
-  const [poster, setPoster] = useState<string | null>(null);
-  const [playing, setPlaying] = useState(false);
-
-  useEffect(() => {
-    // Create off-screen video, seek to 0.5s, draw to canvas
-    // setPoster(canvas.toDataURL())
-  }, [src]);
-
-  if (playing) {
-    return <video src={src} controls autoPlay playsInline />;
-  }
-
-  return (
-    <div onClick={() => setPlaying(true)}>
-      {poster ? <img src={poster} /> : <GradientFallback />}
-      <PlayCircleOverlay />
-    </div>
-  );
-}
+const deleteNotification = async (id: string) => {
+  await supabase.from('notifications').delete().eq('id', id);
+  setNotifications(prev => prev.filter(n => n.id !== id));
+  // update unread count if it was unread
+};
 ```
 
-**Update: `src/pages/Social.tsx`**
-- Replace the inline `<video>` block (lines 409-418) with `<VideoPlayer src={post.video_url} />`
+**Clear all:**
+```tsx
+const clearAll = async () => {
+  await supabase.from('notifications').delete().eq('user_id', user.id);
+  setNotifications([]);
+  setUnreadCount(0);
+};
+```
 
-**Update: `src/components/social/CreatePostForm.tsx`**
-- The existing video preview in the create form already shows a `<video>` thumbnail -- no changes needed there.
+**24-hour read filter (in fetch):**
+```tsx
+// After fetching, filter out read notifications older than 24h
+const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+const filtered = data.filter(n => !n.read || n.created_at > cutoff);
+```
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/social/VideoPlayer.tsx` | New component: auto-generates video cover frame with play overlay |
-| `src/pages/Social.tsx` | Replace inline `<video>` with `<VideoPlayer>` component |
+| `src/hooks/useNotifications.tsx` | Add `deleteNotification`, change `markAllAsRead` to delete all, add 24h read filter |
+| `src/components/profile/NotificationsList.tsx` | Add X dismiss button per notification, wire up clear all to delete |
 
