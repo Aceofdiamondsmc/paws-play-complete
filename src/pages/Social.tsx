@@ -122,7 +122,7 @@ export default function Social() {
 
   // Admin edit state
   const [adminEditingPost, setAdminEditingPost] = useState<{
-    id: string; content: string; pup_name: string; image_url: string; video_url: string; likes_count: number; comments_count: number; author_display_name?: string; author_name?: string;
+    id: string; content: string; pup_name: string; image_url: string; video_url: string; likes_count: number; comments_count: number; author_display_name?: string; author_name?: string; author_avatar_url?: string;
   } | null>(null);
 
   const handleDeletePost = async () => {
@@ -342,7 +342,7 @@ export default function Social() {
                       {/* Admin Edit Button */}
                       {isAdmin && (
                         <button
-                          onClick={() => setAdminEditingPost({
+                        onClick={() => setAdminEditingPost({
                             id: post.id,
                             content: post.content || '',
                             pup_name: post.pup_name || post.dogName || '',
@@ -352,6 +352,7 @@ export default function Social() {
                             comments_count: post.commentsCount,
                             author_display_name: (post as any).author_display_name || '',
                             author_name: post.author?.display_name || '',
+                            author_avatar_url: post.author?.avatar_url || '',
                           })}
                           className="p-1.5 rounded-full hover:bg-primary/10 transition-colors text-primary/60 hover:text-primary"
                           aria-label="Admin edit post"
@@ -539,6 +540,7 @@ export default function Social() {
         initialAuthorName={adminEditingPost?.author_display_name || adminEditingPost?.author_name || ''}
         initialLikesCount={adminEditingPost?.likes_count || 0}
         initialCommentsCount={adminEditingPost?.comments_count || 0}
+        initialAuthorAvatarUrl={adminEditingPost?.author_avatar_url || ''}
         onPostUpdated={refresh}
       />
 

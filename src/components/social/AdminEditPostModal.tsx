@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { Upload, Loader2, X, Video, ChevronDown } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface AdminEditPostModalProps {
   open: boolean;
@@ -28,6 +29,7 @@ interface AdminEditPostModalProps {
   initialVideoUrl: string;
   initialLikesCount?: number;
   initialCommentsCount?: number;
+  initialAuthorAvatarUrl?: string;
   onPostUpdated: () => void;
 }
 
@@ -42,6 +44,7 @@ export default function AdminEditPostModal({
   initialVideoUrl,
   initialLikesCount = 0,
   initialCommentsCount = 0,
+  initialAuthorAvatarUrl = '',
   onPostUpdated,
 }: AdminEditPostModalProps) {
   const [content, setContent] = useState(initialContent);
@@ -52,9 +55,11 @@ export default function AdminEditPostModal({
   const [likesCount, setLikesCount] = useState(initialLikesCount);
   const [commentsCount, setCommentsCount] = useState(initialCommentsCount);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authorAvatarUrl, setAuthorAvatarUrl] = useState(initialAuthorAvatarUrl);
   const { uploadImage, uploading } = useImageUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -65,8 +70,9 @@ export default function AdminEditPostModal({
       setAuthorName(initialAuthorName);
       setLikesCount(initialLikesCount);
       setCommentsCount(initialCommentsCount);
+      setAuthorAvatarUrl(initialAuthorAvatarUrl);
     }
-  }, [open, initialContent, initialPupName, initialImageUrl, initialVideoUrl, initialAuthorName, initialLikesCount, initialCommentsCount]);
+  }, [open, initialContent, initialPupName, initialImageUrl, initialVideoUrl, initialAuthorName, initialLikesCount, initialCommentsCount, initialAuthorAvatarUrl]);
 
   const handleSave = async () => {
     if (!postId || !content.trim()) return;
@@ -81,6 +87,7 @@ export default function AdminEditPostModal({
           image_url: imageUrl.trim() || null,
           video_url: videoUrl.trim() || null,
           author_display_name: authorName.trim() || null,
+          author_avatar_url: authorAvatarUrl.trim() || null,
           likes_count: likesCount,
           comments_count: commentsCount,
           updated_at: new Date().toISOString(),
@@ -110,6 +117,57 @@ export default function AdminEditPostModal({
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="py-3 space-y-4">
+            {/* Author Avatar */}
+            <div className="space-y-2">
+              <Label>Author Avatar</Label>
+              <div className="flex items-center gap-3">
+                <Avatar className="w-14 h-14 border-2 border-primary/30">
+                  <AvatarImage src={authorAvatarUrl || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+                    {authorName?.[0]?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const { url, error } = await uploadImage(file, 'post-images');
+                    if (error) {
+                      toast.error(error.message || 'Upload failed');
+                    } else if (url) {
+                      setAuthorAvatarUrl(url);
+                    }
+                    if (avatarInputRef.current) avatarInputRef.current.value = '';
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                  Upload
+                </Button>
+                {authorAvatarUrl && (
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setAuthorAvatarUrl('')} className="h-8 w-8">
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Input
+                value={authorAvatarUrl}
+                onChange={(e) => setAuthorAvatarUrl(e.target.value)}
+                placeholder="Or paste avatar URL..."
+              />
+              <p className="text-xs text-muted-foreground">Leave blank to use profile avatar</p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="admin-author-name">Author Display Name</Label>
               <Input
