@@ -77,6 +77,7 @@ export default function AdminEditPostModal({
           content: content.trim(),
           pup_name: pupName.trim() || null,
           image_url: imageUrl.trim() || null,
+          video_url: videoUrl.trim() || null,
           author_display_name: authorName.trim() || null,
           likes_count: likesCount,
           comments_count: commentsCount,
