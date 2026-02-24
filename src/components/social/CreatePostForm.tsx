@@ -141,7 +141,8 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
       isReview,
       isReview ? selectedParkId : undefined,
       isReview ? rating : undefined,
-      uploadedVideoUrl
+      uploadedVideoUrl,
+      adminDisplayName.trim() || undefined
     );
     
     // Reset form
@@ -149,6 +150,7 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
     setIsReview(false);
     setSelectedParkId('');
     setRating(0);
+    setAdminDisplayName('');
     removeMedia();
   };
 
