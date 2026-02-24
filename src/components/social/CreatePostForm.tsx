@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Image as ImageIcon, MapPin, Star, X, Camera, Loader2, Video } from 'lucide-react';
+import { Plus, Image as ImageIcon, MapPin, Star, X, Camera, Loader2, Video, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
