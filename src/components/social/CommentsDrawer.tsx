@@ -214,6 +214,7 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
                 placeholder="Write a comment..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
+                onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                 disabled={submitting}
                 className="flex-1 rounded-full border-primary/20 focus:border-primary"
               />

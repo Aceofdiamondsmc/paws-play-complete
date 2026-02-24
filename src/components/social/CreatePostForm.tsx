@@ -208,6 +208,7 @@ export default function CreatePostForm({ onPost, isPosting }: CreatePostFormProp
         placeholder={isReview ? "Share your experience at this park... What did your pup think? 🐾" : "Share something with the pack... 🐾"}
         value={content}
         onChange={(e) => setContent(e.target.value)}
+        onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
         className="min-h-[80px] resize-none border-0 p-0 focus-visible:ring-0 bg-transparent text-foreground"
       />
 
