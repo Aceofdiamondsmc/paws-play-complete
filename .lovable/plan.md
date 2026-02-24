@@ -1,93 +1,71 @@
 
 
-## Admin Posting on the Social Tab
+## Admin Override for Post Profile Picture
 
-### Approach
+### What This Does
+Adds the ability for admins to change the profile/avatar picture shown on any post -- just like you can already override the author name. Upload a custom avatar or paste a URL, and that post will display the new picture instead of the user's real profile photo.
 
-Rather than editing user profile pictures (which is complex and invasive), the better professional approach is to let administrators **post as "Admin" / "PawsPlay Team"** directly from the Social tab. The database already has an `author_display_name` field on the `posts` table -- we just need to surface it in the create post flow for admins.
+### Database Changes
 
-### How It Will Work
+**Add `author_avatar_url` column to `posts` table**
+- New nullable text column that, when set, overrides the profile avatar for that specific post
+- Update the `public_posts` view to use `COALESCE(p.author_avatar_url, pr.avatar_url)` -- if a per-post avatar is set, use it; otherwise fall back to the user's profile pic
 
-- When an admin is logged in, the Create Post form shows an **extra field** at the top: a text input for "Post as" with a placeholder like "PawsPlay Team"
-- If the admin fills it in, the post appears in the feed under that custom name instead of their personal profile name
-- If left blank, the post appears as their normal user account (default behavior)
-- A small shield badge appears next to admin-branded posts so users know it's official
+### Code Changes
 
-### Changes
+**`src/components/social/AdminEditPostModal.tsx`**
+- Add a new "Author Avatar" field in the form (above "Author Display Name") with:
+  - Upload button to upload an image to the `post-images` bucket
+  - URL text input for pasting a link
+  - Circular avatar preview showing current/new image
+  - Clear (X) button to remove the override
+- Include `author_avatar_url` in the save payload
 
-**1. `src/hooks/usePosts.tsx`**
-- Update `createPost` to accept an optional `authorDisplayName` parameter
-- Include `author_display_name` in the insert payload when provided
+**`src/pages/Social.tsx`**
+- Pass the current `author_avatar_url` to the admin edit modal as a new prop
+- When rendering each post's avatar, prefer `post.author_avatar_url` (which now comes from the COALESCE in the view, automatically handling overrides)
 
-**2. `src/components/social/CreatePostForm.tsx`**
-- Add an `isAdmin` prop
-- When `isAdmin` is true, render a "Post as" input field above the content area (with a ShieldCheck icon)
-- Pass the custom name up through `onPost` callback
-
-**3. `src/pages/Social.tsx`**
-- Pass `isAdmin` to `CreatePostForm`
-- Update `handlePost` to forward the author display name to `createPost`
+**`src/hooks/usePosts.tsx`**
+- No changes needed -- the view already returns `author_avatar_url` and the code maps it to `author.avatar_url`
 
 ### Technical Details
 
-**CreatePostForm.tsx** -- new prop and field:
-```tsx
-interface CreatePostFormProps {
-  onPost: (content: string, imageUrl?: string, isReview?: boolean, 
-           parkId?: string, rating?: number, videoUrl?: string,
-           authorDisplayName?: string) => Promise<void>;
-  isPosting: boolean;
-  isAdmin?: boolean;
-}
+Migration SQL:
+```sql
+ALTER TABLE posts ADD COLUMN author_avatar_url text;
+
+DROP VIEW IF EXISTS public_posts;
+CREATE VIEW public_posts WITH (security_invoker = on) AS
+SELECT p.id, p.author_id, p.content, p.image_url, p.video_url,
+       p.visibility, p.created_at, p.updated_at, p.dog_id, p.pup_name,
+       p.likes_count, p.comments_count,
+       COALESCE(p.author_display_name, pr.display_name) AS author_display_name,
+       COALESCE(p.author_avatar_url, pr.avatar_url) AS author_avatar_url
+FROM posts p
+LEFT JOIN profiles pr ON pr.id = p.author_id
+WHERE p.visibility = 'public'::post_visibility;
 ```
 
-When `isAdmin` is true, render above the textarea:
+AdminEditPostModal avatar section (inside the scrollable area, above Author Display Name):
 ```tsx
-<div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
-  <ShieldCheck className="w-5 h-5 text-primary" />
-  <Input
-    placeholder="Post as (e.g. PawsPlay Team)..."
-    value={adminDisplayName}
-    onChange={...}
-    className="flex-1"
-  />
+<div className="space-y-2">
+  <Label>Author Avatar</Label>
+  <div className="flex items-center gap-3">
+    <Avatar className="w-14 h-14 border-2 border-primary/30">
+      <AvatarImage src={authorAvatarUrl || undefined} />
+      <AvatarFallback>...</AvatarFallback>
+    </Avatar>
+    <Button variant="outline" size="sm" onClick={upload}>Upload</Button>
+    {authorAvatarUrl && <Button variant="ghost" size="icon" onClick={clear}><X /></Button>}
+  </div>
+  <Input placeholder="Or paste avatar URL..." value={authorAvatarUrl} onChange={...} />
 </div>
-```
-
-**usePosts.tsx** -- updated createPost signature:
-```tsx
-const createPost = async (
-  content: string, 
-  imageUrl?: string, 
-  visibility = 'public', 
-  videoUrl?: string,
-  authorDisplayName?: string
-) => {
-  await supabase.from('posts').insert({
-    author_id: user.id,
-    content,
-    image_url: imageUrl,
-    video_url: videoUrl,
-    visibility,
-    author_display_name: authorDisplayName || null,
-  });
-};
-```
-
-**Social.tsx** -- wire it up:
-```tsx
-<CreatePostForm 
-  onPost={handlePost} 
-  isPosting={isPosting} 
-  isAdmin={isAdmin} 
-/>
 ```
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/hooks/usePosts.tsx` | Add `authorDisplayName` param to `createPost`, include in insert |
-| `src/components/social/CreatePostForm.tsx` | Add `isAdmin` prop, "Post as" input for admins, pass name through `onPost` |
-| `src/pages/Social.tsx` | Pass `isAdmin` to CreatePostForm, forward display name in `handlePost` |
-
+| Migration SQL | Add `author_avatar_url` column to `posts`, recreate `public_posts` view with COALESCE |
+| `src/components/social/AdminEditPostModal.tsx` | Add avatar upload/URL field, include in save payload |
+| `src/pages/Social.tsx` | Pass `author_avatar_url` to admin edit modal props |
