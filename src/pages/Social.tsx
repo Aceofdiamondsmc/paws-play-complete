@@ -36,6 +36,7 @@ import PhotoUploadSheet from '@/components/social/PhotoUploadSheet';
 import CommentsDrawer from '@/components/social/CommentsDrawer';
 import EditPostModal from '@/components/social/EditPostModal';
 import AdminEditPostModal from '@/components/social/AdminEditPostModal';
+import VideoPlayer from '@/components/social/VideoPlayer';
 import { useMessages } from '@/hooks/useMessages';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
