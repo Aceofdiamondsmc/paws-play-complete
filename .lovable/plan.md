@@ -1,36 +1,46 @@
 
 
-## Add Verified & Featured Toggles to Admin Service Management
+## Fix Admin Service Updates + Make New Services Appear in Nearby Results
 
-### What's Missing
-The Create/Edit Service modal has no way to set `is_verified` or `is_featured` -- both columns exist in the `services` table and are already rendered in the UI (badges on Explore, ServiceDetails, and the admin list), but the admin form simply doesn't include controls for them.
+### Problems Found
 
-### Changes (Single File)
+1. **"permission denied for function get_current_user_role"** -- The `services` table has an UPDATE policy ("Moderators can manage featured services") that calls `get_current_user_role()`. Like `is_admin()` before, this function lacks `EXECUTE` permission for the `authenticated` role.
 
-**`src/pages/admin/AdminServices.tsx`**
+2. **Newly created services don't appear in "Near Me" results** -- Your "Dog Supplies Outlet" (id=201) has `NULL` latitude and longitude. The `get_nearby_services` RPC requires coordinates to calculate distance, so services without them are invisible in proximity searches. The admin Create/Edit form has no coordinate fields.
 
-1. **Extend the edit form state** to include `is_verified` and `is_featured` (booleans, default `false`).
+3. **Featured badge** -- Already exists in the Explore list (line 277 of Explore.tsx). It renders a "Featured" Badge when `is_featured` is true. No changes needed here.
 
-2. **Populate on edit** -- when `openEditModal` is called, read the existing `is_verified` and `is_featured` values from the service.
+---
 
-3. **Add two Switch toggles** in the Create/Edit modal (below the image section):
-   - "Verified Business" toggle (maps to `is_verified`)
-   - "Featured Listing" toggle (maps to `is_featured`)
+### Plan
 
-4. **Send the values on save** -- include `is_verified` and `is_featured` in both the `insert` (create) and `update` (edit) payloads.
+#### 1. Database: Grant EXECUTE on `get_current_user_role()` (migration)
 
-### No Database Changes Needed
-Both `is_verified` and `is_featured` columns already exist on the `services` table. The `is_admin()` RLS policies (now fixed) allow admin inserts/updates. No migration required.
-
-### Technical Detail
-
+```sql
+GRANT EXECUTE ON FUNCTION public.get_current_user_role() TO authenticated;
 ```
-editForm state addition:
-  is_verified: boolean (default false)
-  is_featured: boolean (default false)
 
-UI: two Switch components with Labels inside the modal form
+This resolves the UPDATE permission error immediately.
 
-Save payloads: add is_verified, is_featured to both insert({...}) and update({...}) calls
-```
+#### 2. Admin Form: Add Latitude/Longitude fields (`AdminServices.tsx`)
+
+- Add `latitude` and `longitude` (string) to `editForm` state (default empty)
+- Populate them from `service.latitude` / `service.longitude` on edit
+- Add two side-by-side Input fields labeled "Latitude" and "Longitude" in the modal
+- Include parsed `latitude`/`longitude` (as floats, or null if empty) in both `insert` and `update` payloads
+
+This ensures admin-created services have coordinates and appear in proximity results.
+
+#### 3. No changes needed for Featured badge
+
+The Explore page already shows a "Featured" badge pill on services where `is_featured = true`. Once the update permission error is fixed, toggling Featured on will make the badge appear.
+
+---
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| New migration SQL | `GRANT EXECUTE ON FUNCTION public.get_current_user_role() TO authenticated;` |
+| `src/pages/admin/AdminServices.tsx` | Add `latitude`/`longitude` to form state, UI inputs, and save payloads |
 
