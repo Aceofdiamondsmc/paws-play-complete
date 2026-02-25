@@ -56,7 +56,7 @@ export default function AdminServices() {
   // Create/Edit/Delete state
   const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null);
   const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '', rating: '0', is_verified: false, is_featured: false, latitude: '', longitude: '' });
+  const [editForm, setEditForm] = useState({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '', rating: '0', is_verified: false, is_featured: false, latitude: '', longitude: '', website: '', phone: '' });
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
@@ -105,7 +105,7 @@ export default function AdminServices() {
   const openCreateModal = () => {
     setFormMode('create');
     setEditingServiceId(null);
-    setEditForm({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '$', rating: '0', is_verified: false, is_featured: false, latitude: '', longitude: '' });
+    setEditForm({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '$', rating: '0', is_verified: false, is_featured: false, latitude: '', longitude: '', website: '', phone: '' });
   };
 
   const openEditModal = (service: Service) => {
@@ -123,6 +123,8 @@ export default function AdminServices() {
       is_featured: !!service.is_featured,
       latitude: service.latitude != null ? String(service.latitude) : '',
       longitude: service.longitude != null ? String(service.longitude) : '',
+      website: (service as any).website || '',
+      phone: (service as any).phone || '',
     });
   };
 
@@ -143,6 +145,8 @@ export default function AdminServices() {
           is_featured: editForm.is_featured,
           latitude: editForm.latitude ? parseFloat(editForm.latitude) : null,
           longitude: editForm.longitude ? parseFloat(editForm.longitude) : null,
+          website: editForm.website.trim() || null,
+          phone: editForm.phone.trim() || null,
         });
         if (error) throw error;
         toast({ title: 'Service created!' });
@@ -159,6 +163,8 @@ export default function AdminServices() {
             is_featured: editForm.is_featured,
             latitude: editForm.latitude ? parseFloat(editForm.latitude) : null,
             longitude: editForm.longitude ? parseFloat(editForm.longitude) : null,
+            website: editForm.website.trim() || null,
+            phone: editForm.phone.trim() || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingServiceId);
@@ -390,6 +396,16 @@ export default function AdminServices() {
                 {isGeocoding ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MapPin className="h-4 w-4 mr-1" />}
                 Geocode
               </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="svc-website">Website URL</Label>
+                <Input id="svc-website" value={editForm.website} onChange={e => setEditForm(f => ({ ...f, website: e.target.value }))} placeholder="https://example.com" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="svc-phone">Phone</Label>
+                <Input id="svc-phone" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 123-4567" />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Image</Label>
