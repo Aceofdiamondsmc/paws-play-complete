@@ -56,7 +56,7 @@ export default function AdminServices() {
   // Create/Edit/Delete state
   const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null);
   const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '', rating: '0', is_verified: false, is_featured: false });
+  const [editForm, setEditForm] = useState({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '', rating: '0', is_verified: false, is_featured: false, latitude: '', longitude: '' });
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
   const { uploadImage, uploading: imageUploading } = useImageUpload();
@@ -104,7 +104,7 @@ export default function AdminServices() {
   const openCreateModal = () => {
     setFormMode('create');
     setEditingServiceId(null);
-    setEditForm({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '$', rating: '0', is_verified: false, is_featured: false });
+    setEditForm({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '$', rating: '0', is_verified: false, is_featured: false, latitude: '', longitude: '' });
   };
 
   const openEditModal = (service: Service) => {
@@ -120,6 +120,8 @@ export default function AdminServices() {
       rating: String(service.rating || 0),
       is_verified: !!service.is_verified,
       is_featured: !!service.is_featured,
+      latitude: service.latitude != null ? String(service.latitude) : '',
+      longitude: service.longitude != null ? String(service.longitude) : '',
     });
   };
 
@@ -138,6 +140,8 @@ export default function AdminServices() {
           rating: parseFloat(editForm.rating) || 0,
           is_verified: editForm.is_verified,
           is_featured: editForm.is_featured,
+          latitude: editForm.latitude ? parseFloat(editForm.latitude) : null,
+          longitude: editForm.longitude ? parseFloat(editForm.longitude) : null,
         });
         if (error) throw error;
         toast({ title: 'Service created!' });
@@ -152,6 +156,8 @@ export default function AdminServices() {
             image_url: editForm.image_url.trim() || null,
             is_verified: editForm.is_verified,
             is_featured: editForm.is_featured,
+            latitude: editForm.latitude ? parseFloat(editForm.latitude) : null,
+            longitude: editForm.longitude ? parseFloat(editForm.longitude) : null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingServiceId);
@@ -392,6 +398,16 @@ export default function AdminServices() {
                     <X className="h-4 w-4" />
                   </Button>
                 )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="svc-lat">Latitude</Label>
+                <Input id="svc-lat" type="number" step="any" value={editForm.latitude} onChange={e => setEditForm(f => ({ ...f, latitude: e.target.value }))} placeholder="e.g. 42.3601" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="svc-lng">Longitude</Label>
+                <Input id="svc-lng" type="number" step="any" value={editForm.longitude} onChange={e => setEditForm(f => ({ ...f, longitude: e.target.value }))} placeholder="e.g. -71.0589" />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="svc-verified">Verified Business</Label>

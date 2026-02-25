@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_current_user_role() TO authenticated;
