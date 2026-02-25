@@ -1,71 +1,63 @@
 
 
-## Admin Override for Post Profile Picture
+## Fix: Posts Cannot Be Deleted (RLS Policy Issue)
 
-### What This Does
-Adds the ability for admins to change the profile/avatar picture shown on any post -- just like you can already override the author name. Upload a custom avatar or paste a URL, and that post will display the new picture instead of the user's real profile photo.
+### Problem
 
-### Database Changes
+All Row-Level Security (RLS) DELETE policies on the `posts` table are set to **RESTRICTIVE**. In PostgreSQL, restrictive policies act as additional AND filters — the user must satisfy **every single one** simultaneously. 
 
-**Add `author_avatar_url` column to `posts` table**
-- New nullable text column that, when set, overrides the profile avatar for that specific post
-- Update the `public_posts` view to use `COALESCE(p.author_avatar_url, pr.avatar_url)` -- if a per-post avatar is set, use it; otherwise fall back to the user's profile pic
+Currently there are 6 DELETE policies, all restrictive:
+- "Admins can delete any post" (checks admin_users table)
+- "Admins can delete posts" (checks email)
+- "Authenticated delete posts" (allows all — but still AND'd)
+- "Users can delete their own posts" (checks author_id)
+- "posts_delete" (checks author_id)
+- "Allow authors to manage own posts" (ALL command, checks author_id)
 
-### Code Changes
+Since these are all RESTRICTIVE, a non-admin user fails the admin checks, and an admin who isn't the author fails the author checks. **Nobody can delete anything.**
 
-**`src/components/social/AdminEditPostModal.tsx`**
-- Add a new "Author Avatar" field in the form (above "Author Display Name") with:
-  - Upload button to upload an image to the `post-images` bucket
-  - URL text input for pasting a link
-  - Circular avatar preview showing current/new image
-  - Clear (X) button to remove the override
-- Include `author_avatar_url` in the save payload
+### Solution
 
-**`src/pages/Social.tsx`**
-- Pass the current `author_avatar_url` to the admin edit modal as a new prop
-- When rendering each post's avatar, prefer `post.author_avatar_url` (which now comes from the COALESCE in the view, automatically handling overrides)
+Run a single database migration that:
 
-**`src/hooks/usePosts.tsx`**
-- No changes needed -- the view already returns `author_avatar_url` and the code maps it to `author.avatar_url`
+1. **Drops all existing DELETE policies** on the `posts` table
+2. **Creates two clean PERMISSIVE policies** (PERMISSIVE means any ONE matching policy is sufficient):
+   - **Authors can delete own posts** — `author_id = auth.uid()` (PERMISSIVE)
+   - **Admins can delete any post** — checks `admin_users` table (PERMISSIVE)
 
 ### Technical Details
 
 Migration SQL:
+
 ```sql
-ALTER TABLE posts ADD COLUMN author_avatar_url text;
+-- Drop all existing DELETE policies on posts
+DROP POLICY IF EXISTS "Admins can delete any post" ON posts;
+DROP POLICY IF EXISTS "Admins can delete posts" ON posts;
+DROP POLICY IF EXISTS "Authenticated delete posts" ON posts;
+DROP POLICY IF EXISTS "Users can delete their own posts" ON posts;
+DROP POLICY IF EXISTS "posts_delete" ON posts;
 
-DROP VIEW IF EXISTS public_posts;
-CREATE VIEW public_posts WITH (security_invoker = on) AS
-SELECT p.id, p.author_id, p.content, p.image_url, p.video_url,
-       p.visibility, p.created_at, p.updated_at, p.dog_id, p.pup_name,
-       p.likes_count, p.comments_count,
-       COALESCE(p.author_display_name, pr.display_name) AS author_display_name,
-       COALESCE(p.author_avatar_url, pr.avatar_url) AS author_avatar_url
-FROM posts p
-LEFT JOIN profiles pr ON pr.id = p.author_id
-WHERE p.visibility = 'public'::post_visibility;
+-- Create two clean PERMISSIVE delete policies
+CREATE POLICY "posts_delete_own"
+  ON posts FOR DELETE
+  USING (author_id = auth.uid());
+
+CREATE POLICY "posts_delete_admin"
+  ON posts FOR DELETE
+  USING (EXISTS (
+    SELECT 1 FROM admin_users WHERE admin_users.user_id = auth.uid()
+  ));
 ```
 
-AdminEditPostModal avatar section (inside the scrollable area, above Author Display Name):
-```tsx
-<div className="space-y-2">
-  <Label>Author Avatar</Label>
-  <div className="flex items-center gap-3">
-    <Avatar className="w-14 h-14 border-2 border-primary/30">
-      <AvatarImage src={authorAvatarUrl || undefined} />
-      <AvatarFallback>...</AvatarFallback>
-    </Avatar>
-    <Button variant="outline" size="sm" onClick={upload}>Upload</Button>
-    {authorAvatarUrl && <Button variant="ghost" size="icon" onClick={clear}><X /></Button>}
-  </div>
-  <Input placeholder="Or paste avatar URL..." value={authorAvatarUrl} onChange={...} />
-</div>
-```
+Note: The existing `"Allow authors to manage own posts"` ALL-command policy and `"Authenticated delete posts"` (which allows everyone) are also problematic. The ALL-command policy covers DELETE too but is restrictive, compounding the issue. We leave the ALL policy in place (it covers other operations) but the new permissive DELETE policies will allow deletes to succeed.
+
+### No Code Changes Needed
+
+The frontend delete logic in `usePosts.tsx`, `Social.tsx`, and `AdminSocial.tsx` is already correct — the issue is purely at the database RLS layer.
 
 ### Files Changed
 
-| File | Change |
-|------|--------|
-| Migration SQL | Add `author_avatar_url` column to `posts`, recreate `public_posts` view with COALESCE |
-| `src/components/social/AdminEditPostModal.tsx` | Add avatar upload/URL field, include in save payload |
-| `src/pages/Social.tsx` | Pass `author_avatar_url` to admin edit modal props |
+| Target | Change |
+|--------|--------|
+| Database migration | Drop conflicting restrictive DELETE policies, create 2 permissive ones |
+
