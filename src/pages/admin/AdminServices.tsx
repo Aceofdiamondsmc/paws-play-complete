@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
 import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon, ClipboardList, Check, X, Pencil, Trash2, Plus, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useServices, getServiceImage, Service } from '@/hooks/useServices';
@@ -55,7 +56,7 @@ export default function AdminServices() {
   // Create/Edit/Delete state
   const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null);
   const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '', rating: '0' });
+  const [editForm, setEditForm] = useState({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '', rating: '0', is_verified: false, is_featured: false });
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
   const { uploadImage, uploading: imageUploading } = useImageUpload();
@@ -103,7 +104,7 @@ export default function AdminServices() {
   const openCreateModal = () => {
     setFormMode('create');
     setEditingServiceId(null);
-    setEditForm({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '$', rating: '0' });
+    setEditForm({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '$', rating: '0', is_verified: false, is_featured: false });
   };
 
   const openEditModal = (service: Service) => {
@@ -117,6 +118,8 @@ export default function AdminServices() {
       image_url: service.image_url || '',
       price: service.price || '$',
       rating: String(service.rating || 0),
+      is_verified: !!service.is_verified,
+      is_featured: !!service.is_featured,
     });
   };
 
@@ -133,6 +136,8 @@ export default function AdminServices() {
           image_url: editForm.image_url.trim() || 'https://placedog.net/600/400?id=service',
           price: editForm.price || '$',
           rating: parseFloat(editForm.rating) || 0,
+          is_verified: editForm.is_verified,
+          is_featured: editForm.is_featured,
         });
         if (error) throw error;
         toast({ title: 'Service created!' });
@@ -145,6 +150,8 @@ export default function AdminServices() {
             description: editForm.description.trim() || null,
             verified_address: editForm.address.trim() || null,
             image_url: editForm.image_url.trim() || null,
+            is_verified: editForm.is_verified,
+            is_featured: editForm.is_featured,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingServiceId);
@@ -385,7 +392,15 @@ export default function AdminServices() {
                     <X className="h-4 w-4" />
                   </Button>
                 )}
-              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="svc-verified">Verified Business</Label>
+              <Switch id="svc-verified" checked={editForm.is_verified} onCheckedChange={v => setEditForm(f => ({ ...f, is_verified: v }))} />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="svc-featured">Featured Listing</Label>
+              <Switch id="svc-featured" checked={editForm.is_featured} onCheckedChange={v => setEditForm(f => ({ ...f, is_featured: v }))} />
+            </div>
               <Input
                 value={editForm.image_url}
                 onChange={e => setEditForm(f => ({ ...f, image_url: e.target.value }))}
