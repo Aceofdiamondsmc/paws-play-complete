@@ -1,46 +1,45 @@
 
 
-## Fix Admin Service Updates + Make New Services Appear in Nearby Results
+## Auto-Geocode Address in Admin Service Form
 
-### Problems Found
+### Problem
+Currently, admins must manually type latitude/longitude coordinates for new services. This is tedious and error-prone.
 
-1. **"permission denied for function get_current_user_role"** -- The `services` table has an UPDATE policy ("Moderators can manage featured services") that calls `get_current_user_role()`. Like `is_admin()` before, this function lacks `EXECUTE` permission for the `authenticated` role.
+### Solution
+Add a "Geocode" button next to the address field that automatically fetches coordinates from the Mapbox Geocoding API using the entered address. The lat/lng fields auto-populate, but remain editable for manual override.
 
-2. **Newly created services don't appear in "Near Me" results** -- Your "Dog Supplies Outlet" (id=201) has `NULL` latitude and longitude. The `get_nearby_services` RPC requires coordinates to calculate distance, so services without them are invisible in proximity searches. The admin Create/Edit form has no coordinate fields.
+### Changes (Single File)
 
-3. **Featured badge** -- Already exists in the Explore list (line 277 of Explore.tsx). It renders a "Featured" Badge when `is_featured` is true. No changes needed here.
+**`src/pages/admin/AdminServices.tsx`**
 
----
+1. **Add geocoding state** -- `isGeocoding` boolean for loading indicator.
 
-### Plan
+2. **Add a `handleGeocode` function** that:
+   - Fetches the Mapbox token from the existing `mapbox-token` edge function
+   - Calls the Mapbox Geocoding API with the address string
+   - Extracts lat/lng from the first result
+   - Auto-fills the latitude and longitude fields
+   - Shows a toast on success or failure
 
-#### 1. Database: Grant EXECUTE on `get_current_user_role()` (migration)
+3. **Add a "Geocode" button** next to the Address input (or below it) with a MapPin icon. Disabled when address is empty or geocoding is in progress.
 
-```sql
-GRANT EXECUTE ON FUNCTION public.get_current_user_role() TO authenticated;
+4. **Keep lat/lng fields editable** so admins can still manually adjust if needed.
+
+### Technical Detail
+
+```text
++------------------------------------------+
+| Address: [123 Main St, Boston, MA      ] |
+|          [ MapPin  Geocode ]             |
+|                                          |
+| Latitude: [42.3601]  Longitude: [-71.05] |
+|   (auto-filled, still editable)          |
++------------------------------------------+
 ```
 
-This resolves the UPDATE permission error immediately.
+The geocoding uses the same Mapbox token edge function (`mapbox-token`) already used by the Parks and Services maps. The API call is:
+```
+GET https://api.mapbox.com/geocoding/v5/mapbox.places/{address}.json?access_token={token}
+```
 
-#### 2. Admin Form: Add Latitude/Longitude fields (`AdminServices.tsx`)
-
-- Add `latitude` and `longitude` (string) to `editForm` state (default empty)
-- Populate them from `service.latitude` / `service.longitude` on edit
-- Add two side-by-side Input fields labeled "Latitude" and "Longitude" in the modal
-- Include parsed `latitude`/`longitude` (as floats, or null if empty) in both `insert` and `update` payloads
-
-This ensures admin-created services have coordinates and appear in proximity results.
-
-#### 3. No changes needed for Featured badge
-
-The Explore page already shows a "Featured" badge pill on services where `is_featured = true`. Once the update permission error is fixed, toggling Featured on will make the badge appear.
-
----
-
-### Files Changed
-
-| File | Change |
-|------|--------|
-| New migration SQL | `GRANT EXECUTE ON FUNCTION public.get_current_user_role() TO authenticated;` |
-| `src/pages/admin/AdminServices.tsx` | Add `latitude`/`longitude` to form state, UI inputs, and save payloads |
-
+No new dependencies or database changes needed.
