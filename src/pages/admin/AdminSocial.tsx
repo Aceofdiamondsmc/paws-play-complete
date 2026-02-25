@@ -124,19 +124,24 @@ export default function AdminSocial() {
     if (!selectedPost) return;
     const postId = selectedPost.id;
 
-    // Optimistic removal
-    setPosts(prev => prev.filter(p => p.id !== postId));
+    setIsDeleting(true);
     setIsDeleteDialogOpen(false);
     setSelectedPost(null);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('posts')
         .delete()
-        .eq('id', postId);
+        .eq('id', postId)
+        .select('id');
 
       if (error) throw error;
 
+      if (!data || data.length === 0) {
+        throw new Error('Post was not deleted — a database rule may have blocked it.');
+      }
+
+      setPosts(prev => prev.filter(p => p.id !== postId));
       toast({ title: 'Success', description: 'Post deleted successfully' });
     } catch (error: any) {
       console.error('Delete error:', error);
@@ -145,10 +150,10 @@ export default function AdminSocial() {
         description: error.message || 'Failed to delete post',
         variant: 'destructive',
       });
-      // Re-fetch to restore state on failure
       fetchPosts();
+    } finally {
+      setIsDeleting(false);
     }
-    // Invalidate frontend queries so Social tab updates
     queryClient.invalidateQueries({ queryKey: ['posts'] });
   };
 

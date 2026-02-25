@@ -301,13 +301,21 @@ export function usePosts() {
   };
 
   const deletePost = async (postId: string) => {
-    const { error } = await supabase.from('posts').delete().eq('id', postId);
+    const { data, error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId)
+      .select('id');
 
-    if (!error) {
-      setPosts(prev => prev.filter(p => p.id !== postId));
+    if (error) return { error };
+
+    // If trigger or policy silently blocked the delete, data will be empty
+    if (!data || data.length === 0) {
+      return { error: new Error('Post was not deleted. It may have already been removed or a database rule prevented deletion.') };
     }
 
-    return { error };
+    setPosts(prev => prev.filter(p => p.id !== postId));
+    return { error: null };
   };
 
   // Clear a post from the new posts set (for manual control)
