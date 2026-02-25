@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Image as ImageIcon, MapPin, Star, X, Camera, Loader2, Video, ShieldCheck } from 'lucide-react';
+import { Plus, Image as ImageIcon, MapPin, Star, X, Camera, Loader2, Video, ShieldCheck, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,12 +15,13 @@ import {
 import { useParks } from '@/hooks/useParks';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { ensureJpeg } from '@/lib/heic-convert';
 
 interface CreatePostFormProps {
-  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string, authorDisplayName?: string) => Promise<void>;
+  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string, authorDisplayName?: string, authorAvatarUrl?: string) => Promise<void>;
   isPosting: boolean;
   isAdmin?: boolean;
 }
@@ -66,6 +67,7 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
   const [content, setContent] = useState('');
   const [isReview, setIsReview] = useState(false);
   const [adminDisplayName, setAdminDisplayName] = useState('');
+  const [adminAvatarUrl, setAdminAvatarUrl] = useState('');
   const [selectedParkId, setSelectedParkId] = useState<string>('');
   const [rating, setRating] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -73,6 +75,7 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
   const [isVideo, setIsVideo] = useState(false);
   const [processing, setProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawFile = e.target.files?.[0];
@@ -115,6 +118,24 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
+    try {
+      const file = await ensureJpeg(rawFile, () => {
+        toast({ title: "Processing avatar... 📸" });
+      });
+      const { url, error } = await uploadImage(file);
+      if (error || !url) {
+        toast({ title: "Avatar upload failed", variant: "destructive" });
+        return;
+      }
+      setAdminAvatarUrl(url);
+    } catch {
+      toast({ title: "Could not process avatar", variant: "destructive" });
+    }
+  };
+
   const handleSubmit = async () => {
     if (!content.trim()) return;
     if (isReview && (!selectedParkId || rating === 0)) return;
@@ -142,7 +163,8 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
       isReview ? selectedParkId : undefined,
       isReview ? rating : undefined,
       uploadedVideoUrl,
-      adminDisplayName.trim() || undefined
+      adminDisplayName.trim() || undefined,
+      adminAvatarUrl.trim() || undefined
     );
     
     // Reset form
@@ -151,6 +173,7 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
     setSelectedParkId('');
     setRating(0);
     setAdminDisplayName('');
+    setAdminAvatarUrl('');
     removeMedia();
   };
 
@@ -210,14 +233,49 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
 
       {/* Admin "Post as" field */}
       {isAdmin && (
-        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
-          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-          <Input
-            placeholder="Post as (e.g. PawsPlay Team)..."
-            value={adminDisplayName}
-            onChange={(e) => setAdminDisplayName(e.target.value)}
-            className="flex-1 h-9 text-sm border-primary/30"
-          />
+        <div className="space-y-3 mb-3 pb-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+            <Input
+              placeholder="Post as (e.g. PawsPlay Team)..."
+              value={adminDisplayName}
+              onChange={(e) => setAdminDisplayName(e.target.value)}
+              className="flex-1 h-9 text-sm border-primary/30"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*,.heic,.heif"
+              onChange={handleAvatarSelect}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              className="shrink-0 group relative"
+              title="Upload custom avatar"
+            >
+              <Avatar className="w-10 h-10 border-2 border-dashed border-primary/40 group-hover:border-primary transition-colors">
+                <AvatarImage src={adminAvatarUrl || undefined} />
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  <Upload className="w-4 h-4" />
+                </AvatarFallback>
+              </Avatar>
+            </button>
+            <Input
+              placeholder="Avatar URL (or upload →)"
+              value={adminAvatarUrl}
+              onChange={(e) => setAdminAvatarUrl(e.target.value)}
+              className="flex-1 h-9 text-sm border-primary/30"
+            />
+            {adminAvatarUrl && (
+              <button type="button" onClick={() => setAdminAvatarUrl('')} className="text-muted-foreground hover:text-destructive">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       )}
 

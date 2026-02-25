@@ -143,10 +143,11 @@ export default function Social() {
     parkId?: string, 
     rating?: number,
     videoUrl?: string,
-    authorDisplayName?: string
+    authorDisplayName?: string,
+    authorAvatarUrl?: string
   ) => {
     setIsPosting(true);
-    await createPost(content, imageUrl, 'public', videoUrl, authorDisplayName);
+    await createPost(content, imageUrl, 'public', videoUrl, authorDisplayName, authorAvatarUrl);
     setIsPosting(false);
   };
 
