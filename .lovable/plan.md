@@ -1,36 +1,62 @@
 
 
-## Add Admin Avatar Field to CreatePostForm
+## Populate user_roles table with existing admin
 
-### Overview
-Add an avatar upload/URL input field to the CreatePostForm, visible only to admins, so they can set a custom avatar (e.g., a brand logo) when posting as an official account -- without needing to edit the post afterward.
+### What exists
+- The `user_roles` table already exists with columns: `id` (uuid), `user_id` (uuid), `role` (text)
+- It is currently empty -- which is why the `vet-service` edge function fails with 403
+- There is one admin in `admin_users`: `7ffea141-867a-4b38-b99f-62c7139c86cc`
 
-### Changes
+### Steps
 
-#### 1. `src/components/social/CreatePostForm.tsx`
-- Add `adminAvatarUrl` state and an `adminAvatarFile` state
-- Add a hidden file input for avatar upload
-- In the admin section (next to the display name field), add:
-  - A small avatar preview (using the Avatar component)
-  - A click-to-upload button for the avatar image
-  - A text input for manual URL entry (matching the existing "Dual Image Input" pattern)
-- Upload the avatar file via `useImageUpload` during `handleSubmit`, before calling `onPost`
-- Pass `adminAvatarUrl` through the `onPost` callback
-- Reset avatar state on form submission
+**1. Insert admin role into user_roles**
 
-#### 2. `src/components/social/CreatePostForm.tsx` - Props update
-- Extend `onPost` signature to include `authorAvatarUrl?: string` parameter
+Use the data insert tool to add the existing admin user with role `'admin'`:
 
-#### 3. `src/pages/Social.tsx`
-- Update `handlePost` to accept and forward `authorAvatarUrl` to `createPost`
+```sql
+INSERT INTO user_roles (user_id, role)
+VALUES ('7ffea141-867a-4b38-b99f-62c7139c86cc', 'admin');
+```
 
-#### 4. `src/hooks/usePosts.tsx`
-- Update `createPost` to accept `authorAvatarUrl` parameter
-- Include `author_avatar_url` in the insert payload (the column already exists on the `posts` table)
+This will make the `vet-service` edge function's role check pass for this user.
 
-### Technical Details
+**2. Add RLS policies to user_roles (migration)**
 
-The `posts` table already has an `author_avatar_url` column, so no database migration is needed. The flow mirrors how `author_display_name` is currently handled -- passed from form to hook to insert.
+The `user_roles` table currently has no RLS policies. We need to add policies so the vet-service function (which uses the anon key with user JWT) can read from it:
 
-The avatar input will use the same "Dual Image Input" pattern used in admin edit modals: upload populates the URL field, and both sync with a live preview.
+- Allow authenticated users to read their own roles (needed for the vet-service auth check)
+- No insert/update/delete for regular users
+
+```sql
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own roles"
+  ON public.user_roles FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+```
+
+**3. Create `has_role` security definer function (migration)**
+
+Following best practices, create a helper function that bypasses RLS for internal role checks:
+
+```sql
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role text)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  );
+$$;
+```
+
+This ensures edge functions and RLS policies can check roles without recursive issues.
+
+### Files changed
+- No application code changes needed -- the `vet-service` function already queries `user_roles` correctly
+- One database migration for RLS + helper function
+- One data insert for the admin row
 
