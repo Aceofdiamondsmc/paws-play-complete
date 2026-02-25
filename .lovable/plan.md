@@ -1,45 +1,22 @@
 
 
-## Auto-Geocode Address in Admin Service Form
+## Add Website URL and Phone Fields to Admin Service Form
 
-### Problem
-Currently, admins must manually type latitude/longitude coordinates for new services. This is tedious and error-prone.
+### What's Missing
+The `services` table already has `website` and `phone` columns (used in ServiceDetails.tsx for Contact/Website buttons), but the admin Create/Edit modal has no fields for them. This means admins can't set a website URL or phone number when creating or editing services.
 
-### Solution
-Add a "Geocode" button next to the address field that automatically fetches coordinates from the Mapbox Geocoding API using the entered address. The lat/lng fields auto-populate, but remain editable for manual override.
+### Changes (Single File: `src/pages/admin/AdminServices.tsx`)
 
-### Changes (Single File)
+1. **Extend `editForm` state** -- add `website: ''` and `phone: ''` to the initial state object (line 59) and the `openCreateModal` reset (line 108).
 
-**`src/pages/admin/AdminServices.tsx`**
+2. **Populate on edit** -- in `openEditModal`, read `service.website` and `service.phone` into the form state.
 
-1. **Add geocoding state** -- `isGeocoding` boolean for loading indicator.
+3. **Add two Input fields** in the modal form (after the Address/Geocode section, before the Image section):
+   - "Website URL" -- text input with `https://` placeholder
+   - "Phone" -- text input with phone number placeholder
 
-2. **Add a `handleGeocode` function** that:
-   - Fetches the Mapbox token from the existing `mapbox-token` edge function
-   - Calls the Mapbox Geocoding API with the address string
-   - Extracts lat/lng from the first result
-   - Auto-fills the latitude and longitude fields
-   - Shows a toast on success or failure
+4. **Include in save payloads** -- add `website` and `phone` (trimmed, or null if empty) to both the `insert` and `update` Supabase calls.
 
-3. **Add a "Geocode" button** next to the Address input (or below it) with a MapPin icon. Disabled when address is empty or geocoding is in progress.
+### No Database Changes Needed
+Both `website` and `phone` columns already exist on the `services` table. The ServiceDetails page already renders Contact and Website buttons using these fields.
 
-4. **Keep lat/lng fields editable** so admins can still manually adjust if needed.
-
-### Technical Detail
-
-```text
-+------------------------------------------+
-| Address: [123 Main St, Boston, MA      ] |
-|          [ MapPin  Geocode ]             |
-|                                          |
-| Latitude: [42.3601]  Longitude: [-71.05] |
-|   (auto-filled, still editable)          |
-+------------------------------------------+
-```
-
-The geocoding uses the same Mapbox token edge function (`mapbox-token`) already used by the Parks and Services maps. The API call is:
-```
-GET https://api.mapbox.com/geocoding/v5/mapbox.places/{address}.json?access_token={token}
-```
-
-No new dependencies or database changes needed.
