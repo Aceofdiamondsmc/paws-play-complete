@@ -58,6 +58,7 @@ export default function AdminServices() {
   const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ name: '', category: 'Groomers', description: '', address: '', image_url: '', price: '', rating: '0', is_verified: false, is_featured: false, latitude: '', longitude: '' });
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
   const { uploadImage, uploading: imageUploading } = useImageUpload();
   const svcFileInputRef = useRef<HTMLInputElement>(null);
@@ -362,6 +363,33 @@ export default function AdminServices() {
             <div className="space-y-2">
               <Label htmlFor="svc-address">Address</Label>
               <Input id="svc-address" value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St, City, State" />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-1"
+                disabled={!editForm.address.trim() || isGeocoding}
+                onClick={async () => {
+                  setIsGeocoding(true);
+                  try {
+                    const { data: tokenData, error: tokenErr } = await supabase.functions.invoke('mapbox-token');
+                    if (tokenErr || !tokenData?.token) throw new Error('Failed to fetch Mapbox token');
+                    const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(editForm.address.trim())}.json?access_token=${tokenData.token}&limit=1`);
+                    const geo = await res.json();
+                    if (!geo.features?.length) throw new Error('No results found for this address');
+                    const [lng, lat] = geo.features[0].center;
+                    setEditForm(f => ({ ...f, latitude: String(lat), longitude: String(lng) }));
+                    toast({ title: 'Coordinates found', description: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+                  } catch (err: any) {
+                    toast({ title: 'Geocoding failed', description: err.message, variant: 'destructive' });
+                  } finally {
+                    setIsGeocoding(false);
+                  }
+                }}
+              >
+                {isGeocoding ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MapPin className="h-4 w-4 mr-1" />}
+                Geocode
+              </Button>
             </div>
             <div className="space-y-2">
               <Label>Image</Label>
