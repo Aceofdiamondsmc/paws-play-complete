@@ -1,63 +1,69 @@
 
+I investigated the current implementation and found the root cause is no longer RLS.
 
-## Fix: Posts Cannot Be Deleted (RLS Policy Issue)
+## What I found
 
-### Problem
+1. `posts` DELETE policies are currently **PERMISSIVE** in the live database (`posts_delete_own`, `posts_delete_admin`), so policy logic is not blocking deletes.
+2. There is a `BEFORE DELETE OR UPDATE` trigger on `posts`:
+   - Trigger: `posts_video_delete_storage_trigger`
+   - Function: `cleanup_post_video_storage()`
+3. In `cleanup_post_video_storage()`, this logic exists:
+   - If `TG_OP = 'DELETE'` **and** `OLD.video_url IS NOT NULL` → `RETURN OLD` (delete proceeds)
+   - Otherwise for DELETE rows with `video_url IS NULL`, it falls through to `RETURN NEW`
+4. In a `BEFORE DELETE` trigger, `NEW` is null. Returning null **cancels the delete silently**.
+5. Most posts have `video_url IS NULL` (41/42 in current data), which exactly matches “delete seems to work then post reappears”.
 
-All Row-Level Security (RLS) DELETE policies on the `posts` table are set to **RESTRICTIVE**. In PostgreSQL, restrictive policies act as additional AND filters — the user must satisfy **every single one** simultaneously. 
+## Implementation plan
 
-Currently there are 6 DELETE policies, all restrictive:
-- "Admins can delete any post" (checks admin_users table)
-- "Admins can delete posts" (checks email)
-- "Authenticated delete posts" (allows all — but still AND'd)
-- "Users can delete their own posts" (checks author_id)
-- "posts_delete" (checks author_id)
-- "Allow authors to manage own posts" (ALL command, checks author_id)
+### 1) Fix the DB trigger function (primary fix)
+Create a new migration to replace `public.cleanup_post_video_storage()` so DELETE always returns `OLD`.
 
-Since these are all RESTRICTIVE, a non-admin user fails the admin checks, and an admin who isn't the author fails the author checks. **Nobody can delete anything.**
+Planned behavior:
+- `TG_OP = 'DELETE'`:
+  - If `OLD.video_url` exists, attempt storage cleanup.
+  - Always `RETURN OLD` so row deletion is not canceled.
+- `TG_OP = 'UPDATE'`:
+  - Cleanup old video if URL changed.
+  - `RETURN NEW`.
 
-### Solution
+This is the core fix that will make deletions actually persist.
 
-Run a single database migration that:
+### 2) Add client-side “actual delete” checks (defensive UX fix)
+Even when DB blocks a delete without throwing, Supabase can return no error with zero affected rows. I’ll add guards so UI won’t show false success.
 
-1. **Drops all existing DELETE policies** on the `posts` table
-2. **Creates two clean PERMISSIVE policies** (PERMISSIVE means any ONE matching policy is sufficient):
-   - **Authors can delete own posts** — `author_id = auth.uid()` (PERMISSIVE)
-   - **Admins can delete any post** — checks `admin_users` table (PERMISSIVE)
+#### In `src/hooks/usePosts.tsx`
+- Update `deletePost(postId)` to call delete with `select('id')` (or equivalent affected-row check).
+- If no rows were deleted, return an explicit error (`"Post was not deleted"`), do not optimistically remove permanently.
 
-### Technical Details
+#### In `src/pages/admin/AdminSocial.tsx`
+- Update admin delete flow similarly:
+  - validate affected rows from delete response,
+  - if zero rows, show destructive toast and refresh list,
+  - only show success toast when delete is confirmed.
 
-Migration SQL:
+This prevents the “deleted then reappears” confusion even if any future DB issue happens again.
 
-```sql
--- Drop all existing DELETE policies on posts
-DROP POLICY IF EXISTS "Admins can delete any post" ON posts;
-DROP POLICY IF EXISTS "Admins can delete posts" ON posts;
-DROP POLICY IF EXISTS "Authenticated delete posts" ON posts;
-DROP POLICY IF EXISTS "Users can delete their own posts" ON posts;
-DROP POLICY IF EXISTS "posts_delete" ON posts;
+## Files to update
 
--- Create two clean PERMISSIVE delete policies
-CREATE POLICY "posts_delete_own"
-  ON posts FOR DELETE
-  USING (author_id = auth.uid());
+1. `supabase/migrations/<new_timestamp>_fix_posts_delete_trigger.sql`
+   - `CREATE OR REPLACE FUNCTION public.cleanup_post_video_storage()` with correct DELETE return behavior.
+2. `src/hooks/usePosts.tsx`
+   - strengthen delete result validation.
+3. `src/pages/admin/AdminSocial.tsx`
+   - strengthen delete result validation + clearer failure handling.
 
-CREATE POLICY "posts_delete_admin"
-  ON posts FOR DELETE
-  USING (EXISTS (
-    SELECT 1 FROM admin_users WHERE admin_users.user_id = auth.uid()
-  ));
-```
+## Validation checklist after implementation
 
-Note: The existing `"Allow authors to manage own posts"` ALL-command policy and `"Authenticated delete posts"` (which allows everyone) are also problematic. The ALL-command policy covers DELETE too but is restrictive, compounding the issue. We leave the ALL policy in place (it covers other operations) but the new permissive DELETE policies will allow deletes to succeed.
+1. As a regular user, delete a post with no video from `/social`.
+   - Expected: post disappears and does not return after refresh.
+2. As admin, delete a non-owned post from `/admin/social`.
+   - Expected: success toast only when truly deleted; no reappearance after refresh.
+3. Delete a video post.
+   - Expected: row is deleted; no trigger regression.
+4. Watch network response for DELETE:
+   - Expected affected row count/data confirms deletion.
+5. Quick regression: create/edit/like/comment flows continue working.
 
-### No Code Changes Needed
+## Technical note
 
-The frontend delete logic in `usePosts.tsx`, `Social.tsx`, and `AdminSocial.tsx` is already correct — the issue is purely at the database RLS layer.
-
-### Files Changed
-
-| Target | Change |
-|--------|--------|
-| Database migration | Drop conflicting restrictive DELETE policies, create 2 permissive ones |
-
+This fix is intentionally focused on correctness of DELETE execution path. The policy migration already applied remains valid and does not need rollback.
