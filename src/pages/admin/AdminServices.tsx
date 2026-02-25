@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
-import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon, ClipboardList, Check, X, Pencil, Trash2, Plus, Upload } from 'lucide-react';
+import { Store, MapPin, Loader2, CheckCircle, AlertCircle, Download, Wand2, ImageIcon, ClipboardList, Check, X, Pencil, Trash2, Plus, Upload, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useServices, getServiceImage, Service } from '@/hooks/useServices';
 import { useAllSubmissions, useApproveSubmission, useRejectSubmission, ServiceSubmission } from '@/hooks/useServiceSubmissions';
@@ -396,6 +396,37 @@ export default function AdminServices() {
                 {isGeocoding ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <MapPin className="h-4 w-4 mr-1" />}
                 Geocode
               </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="svc-price">Price</Label>
+                <Input id="svc-price" value={editForm.price} onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))} placeholder="$ or $$" />
+              </div>
+              <div className="space-y-2">
+                <Label>Rating</Label>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`w-5 h-5 cursor-pointer transition-colors ${
+                          star <= parseFloat(editForm.rating) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'
+                        }`}
+                        onClick={() => setEditForm(f => ({ ...f, rating: String(star) }))}
+                      />
+                    ))}
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    value={editForm.rating}
+                    onChange={e => setEditForm(f => ({ ...f, rating: e.target.value }))}
+                    className="w-16"
+                  />
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
