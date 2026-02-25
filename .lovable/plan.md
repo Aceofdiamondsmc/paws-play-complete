@@ -1,41 +1,36 @@
 
-Goal: fix the remaining admin “Create Service” failure shown in your screenshot (`duplicate key value violates unique constraint "services_pkey"`).
 
-What I found:
-- The create flow in `src/pages/admin/AdminServices.tsx` does not send an `id` manually, so the database should auto-generate it.
-- The `services.id` column uses `nextval('services_id_seq')`.
-- Current database state is inconsistent:
-  - `MAX(services.id) = 199`
-  - `services_id_seq.last_value = 15`
-- That means the next insert tries `id=16`, which already exists, causing the exact `services_pkey` duplicate error you’re seeing.
+## Add Verified & Featured Toggles to Admin Service Management
 
-Implementation plan:
-1. Repair the sequence (one-time data fix)
-   - Run a SQL data operation to reseed the sequence to the current max id.
-   - SQL:
-     ```sql
-     SELECT setval(
-       'public.services_id_seq',
-       COALESCE((SELECT MAX(id) FROM public.services), 1),
-       true
-     );
-     ```
-   - Why this works: with `is_called = true`, the next insert will use `MAX(id)+1`.
+### What's Missing
+The Create/Edit Service modal has no way to set `is_verified` or `is_featured` -- both columns exist in the `services` table and are already rendered in the UI (badges on Explore, ServiceDetails, and the admin list), but the admin form simply doesn't include controls for them.
 
-2. Verify sequence health immediately
-   - Confirm `last_value` is now at least `MAX(id)`.
-   - Confirm next insert id will not collide.
+### Changes (Single File)
 
-3. End-to-end validation in UI
-   - As admin, open Admin Services → Create New Service.
-   - Submit once with a unique name.
-   - Confirm success toast and that the new service appears in list without DB errors.
+**`src/pages/admin/AdminServices.tsx`**
 
-4. Guardrail note for future imports
-   - If services are ever bulk-loaded with explicit `id` values again, sequence drift can reoccur.
-   - Standard post-import runbook should include a sequence reseed step.
+1. **Extend the edit form state** to include `is_verified` and `is_featured` (booleans, default `false`).
 
-Technical details:
-- This is a data consistency issue, not an RLS or frontend form issue.
-- No React code changes are required for this specific error.
-- The prior `GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;` fix was correct for permissions, but separate from this primary key collision issue.
+2. **Populate on edit** -- when `openEditModal` is called, read the existing `is_verified` and `is_featured` values from the service.
+
+3. **Add two Switch toggles** in the Create/Edit modal (below the image section):
+   - "Verified Business" toggle (maps to `is_verified`)
+   - "Featured Listing" toggle (maps to `is_featured`)
+
+4. **Send the values on save** -- include `is_verified` and `is_featured` in both the `insert` (create) and `update` (edit) payloads.
+
+### No Database Changes Needed
+Both `is_verified` and `is_featured` columns already exist on the `services` table. The `is_admin()` RLS policies (now fixed) allow admin inserts/updates. No migration required.
+
+### Technical Detail
+
+```
+editForm state addition:
+  is_verified: boolean (default false)
+  is_featured: boolean (default false)
+
+UI: two Switch components with Labels inside the modal form
+
+Save payloads: add is_verified, is_featured to both insert({...}) and update({...}) calls
+```
+
