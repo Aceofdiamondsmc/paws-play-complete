@@ -165,6 +165,8 @@ export default function AdminServices() {
             longitude: editForm.longitude ? parseFloat(editForm.longitude) : null,
             website: editForm.website.trim() || null,
             phone: editForm.phone.trim() || null,
+            price: editForm.price || '$',
+            rating: parseFloat(editForm.rating) || 0,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingServiceId);
