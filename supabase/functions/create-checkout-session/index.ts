@@ -9,10 +9,16 @@ const corsHeaders = {
 
 // Pricing tiers for service listings
 const PRICING = {
+  starter: {
+    priceId: "price_1T4vr4FJz7YiRCGBNOix6uLP",
+    mode: "subscription" as const,
+    name: "Starter Listing",
+    price: 999, // $9.99/mo
+  },
   basic: {
     priceId: "price_1SukqDFJz7YiRCGB6BloQ6Rx",
     mode: "payment" as const,
-    name: "Basic Listing",
+    name: "Value Listing",
     price: 2999, // $29.99
   },
   featured: {

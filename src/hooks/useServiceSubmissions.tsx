@@ -22,7 +22,7 @@ export interface ServiceSubmission {
   stripe_session_id: string | null;
   stripe_subscription_id: string | null;
   stripe_customer_id: string | null;
-  subscription_tier: 'basic' | 'featured' | 'premium';
+  subscription_tier: 'starter' | 'basic' | 'featured' | 'premium';
   subscription_valid_until: string | null;
   approval_status: 'pending' | 'approved' | 'rejected';
   approved_at: string | null;
@@ -43,7 +43,7 @@ export interface SubmissionFormData {
   website?: string;
   email: string;
   submitter_name: string;
-  subscription_tier?: 'basic' | 'featured' | 'premium';
+  subscription_tier?: 'starter' | 'basic' | 'featured' | 'premium';
 }
 
 // Hook for fetching user's own submissions

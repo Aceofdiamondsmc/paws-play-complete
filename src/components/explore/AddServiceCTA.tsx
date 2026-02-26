@@ -44,7 +44,7 @@ export function AddServiceCTA() {
         </Button>
 
         <p className="text-xs text-center text-muted-foreground">
-          Starting at $29.99 for a yearly listing
+          Starting at $9.99/month
         </p>
       </div>
     </Card>
