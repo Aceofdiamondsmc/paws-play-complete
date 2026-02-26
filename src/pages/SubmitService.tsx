@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Store, ArrowLeft, ArrowRight, Check, Loader2, BadgeCheck, Star, Crown } from 'lucide-react';
+import { Store, ArrowLeft, ArrowRight, Check, Loader2, BadgeCheck, Star, Crown, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,12 +25,22 @@ const CATEGORIES = [
 
 const PRICING_TIERS = [
   {
+    id: 'starter',
+    name: 'Starter',
+    price: '$9.99',
+    period: '/month',
+    description: 'Get listed and start reaching pet owners',
+    features: ['Listed in directory', 'Searchable by category', 'Contact info displayed', 'Cancel anytime'],
+    icon: Sparkles,
+    popular: false,
+  },
+  {
     id: 'basic',
-    name: 'Basic',
+    name: 'Value',
     price: '$29.99',
     period: 'one-time',
-    description: 'Standard listing for 1 year',
-    features: ['Listed in directory', 'Searchable by category', 'Contact info displayed'],
+    description: 'Everything in Starter for a full year',
+    features: ['Listed in directory', 'Searchable by category', 'Contact info displayed', 'Full year coverage'],
     icon: Store,
     popular: false,
   },
@@ -40,7 +50,7 @@ const PRICING_TIERS = [
     price: '$19.99',
     period: '/month',
     description: 'Priority placement & badge',
-    features: ['Everything in Basic', 'Featured badge', 'Higher in search results', 'Cancel anytime'],
+    features: ['Everything in Value', 'Featured badge', 'Higher in search results', 'Cancel anytime'],
     icon: Star,
     popular: true,
   },
@@ -76,7 +86,7 @@ export default function SubmitService() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
-  const [selectedTier, setSelectedTier] = useState<string>('basic');
+  const [selectedTier, setSelectedTier] = useState<string>('starter');
   const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   const createSubmission = useCreateSubmission();
@@ -122,7 +132,7 @@ export default function SubmitService() {
         website: data.website,
         email: data.email,
         submitter_name: data.submitter_name,
-        subscription_tier: selectedTier as 'basic' | 'featured' | 'premium',
+        subscription_tier: selectedTier as 'starter' | 'basic' | 'featured' | 'premium',
       });
       setSubmissionId(submission.id);
       setStep(2);
