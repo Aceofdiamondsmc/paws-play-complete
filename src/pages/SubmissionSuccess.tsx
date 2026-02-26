@@ -1,12 +1,31 @@
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, Clock, ArrowRight, Store } from 'lucide-react';
+import { CheckCircle, Clock, ArrowRight, Store, Settings, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function SubmissionSuccess() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const [loadingPortal, setLoadingPortal] = useState(false);
+
+  const handleManageSubscription = async () => {
+    setLoadingPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      toast.error('Unable to open subscription portal');
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-success/5 to-background flex items-center justify-center p-4">
@@ -57,7 +76,20 @@ export default function SubmissionSuccess() {
               Explore Services
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
-            <Button variant="outline" onClick={() => navigate('/me')} className="w-full">
+            <Button 
+              variant="outline" 
+              onClick={handleManageSubscription}
+              disabled={loadingPortal}
+              className="w-full"
+            >
+              {loadingPortal ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Settings className="w-4 h-4 mr-2" />
+              )}
+              Manage Subscription
+            </Button>
+            <Button variant="ghost" onClick={() => navigate('/me')} className="w-full">
               Go to My Profile
             </Button>
           </div>

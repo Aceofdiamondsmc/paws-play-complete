@@ -35,6 +35,16 @@ const PRICING_TIERS = [
     popular: false,
   },
   {
+    id: 'featured',
+    name: 'Featured',
+    price: '$19.99',
+    period: '/month',
+    description: 'Priority placement & badge',
+    features: ['Everything in Starter', 'Featured badge', 'Higher in search results', 'Cancel anytime'],
+    icon: Star,
+    popular: true,
+  },
+  {
     id: 'basic',
     name: 'Value',
     price: '$29.99',
@@ -43,16 +53,6 @@ const PRICING_TIERS = [
     features: ['Listed in directory', 'Searchable by category', 'Contact info displayed', 'Full year coverage'],
     icon: Store,
     popular: false,
-  },
-  {
-    id: 'featured',
-    name: 'Featured',
-    price: '$19.99',
-    period: '/month',
-    description: 'Priority placement & badge',
-    features: ['Everything in Value', 'Featured badge', 'Higher in search results', 'Cancel anytime'],
-    icon: Star,
-    popular: true,
   },
   {
     id: 'premium',
