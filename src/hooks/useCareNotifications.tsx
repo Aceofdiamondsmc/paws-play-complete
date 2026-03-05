@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { playReminderSound, playUrgentSound } from '@/lib/alert-sounds';
 import type { CareReminder } from './useCareReminders';
 
 interface MissedMedication {
