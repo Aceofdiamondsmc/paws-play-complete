@@ -88,6 +88,7 @@ export function useCareNotifications(reminders: CareReminder[]) {
               ? `${missed.task_details} was due 30 minutes ago!`
               : 'A medication was due 30 minutes ago!';
 
+            playUrgentSound();
             new Notification(title, {
               body,
               icon: '/favicon.png',
@@ -144,6 +145,7 @@ export function useCareNotifications(reminders: CareReminder[]) {
           const title = getCategoryTitle(reminder.category);
           const body = getCategoryBody(reminder.category, reminder.task_details);
 
+          playReminderSound();
           new Notification(title, {
             body,
             icon: '/favicon.png',
