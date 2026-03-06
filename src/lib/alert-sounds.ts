@@ -3,9 +3,42 @@
  * No external files needed.
  */
 
+let sharedCtx: AudioContext | null = null;
+let unlocked = false;
+
+/** Call once on mount to pre-warm AudioContext on first user interaction (mobile requirement). */
+export function initAudioContext() {
+  if (unlocked || sharedCtx) return;
+
+  const unlock = () => {
+    try {
+      if (!sharedCtx) {
+        sharedCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      if (sharedCtx.state === 'suspended') {
+        sharedCtx.resume();
+      }
+      unlocked = true;
+    } catch {
+      // unsupported
+    }
+    window.removeEventListener('touchstart', unlock);
+    window.removeEventListener('click', unlock);
+  };
+
+  window.addEventListener('touchstart', unlock, { once: true });
+  window.addEventListener('click', unlock, { once: true });
+}
+
 function getAudioContext(): AudioContext | null {
   try {
-    return new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (sharedCtx && sharedCtx.state !== 'closed') {
+      if (sharedCtx.state === 'suspended') sharedCtx.resume();
+      return sharedCtx;
+    }
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    sharedCtx = ctx;
+    return ctx;
   } catch {
     return null;
   }
@@ -70,8 +103,7 @@ export function playReminderSound() {
     bellH.start(now + 0.35);
     bellH.stop(now + 0.7);
 
-    // Auto-close context
-    setTimeout(() => ctx.close().catch(() => {}), 1500);
+    // Don't close shared context
   } catch {
     // Silently fail — autoplay restrictions or unsupported browser
   }
