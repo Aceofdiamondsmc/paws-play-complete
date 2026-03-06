@@ -178,7 +178,7 @@ export function playUrgentSound() {
     bell2H.start(now + 0.9);
     bell2H.stop(now + 1.15);
 
-    setTimeout(() => ctx.close().catch(() => {}), 2000);
+    // Don't close shared context
   } catch {
     // Silently fail
   }
