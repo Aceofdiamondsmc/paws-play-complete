@@ -22,6 +22,11 @@ export function useCareNotifications(reminders: CareReminder[]) {
   const triggeredIdsRef = useRef<Set<string>>(new Set());
   const missedNotifiedIdsRef = useRef<Set<string>>(new Set());
 
+  // Pre-warm AudioContext on first user interaction for mobile
+  useEffect(() => {
+    initAudioContext();
+  }, []);
+
   const hasMissedDose = missedMedications.length > 0;
 
   const requestPermission = useCallback(async () => {
