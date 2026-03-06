@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { playReminderSound, playUrgentSound } from '@/lib/alert-sounds';
+import { playReminderSound, playUrgentSound, initAudioContext } from '@/lib/alert-sounds';
 import type { CareReminder } from './useCareReminders';
 
 interface MissedMedication {
@@ -21,6 +21,11 @@ export function useCareNotifications(reminders: CareReminder[]) {
   const [missedMedications, setMissedMedications] = useState<MissedMedication[]>([]);
   const triggeredIdsRef = useRef<Set<string>>(new Set());
   const missedNotifiedIdsRef = useRef<Set<string>>(new Set());
+
+  // Pre-warm AudioContext on first user interaction for mobile
+  useEffect(() => {
+    initAudioContext();
+  }, []);
 
   const hasMissedDose = missedMedications.length > 0;
 
