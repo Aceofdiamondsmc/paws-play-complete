@@ -5,11 +5,11 @@ import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/useNotifications';
 
 const navItems = [
+  { path: '/dates', icon: CalendarDays, label: 'Dates' },
   { path: '/social', icon: MessageCircle, label: 'Social' },
   { path: '/explore', icon: Compass, label: 'Explore' },
-  { path: '/shop', icon: ShoppingCart, label: 'Shop' },
   { path: '/pack', icon: PawPrint, label: 'Pack' },
-  { path: '/dates', icon: CalendarDays, label: 'Dates' },
+  { path: '/shop', icon: ShoppingCart, label: 'Shop' },
   { path: '/parks', icon: Trees, label: 'Parks' },
   { path: '/me', icon: User, label: 'Me' },
 ];
