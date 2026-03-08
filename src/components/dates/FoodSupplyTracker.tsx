@@ -19,20 +19,55 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
 
   if (status === 'unknown') {
     return (
-      <Card className="p-4 mb-4 bg-muted/30 border-dashed border-2 border-muted-foreground/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-              <Package className="w-5 h-5 text-muted-foreground" />
+      <Card className={cn('p-4 mb-4 border-2 transition-all duration-500 border-destructive/40 bg-gradient-to-r from-destructive/10 to-destructive/5 animate-pulse-urgent')}>
+        {/* Top row: icon + text + dismiss */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-destructive/15">
+              <ShoppingBag className="w-5 h-5 text-destructive animate-pulse" />
             </div>
-            <div>
-              <p className="font-medium text-sm text-muted-foreground">Food Supply Tracker</p>
-              <p className="text-xs text-muted-foreground/70">Log a restock to start tracking</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-sm">Food Supply Empty</span>
+                <Badge variant="outline" className="text-[10px] px-2 py-0 font-medium bg-destructive/15 text-destructive border-destructive/30">
+                  {bagSize === 'small' ? '~15 day supply' : '~30 day supply'}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">Log a restock to start tracking your supply</p>
             </div>
           </div>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={onDismiss}>
-            <X className="w-4 h-4" />
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground shrink-0 -mt-1 -mr-1" onClick={onDismiss}>
+            <X className="w-3.5 h-3.5" />
           </Button>
+        </div>
+
+        {/* Empty progress bar */}
+        <div className="mt-3 mb-2">
+          <div className="h-2 rounded-full bg-muted overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-700 ease-out bg-destructive" style={{ width: '0%' }} />
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px] text-muted-foreground">Full</span>
+            <span className="text-[10px] text-muted-foreground">Empty</span>
+          </div>
+        </div>
+
+        {/* Bag size toggle */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Bag Size:</span>
+          <ToggleGroup
+            type="single"
+            value={bagSize}
+            onValueChange={(val) => val && onBagSizeChange(val as BagSize)}
+            className="gap-1"
+          >
+            <ToggleGroupItem value="standard" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+              Standard
+            </ToggleGroupItem>
+            <ToggleGroupItem value="small" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+              Small Bag
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
       </Card>
     );

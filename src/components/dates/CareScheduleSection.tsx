@@ -208,13 +208,17 @@ export function CareScheduleSection() {
       </div>
 
       {/* Food Supply Tracker */}
-      {trackerEnabled && (
+      {trackerEnabled ? (
         <FoodSupplyTracker
           supplyStatus={supplyStatus}
           bagSize={bagSize}
           onBagSizeChange={handleBagSizeChange}
           onDismiss={() => handleToggleTracker(false)}
         />
+      ) : (
+        <div className="mb-4">
+          <EnableFoodTrackerButton onClick={() => handleToggleTracker(true)} />
+        </div>
       )}
 
       {/* Notification Permission Status */}
