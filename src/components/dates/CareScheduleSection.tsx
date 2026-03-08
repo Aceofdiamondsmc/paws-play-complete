@@ -69,13 +69,31 @@ export function CareScheduleSection() {
     hasMissedDose,
     clearMissedMedication 
   } = useCareNotificationContext();
-  const { history, loading: historyLoading, logActivity, deleteEntry } = useCareHistory();
+  const [trackerEnabled, setTrackerEnabled] = useState(() => {
+    const stored = localStorage.getItem('foodSupplyTrackerEnabled');
+    return stored !== null ? stored === 'true' : true;
+  });
+  const [bagSize, setBagSize] = useState<BagSize>(() => {
+    return (localStorage.getItem('foodSupplyBagSize') as BagSize) || 'standard';
+  });
+
+  const { history, loading: historyLoading, supplyStatus, logActivity, deleteEntry } = useCareHistory(bagSize);
 
   const [category, setCategory] = useState('walk');
   const [selectedTime, setSelectedTime] = useState('08:00');
   const [recurrence, setRecurrence] = useState('daily');
   const [taskDetails, setTaskDetails] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const handleToggleTracker = (enabled: boolean) => {
+    setTrackerEnabled(enabled);
+    localStorage.setItem('foodSupplyTrackerEnabled', String(enabled));
+  };
+
+  const handleBagSizeChange = (size: BagSize) => {
+    setBagSize(size);
+    localStorage.setItem('foodSupplyBagSize', size);
+  };
 
   const handleSaveReminder = async () => {
     setSaving(true);
