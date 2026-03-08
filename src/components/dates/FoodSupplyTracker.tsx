@@ -15,7 +15,7 @@ interface FoodSupplyTrackerProps {
   onLogRestock?: () => void;
 }
 
-export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDismiss }: FoodSupplyTrackerProps) {
+export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDismiss, onLogRestock }: FoodSupplyTrackerProps) {
   const { status, daysSince, lastEntry } = supplyStatus;
 
   if (status === 'unknown') {
