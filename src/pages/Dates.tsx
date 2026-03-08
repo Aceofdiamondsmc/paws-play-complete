@@ -170,7 +170,7 @@ export default function Dates() {
           <div className="flex">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-400/20 border border-green-400/30">
               <Check className="w-3 h-3 text-green-400" />
-              <span className="text-[9px] text-green-400 font-semibold">Accepted</span>
+              <span className="text-[9px] text-green-400 font-semibold">Playdate Accepted</span>
             </span>
           </div>
 
