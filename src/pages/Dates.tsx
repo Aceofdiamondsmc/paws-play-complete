@@ -248,6 +248,7 @@ function PlaydateCard({
   onDecline, 
   onBlock,
   onMessage,
+  onCancel,
   showActions = false,
   isIncoming = false,
   isOutgoing = false
@@ -257,6 +258,7 @@ function PlaydateCard({
   onDecline?: () => void;
   onBlock?: () => void;
   onMessage?: () => void;
+  onCancel?: () => void;
   showActions?: boolean;
   isIncoming?: boolean;
   isOutgoing?: boolean;
