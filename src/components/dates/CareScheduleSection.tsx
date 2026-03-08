@@ -339,6 +339,12 @@ export function CareScheduleSection() {
                   Training
                 </div>
               </SelectItem>
+              <SelectItem value="restock">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4" />
+                  Food Restock
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
