@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,19 @@ interface FoodSupplyTrackerProps {
 
 export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDismiss, onLogRestock }: FoodSupplyTrackerProps) {
   const { status, daysSince, lastEntry } = supplyStatus;
+
+  const [celebrating, setCelebrating] = useState(false);
+  const prevStatusRef = useRef(status);
+
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if ((prev === 'out' || prev === 'unknown') && status === 'stocked') {
+      setCelebrating(true);
+      const timer = setTimeout(() => setCelebrating(false), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
 
   if (status === 'unknown') {
     return (
@@ -133,7 +146,7 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
     : null;
 
   return (
-    <Card className={cn('p-4 mb-4 border-2 transition-all duration-500', config.cardClass)}>
+    <Card className={cn('p-4 mb-4 border-2 transition-all duration-500', config.cardClass, celebrating && 'animate-restock-celebrate')}>
       {/* Top row: icon + text + dismiss */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
