@@ -388,7 +388,8 @@ export function CareScheduleSection() {
               placeholder={
                 category === 'medication' ? 'e.g., Apoquel 16mg' : 
                 category === 'feeding' ? 'e.g., 1 cup kibble' :
-                category === 'grooming' ? 'e.g., Nail trim, bath' : 'e.g., Recall practice'
+                category === 'grooming' ? 'e.g., Nail trim, bath' : 
+                category === 'training' ? 'e.g., Recall practice' : 'e.g., 30lb bag Purina Pro Plan'
               }
               value={taskDetails}
               onChange={(e) => setTaskDetails(e.target.value)}
