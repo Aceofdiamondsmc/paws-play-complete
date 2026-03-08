@@ -31,6 +31,7 @@ export default function Dates() {
     updatePlaydateStatus,
     acceptPlaydate,
     cancelPlaydate,
+    deletePlaydate,
     clearHistory,
     refresh
   } = usePlaydates();
@@ -86,7 +87,15 @@ export default function Dates() {
       navigate(`/me?chat=${conversation.id}`);
     }
   };
-  
+
+  const handleDeletePlaydate = async (playdateId: string) => {
+    const { error } = await deletePlaydate(playdateId);
+    if (error) {
+      toast.error('Failed to remove playdate');
+    } else {
+      toast.success('Playdate removed');
+    }
+  };
 
   if (!user) {
     return (
@@ -354,7 +363,11 @@ export default function Dates() {
                 </div>
               )}
               {playdates.map(playdate => (
-                <PlaydateCard key={playdate.id} playdate={playdate} />
+                <PlaydateCard
+                  key={playdate.id}
+                  playdate={playdate}
+                  onDelete={['completed', 'declined', 'cancelled'].includes(playdate.status) ? () => handleDeletePlaydate(playdate.id) : undefined}
+                />
               ))}
             </>
           )}
@@ -383,6 +396,7 @@ function PlaydateCard({
   onBlock,
   onMessage,
   onCancel,
+  onDelete,
   showActions = false,
   isIncoming = false,
   isOutgoing = false
@@ -393,6 +407,7 @@ function PlaydateCard({
   onBlock?: () => void;
   onMessage?: () => void;
   onCancel?: () => void;
+  onDelete?: () => void;
   showActions?: boolean;
   isIncoming?: boolean;
   isOutgoing?: boolean;
@@ -503,6 +518,33 @@ function PlaydateCard({
               </AlertDialogContent>
             </AlertDialog>
           )}
+        </div>
+      )}
+
+      {onDelete && !showActions && !onCancel && (
+        <div className="flex justify-end mt-3 pt-3 border-t border-border">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10">
+                <Trash2 className="w-4 h-4 mr-1" />
+                Remove
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove this playdate record?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this playdate from your history.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="rounded-full">Keep it</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete} className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Remove
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       )}
     </Card>

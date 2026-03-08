@@ -204,6 +204,21 @@ export function usePlaydates() {
     return { error: null };
   };
 
+  const deletePlaydate = async (playdateId: string) => {
+    if (!user) return { error: new Error('Not authenticated') };
+
+    const { error } = await supabase
+      .from('playdate_requests')
+      .delete()
+      .eq('id', playdateId);
+
+    if (!error) {
+      await fetchPlaydates();
+    }
+
+    return { error };
+  };
+
   const cancelPlaydate = async (playdateId: string) => {
     if (!user) return { error: new Error('Not authenticated') };
 
@@ -251,6 +266,7 @@ export function usePlaydates() {
     updatePlaydateStatus,
     acceptPlaydate,
     cancelPlaydate,
+    deletePlaydate,
     clearHistory,
     refresh: fetchPlaydates
   };
