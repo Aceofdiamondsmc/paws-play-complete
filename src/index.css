@@ -260,7 +260,7 @@
 
 @keyframes float-right {
   0%, 100% { transform: translateY(0) rotate(3deg); opacity: 1; }
-  50% { transform: translateY(-8px) rotate(3deg); opacity: 1; }
+  50% { transform: translateY(8px) rotate(3deg); opacity: 1; }
 }
 
 @keyframes pulse-urgent {
