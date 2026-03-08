@@ -191,6 +191,18 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
+
+      {/* CTA Button for out-of-stock state */}
+      {status === 'out' && onLogRestock && (
+        <Button
+          size="sm"
+          className="w-full mt-3 rounded-full bg-destructive/90 hover:bg-destructive text-destructive-foreground font-semibold"
+          onClick={onLogRestock}
+        >
+          <ShoppingBag className="w-4 h-4 mr-1" />
+          Restock Now
+        </Button>
+      )}
     </Card>
   );
 }
