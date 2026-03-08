@@ -205,6 +205,7 @@ export default function Dates() {
                   key={playdate.id}
                   playdate={playdate}
                   onMessage={otherUserId ? () => handleMessage(otherUserId) : undefined}
+                  onCancel={() => handleCancel(playdate.id)}
                 />
               );
             })
