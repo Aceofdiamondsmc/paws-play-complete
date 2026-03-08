@@ -520,6 +520,33 @@ function PlaydateCard({
           )}
         </div>
       )}
+
+      {onDelete && !showActions && !onCancel && (
+        <div className="flex justify-end mt-3 pt-3 border-t border-border">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10">
+                <Trash2 className="w-4 h-4 mr-1" />
+                Remove
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove this playdate record?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this playdate from your history.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="rounded-full">Keep it</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete} className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Remove
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
     </Card>
   );
 }
