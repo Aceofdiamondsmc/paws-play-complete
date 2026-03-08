@@ -1,37 +1,43 @@
 
 
-## Cancel Booked Playdates — Refined Plan
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-You're correct. Declining pending requests works fine already. The only missing piece is **cancelling an accepted/booked playdate** — which requires:
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-1. Updating the `playdate_requests` status back (e.g., to `'cancelled'`)
-2. Updating the related `playdate_schedules` entry status to `'cancelled'`
-3. A UI button + confirmation dialog on booked cards
-
-### RLS Gaps
-
-- **`playdate_requests`**: Only receivers can UPDATE. Requesters need UPDATE access too (to cancel their own booked playdates). There's already a DELETE policy for requesters, but we want a soft cancel, not a hard delete.
-- **`playdate_schedules`**: Participants can already UPDATE, so marking the schedule as `'cancelled'` will work. No migration needed here.
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
 ### Changes
 
-**1. Database migration** — Add UPDATE policy for requesters on `playdate_requests`:
-```sql
-CREATE POLICY "Requesters can update own requests"
-ON public.playdate_requests FOR UPDATE
-USING (requester_id = auth.uid())
-WITH CHECK (requester_id = auth.uid());
-```
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-**2. `src/hooks/usePlaydates.tsx`**
-- Add `cancelPlaydate(playdateId)` that:
-  - Sets `playdate_requests.status` → `'cancelled'`
-  - Sets `playdate_schedules.status` → `'cancelled'` for the matching `playdate_request_id`
-  - Refreshes the list
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-**3. `src/pages/Dates.tsx`**
-- Add `handleCancel` calling `cancelPlaydate`
-- In the **Booked** tab, add a destructive "Cancel" button to each `PlaydateCard`
-- Wrap in an `AlertDialog` confirmation ("Cancel this playdate? This cannot be undone.")
-- `PlaydateCard`: add `onCancel` prop, render cancel button alongside existing Message button
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+
+**4. Database migration** -- Update the `subscription_tier` column constraint
+
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 

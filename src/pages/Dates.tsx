@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox, ShieldBan, MessageSquare } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox, ShieldBan, MessageSquare, Trash2 } from 'lucide-react';
 import { CareScheduleSection } from '@/components/dates/CareScheduleSection';
 import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlaydates } from '@/hooks/usePlaydates';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
@@ -29,6 +30,7 @@ export default function Dates() {
     loading, 
     updatePlaydateStatus,
     acceptPlaydate,
+    cancelPlaydate,
     refresh
   } = usePlaydates();
 
@@ -61,6 +63,15 @@ export default function Dates() {
       toast.error(error.message || 'Failed to decline playdate');
     } else {
       toast.info('Playdate declined');
+    }
+  };
+
+  const handleCancel = async (playdateId: string) => {
+    const { error } = await cancelPlaydate(playdateId);
+    if (error) {
+      toast.error(error.message || 'Failed to cancel playdate');
+    } else {
+      toast.success('Playdate cancelled');
     }
   };
 
@@ -194,6 +205,7 @@ export default function Dates() {
                   key={playdate.id}
                   playdate={playdate}
                   onMessage={otherUserId ? () => handleMessage(otherUserId) : undefined}
+                  onCancel={() => handleCancel(playdate.id)}
                 />
               );
             })
@@ -236,6 +248,7 @@ function PlaydateCard({
   onDecline, 
   onBlock,
   onMessage,
+  onCancel,
   showActions = false,
   isIncoming = false,
   isOutgoing = false
@@ -245,6 +258,7 @@ function PlaydateCard({
   onDecline?: () => void;
   onBlock?: () => void;
   onMessage?: () => void;
+  onCancel?: () => void;
   showActions?: boolean;
   isIncoming?: boolean;
   isOutgoing?: boolean;
@@ -323,12 +337,38 @@ function PlaydateCard({
         </div>
       )}
 
-      {onMessage && !showActions && (
-        <div className="mt-3 pt-3 border-t border-border">
-          <Button onClick={onMessage} variant="outline" size="sm" className="w-full rounded-full">
-            <MessageSquare className="w-4 h-4 mr-1" />
-            Message
-          </Button>
+      {(onMessage || onCancel) && !showActions && (
+        <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+          {onMessage && (
+            <Button onClick={onMessage} variant="outline" size="sm" className="flex-1 rounded-full">
+              <MessageSquare className="w-4 h-4 mr-1" />
+              Message
+            </Button>
+          )}
+          {onCancel && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Cancel
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancel this playdate?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will cancel the booked playdate. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="rounded-full">Keep it</AlertDialogCancel>
+                  <AlertDialogAction onClick={onCancel} className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Yes, cancel
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       )}
     </Card>

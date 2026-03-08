@@ -176,6 +176,27 @@ export function usePlaydates() {
     return { error: null };
   };
 
+  const cancelPlaydate = async (playdateId: string) => {
+    if (!user) return { error: new Error('Not authenticated') };
+
+    // Step 1: Update playdate request status to cancelled
+    const { error: requestError } = await supabase
+      .from('playdate_requests')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('id', playdateId);
+
+    if (requestError) return { error: requestError };
+
+    // Step 2: Update associated schedule to cancelled
+    await supabase
+      .from('playdate_schedules')
+      .update({ status: 'cancelled' })
+      .eq('playdate_request_id', playdateId);
+
+    await fetchPlaydates();
+    return { error: null };
+  };
+
   const pendingPlaydates = playdates.filter(p => p.status === 'pending');
   const acceptedPlaydates = playdates.filter(p => p.status === 'accepted');
   const completedPlaydates = playdates.filter(p => p.status === 'completed');
@@ -201,6 +222,7 @@ export function usePlaydates() {
     createPlaydate,
     updatePlaydateStatus,
     acceptPlaydate,
+    cancelPlaydate,
     refresh: fetchPlaydates
   };
 }
