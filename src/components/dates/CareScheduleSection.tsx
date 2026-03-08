@@ -161,10 +161,11 @@ export function CareScheduleSection() {
     }
   };
 
-  const handleQuickLog = async (cat: string) => {
+  const handleQuickLog = async (cat: string, details?: string) => {
     const { error } = await logActivity({
       category: cat,
-      notes: cat === 'walk' ? 'Walked' : undefined,
+      task_details: details,
+      notes: details || (cat === 'walk' ? 'Walked' : undefined),
     });
 
     if (error) {
