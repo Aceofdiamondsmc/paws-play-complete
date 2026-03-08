@@ -203,6 +203,16 @@ export function CareScheduleSection() {
         <h2 className="text-2xl font-bold text-primary">Care Schedule</h2>
       </div>
 
+      {/* Food Supply Tracker */}
+      {trackerEnabled && (
+        <FoodSupplyTracker
+          supplyStatus={supplyStatus}
+          bagSize={bagSize}
+          onBagSizeChange={handleBagSizeChange}
+          onDismiss={() => handleToggleTracker(false)}
+        />
+      )}
+
       {/* Notification Permission Status */}
       {permissionStatus === 'granted' ? (
         <div className="mb-4 p-3 rounded-lg bg-primary/10 flex items-center gap-2">
