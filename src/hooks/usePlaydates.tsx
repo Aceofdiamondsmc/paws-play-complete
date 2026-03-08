@@ -222,6 +222,7 @@ export function usePlaydates() {
     createPlaydate,
     updatePlaydateStatus,
     acceptPlaydate,
+    cancelPlaydate,
     refresh: fetchPlaydates
   };
 }
