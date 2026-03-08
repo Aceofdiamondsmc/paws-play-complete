@@ -12,6 +12,7 @@ interface FoodSupplyTrackerProps {
   bagSize: BagSize;
   onBagSizeChange: (size: BagSize) => void;
   onDismiss: () => void;
+  onLogRestock?: () => void;
 }
 
 export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDismiss }: FoodSupplyTrackerProps) {
