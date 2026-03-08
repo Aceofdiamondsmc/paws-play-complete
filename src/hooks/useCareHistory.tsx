@@ -73,10 +73,27 @@ export function useCareHistory() {
     return { data, error };
   };
 
+  const deleteEntry = async (id: string) => {
+    if (!user) return { error: new Error('Not authenticated') };
+
+    const { error } = await supabase
+      .from('care_history')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (!error) {
+      setHistory((prev) => prev.filter((e) => e.id !== id));
+    }
+
+    return { error };
+  };
+
   return {
     history,
     loading,
     logActivity,
+    deleteEntry,
     refetch: fetchHistory,
   };
 }

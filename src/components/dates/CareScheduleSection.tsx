@@ -68,7 +68,7 @@ export function CareScheduleSection() {
     hasMissedDose,
     clearMissedMedication 
   } = useCareNotificationContext();
-  const { history, loading: historyLoading, logActivity } = useCareHistory();
+  const { history, loading: historyLoading, logActivity, deleteEntry } = useCareHistory();
 
   const [category, setCategory] = useState('walk');
   const [selectedTime, setSelectedTime] = useState('08:00');
@@ -508,6 +508,21 @@ export function CareScheduleSection() {
                 <span className="text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(entry.completed_at), { addSuffix: true })}
                 </span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={async () => {
+                    const { error } = await deleteEntry(entry.id);
+                    if (error) {
+                      toast.error('Failed to delete log');
+                    } else {
+                      toast.success('Log deleted');
+                    }
+                  }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
               </div>
             ))}
           </div>
