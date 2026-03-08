@@ -187,7 +187,11 @@ export default function Dates() {
             <CalendarDays className="w-12 h-12 text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-3 drop-shadow-lg">Sign In Required</h1>
-          <p className="text-white/90 text-lg drop-shadow-md mb-6">Please sign in to view your playdate requests</p>
+          <p className="text-white/90 text-lg drop-shadow-md mb-6">
+            Please sign in to view your playdate requests
+            <br />
+            & reminders
+          </p>
           <Button className="rounded-full px-8 text-base" size="lg" onClick={() => navigate('/me')}>
             Sign In / Sign Up
           </Button>
