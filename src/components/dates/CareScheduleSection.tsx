@@ -474,6 +474,10 @@ export function CareScheduleSection() {
             <GraduationCap className="w-4 h-4 mr-1" />
             Training
           </Button>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleQuickLog('restock')}>
+            <ShoppingBag className="w-4 h-4 mr-1" />
+            Food Restock
+          </Button>
         </div>
       </div>
 
