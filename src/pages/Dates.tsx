@@ -409,7 +409,7 @@ function PlaydateCard({
           playdate.status === 'declined' ? 'bg-red-500/20 text-red-500' :
           'bg-muted text-muted-foreground'
         }`}>
-          {playdate.status}
+          Playdate {playdate.status.charAt(0).toUpperCase() + playdate.status.slice(1)}
         </div>
       </div>
 
