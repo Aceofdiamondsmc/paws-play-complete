@@ -34,6 +34,8 @@ function getCategoryIcon(category: string) {
       return <Scissors className="w-4 h-4 text-primary" />;
     case 'training':
       return <GraduationCap className="w-4 h-4 text-primary" />;
+    case 'restock':
+      return <ShoppingBag className="w-4 h-4 text-primary" />;
     default:
       return <PawPrint className="w-4 h-4 text-primary" />;
   }
