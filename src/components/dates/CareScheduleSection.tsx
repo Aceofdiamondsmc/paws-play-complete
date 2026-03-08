@@ -279,6 +279,7 @@ export function CareScheduleSection() {
               {triggeredReminder.category === 'feeding' && `Time to feed: ${triggeredReminder.task_details || 'your pup'}`}
               {triggeredReminder.category === 'grooming' && 'Time for grooming!'}
               {triggeredReminder.category === 'training' && 'Time for training!'}
+              {triggeredReminder.category === 'restock' && `Time to restock dog food!`}
             </span>
           </div>
           <div className="flex gap-2">
