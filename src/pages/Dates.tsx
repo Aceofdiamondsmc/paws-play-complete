@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox, ShieldBan, MessageSquare, Trash2 } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox, ShieldBan, MessageSquare, Trash2, CheckCircle, Utensils, Lock, Package } from 'lucide-react';
 import { CareScheduleSection } from '@/components/dates/CareScheduleSection';
 import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
 import { Button } from '@/components/ui/button';
@@ -90,10 +90,51 @@ export default function Dates() {
   if (!user) {
     return (
       <div 
-        className="min-h-screen flex flex-col items-center justify-start pt-24 p-4 bg-cover bg-center bg-no-repeat relative"
+        className="min-h-screen flex flex-col items-center justify-start pt-24 p-4 bg-cover bg-center bg-no-repeat relative overflow-hidden"
         style={{ backgroundImage: `url(${datesBackground})` }}
       >
-        {/* No overlay - clean text on image like reference */}
+        {/* Feature Preview Card — floating glassmorphic teaser */}
+        <div 
+          className="absolute top-6 left-4 w-48 rounded-2xl border border-white/25 bg-white/15 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 pointer-events-none select-none z-10"
+          style={{ animation: 'float 3s ease-in-out infinite' }}
+        >
+          {/* Mini Food Supply row */}
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-white/90 leading-none mb-1">Food Supply</p>
+              <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
+                <div className="h-full w-[85%] rounded-full bg-green-400" />
+              </div>
+            </div>
+            <span className="text-[9px] font-semibold text-green-400">Stocked</span>
+          </div>
+
+          {/* Mini Reminder row */}
+          <div className="flex items-center gap-2">
+            <Utensils className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-white/90 leading-none">Breakfast</p>
+              <p className="text-[9px] text-white/50">6:00 AM · Daily</p>
+            </div>
+          </div>
+
+          {/* Category chip */}
+          <div className="flex gap-1.5">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 border border-white/15">
+              <Package className="w-3 h-3 text-white/60" />
+              <span className="text-[9px] text-white/60 font-medium">Food Restock</span>
+            </span>
+          </div>
+
+          {/* Unlock overlay */}
+          <div className="absolute inset-x-0 bottom-0 h-10 rounded-b-2xl bg-gradient-to-t from-black/40 to-transparent flex items-end justify-center pb-1.5 gap-1">
+            <Lock className="w-3 h-3 text-white/60" />
+            <span className="text-[9px] text-white/60 font-medium">Sign in to unlock</span>
+          </div>
+        </div>
+
+        {/* Main CTA */}
         <div className="text-center z-10">
           <div className="w-20 h-20 mx-auto mb-6 border-2 border-primary rounded-lg flex items-center justify-center bg-transparent">
             <CalendarDays className="w-12 h-12 text-primary" />

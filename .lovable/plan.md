@@ -1,37 +1,43 @@
 
 
-## Feature Preview Card on Unauthenticated Dates Page
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-Add a floating "feature preview" card in the top-left corner of the unauthenticated splash screen that gives new users a tantalizing glimpse of what awaits them inside.
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-### Approach
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-Rather than embedding the actual screenshots, create a **miniature mock-up card** styled to look like a condensed version of the Care Schedule features — the Food Supply Tracker + reminders. This acts as a "peek behind the curtain" that entices sign-up.
+### Changes
 
-### Change: `src/pages/Dates.tsx` (unauthenticated block, lines 90-108)
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-Add a decorative preview card positioned `absolute top-6 left-4` (or similar) with:
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-- **Glassmorphism card**: `backdrop-blur-xl bg-white/15 border border-white/25 rounded-2xl shadow-2xl` — frosted glass floating over the background image
-- **Slight rotation**: `rotate-[-3deg]` for a casual, pinned-note feel — visually dynamic
-- **Compact mock content** (non-interactive, purely decorative):
-  - A mini "Stocked" status row with a green CheckCircle icon + green progress bar
-  - A mini "Reminders" row showing "6:00 AM · Daily" with a feeding icon
-  - A mini "Food Restock" category chip
-- **"Unlock" overlay**: A subtle gradient fade at the bottom of the card with tiny lock icon and "Sign in to unlock" text in white/70
-- **Floating animation**: `animate-float` — a gentle up/down CSS keyframe (3s ease-in-out infinite) so it feels alive
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-### Additional CSS (`src/index.css`)
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-Add a `@keyframes float` animation:
-```css
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(-3deg); }
-  50% { transform: translateY(-8px) rotate(-3deg); }
-}
-```
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
-### Visual Result
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
 
-The main CTA stays centered. In the top-left, a small tilted glassmorphic card shows a beautiful miniature of the tracker features, gently bobbing — making it clear this tab has powerful care tools worth signing up for.
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+
+**4. Database migration** -- Update the `subscription_tier` column constraint
+
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 
