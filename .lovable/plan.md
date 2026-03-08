@@ -1,43 +1,38 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Plan: Add Confetti Burst on Restock Celebration
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+Add a lightweight CSS-only confetti effect that fires alongside the existing scale-bounce + glow animation when transitioning to "stocked." No external libraries needed — we'll use a set of small colored dots/squares that burst outward from the card using CSS keyframes.
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+### Approach
+
+Create a `ConfettiBurst` component that renders ~12 small colored spans, each with a randomized radial trajectory via CSS custom properties. It renders only when `celebrating` is true and auto-cleans up.
 
 ### Changes
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+**1. New file: `src/components/dates/ConfettiBurst.tsx`**
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+A small component that renders confetti particles using CSS animations:
+- 12 particles with predefined colors (green, gold, coral, teal — matching the app palette)
+- Each particle gets a unique `--angle` and `--distance` CSS variable for its trajectory
+- Particles burst outward and fade over ~1s
+- Component only mounts when `celebrating` is true
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**2. `src/index.css` — Add confetti keyframe**
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+```css
+@keyframes confetti-burst {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+```
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+**3. `src/components/dates/FoodSupplyTracker.tsx` — Render ConfettiBurst**
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+Import and render `<ConfettiBurst />` inside the Card when `celebrating` is true. Position it absolutely over the card center.
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
-
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
+### Files
+- **New**: `src/components/dates/ConfettiBurst.tsx`
+- **Edit**: `src/index.css` — add `confetti-burst` keyframe
+- **Edit**: `src/components/dates/FoodSupplyTracker.tsx` — import and render confetti
 
