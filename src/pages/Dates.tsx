@@ -363,7 +363,11 @@ export default function Dates() {
                 </div>
               )}
               {playdates.map(playdate => (
-                <PlaydateCard key={playdate.id} playdate={playdate} />
+                <PlaydateCard
+                  key={playdate.id}
+                  playdate={playdate}
+                  onDelete={['completed', 'declined', 'cancelled'].includes(playdate.status) ? () => handleDeletePlaydate(playdate.id) : undefined}
+                />
               ))}
             </>
           )}
