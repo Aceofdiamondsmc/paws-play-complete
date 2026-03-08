@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Scissors, GraduationCap, Trash2, Plus, CheckCircle, AlertTriangle, Timer, Info } from 'lucide-react';
+import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Scissors, GraduationCap, ShoppingBag, Trash2, Plus, CheckCircle, AlertTriangle, Timer, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCareNotificationContext } from '@/components/CareNotificationProvider';
 import { useCareHistory } from '@/hooks/useCareHistory';
@@ -34,6 +34,8 @@ function getCategoryIcon(category: string) {
       return <Scissors className="w-4 h-4 text-primary" />;
     case 'training':
       return <GraduationCap className="w-4 h-4 text-primary" />;
+    case 'restock':
+      return <ShoppingBag className="w-4 h-4 text-primary" />;
     default:
       return <PawPrint className="w-4 h-4 text-primary" />;
   }
@@ -277,6 +279,7 @@ export function CareScheduleSection() {
               {triggeredReminder.category === 'feeding' && `Time to feed: ${triggeredReminder.task_details || 'your pup'}`}
               {triggeredReminder.category === 'grooming' && 'Time for grooming!'}
               {triggeredReminder.category === 'training' && 'Time for training!'}
+              {triggeredReminder.category === 'restock' && `Time to restock dog food!`}
             </span>
           </div>
           <div className="flex gap-2">
@@ -337,6 +340,12 @@ export function CareScheduleSection() {
                   Training
                 </div>
               </SelectItem>
+              <SelectItem value="restock">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4" />
+                  Food Restock
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -368,18 +377,20 @@ export function CareScheduleSection() {
         </div>
 
         {/* Conditional Task Details Input */}
-        {(category === 'medication' || category === 'feeding' || category === 'grooming' || category === 'training') && (
+        {(category === 'medication' || category === 'feeding' || category === 'grooming' || category === 'training' || category === 'restock') && (
           <div className="space-y-2">
             <Label>
               {category === 'medication' ? 'Medication Name & Dosage' : 
                category === 'feeding' ? 'Food Amount' :
-               category === 'grooming' ? 'Grooming Details' : 'Training Details'}
+               category === 'grooming' ? 'Grooming Details' : 
+               category === 'training' ? 'Training Details' : 'Brand & Size'}
             </Label>
             <Input
               placeholder={
                 category === 'medication' ? 'e.g., Apoquel 16mg' : 
                 category === 'feeding' ? 'e.g., 1 cup kibble' :
-                category === 'grooming' ? 'e.g., Nail trim, bath' : 'e.g., Recall practice'
+                category === 'grooming' ? 'e.g., Nail trim, bath' : 
+                category === 'training' ? 'e.g., Recall practice' : 'e.g., 30lb bag Purina Pro Plan'
               }
               value={taskDetails}
               onChange={(e) => setTaskDetails(e.target.value)}
@@ -463,6 +474,10 @@ export function CareScheduleSection() {
             <GraduationCap className="w-4 h-4 mr-1" />
             Training
           </Button>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => handleQuickLog('restock')}>
+            <ShoppingBag className="w-4 h-4 mr-1" />
+            Food Restock
+          </Button>
         </div>
       </div>
 
@@ -487,6 +502,7 @@ export function CareScheduleSection() {
                     {entry.category === 'feeding' && (entry.task_details || entry.notes || 'Fed')}
                     {entry.category === 'grooming' && (entry.task_details || entry.notes || 'Groomed')}
                     {entry.category === 'training' && (entry.task_details || entry.notes || 'Trained')}
+                    {entry.category === 'restock' && (entry.task_details || entry.notes || 'Food Restocked')}
                   </span>
                 </div>
                 <span className="text-xs text-muted-foreground">
