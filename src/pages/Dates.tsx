@@ -66,6 +66,15 @@ export default function Dates() {
     }
   };
 
+  const handleCancel = async (playdateId: string) => {
+    const { error } = await cancelPlaydate(playdateId);
+    if (error) {
+      toast.error(error.message || 'Failed to cancel playdate');
+    } else {
+      toast.success('Playdate cancelled');
+    }
+  };
+
   const handleMessage = async (otherUserId: string) => {
     const { conversation, error } = await startConversation(otherUserId);
     if (error) {
