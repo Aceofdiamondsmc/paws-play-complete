@@ -31,6 +31,7 @@ export default function Dates() {
     updatePlaydateStatus,
     acceptPlaydate,
     cancelPlaydate,
+    clearHistory,
     refresh
   } = usePlaydates();
 
