@@ -512,6 +512,9 @@ export function CareScheduleSection() {
             <AlertTriangle className="w-4 h-4 mr-1" />
             Out of Stock
           </Button>
+          {!trackerEnabled && (
+            <EnableFoodTrackerButton onClick={() => handleToggleTracker(true)} />
+          )}
         </div>
       </div>
 
