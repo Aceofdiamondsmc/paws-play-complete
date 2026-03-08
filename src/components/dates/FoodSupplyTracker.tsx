@@ -18,6 +18,19 @@ interface FoodSupplyTrackerProps {
 export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDismiss, onLogRestock }: FoodSupplyTrackerProps) {
   const { status, daysSince, lastEntry } = supplyStatus;
 
+  const [celebrating, setCelebrating] = useState(false);
+  const prevStatusRef = useRef(status);
+
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if ((prev === 'out' || prev === 'unknown') && status === 'stocked') {
+      setCelebrating(true);
+      const timer = setTimeout(() => setCelebrating(false), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
+
   if (status === 'unknown') {
     return (
       <Card className={cn('p-4 mb-4 border-2 transition-all duration-500 border-destructive/40 bg-gradient-to-r from-destructive/10 to-destructive/5 animate-pulse-urgent')}>
