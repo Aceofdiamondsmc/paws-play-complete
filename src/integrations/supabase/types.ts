@@ -260,6 +260,13 @@ export type Database = {
             foreignKeyName: "dogs_owner_fk"
             columns: ["owner_id"]
             isOneToOne: false
+            referencedRelation: "dogs_discovery"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dogs_owner_fk"
+            columns: ["owner_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -302,6 +309,13 @@ export type Database = {
             foreignKeyName: "friendships_addressee_id_fkey"
             columns: ["addressee_id"]
             isOneToOne: false
+            referencedRelation: "dogs_discovery"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -310,6 +324,13 @@ export type Database = {
             columns: ["addressee_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "dogs_discovery"
             referencedColumns: ["id"]
           },
           {
@@ -900,13 +921,6 @@ export type Database = {
             referencedRelation: "dogs"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "posts_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs_discovery"
-            referencedColumns: ["id"]
-          },
         ]
       }
       products: {
@@ -1315,40 +1329,30 @@ export type Database = {
     Views: {
       dogs_discovery: {
         Row: {
-          age_years: number | null
           avatar_url: string | null
-          bio: string | null
-          breed: string | null
-          created_at: string | null
-          energy_level: string | null
+          fuzzy_lat: number | null
+          fuzzy_lng: number | null
           id: string | null
-          name: string | null
-          owner_avatar_url: string | null
-          owner_city: string | null
-          owner_display_name: string | null
-          owner_id: string | null
-          owner_latitude: number | null
-          owner_longitude: number | null
-          owner_state: string | null
-          play_style: string[] | null
-          size: string | null
+          updated_at: string | null
+          username: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "dogs_owner_fk"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dogs_owner_fk"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Insert: {
+          avatar_url?: string | null
+          fuzzy_lat?: never
+          fuzzy_lng?: never
+          id?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          fuzzy_lat?: never
+          fuzzy_lng?: never
+          id?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
       }
       geography_columns: {
         Row: {
@@ -1487,13 +1491,6 @@ export type Database = {
             columns: ["dog_id"]
             isOneToOne: false
             referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "posts_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs_discovery"
             referencedColumns: ["id"]
           },
         ]
