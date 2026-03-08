@@ -1,43 +1,35 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Add "Food Restock" to Care Schedule
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### Naming Decision
+The best term for this is **"Food Restock"** — displayed as the label, with `restock` as the database category value. It's concise, action-oriented, and immediately understood. The Lucide `ShoppingBag` icon pairs naturally with it.
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+### How It Works
+Unlike timed reminders (walks, meds), this is primarily a **quick-action log** with two modes:
+- **As a Quick Log button**: Tap "Food Restock" to instantly log that you bought food or ran out today
+- **As a scheduled reminder**: Set a recurring reminder (e.g., weekly) to check food supply levels
 
 ### Changes
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+**1. Database migration** — Update the `care_history` CHECK constraint to include `'restock'`:
+```sql
+ALTER TABLE care_history DROP CONSTRAINT care_history_category_check;
+ALTER TABLE care_history ADD CONSTRAINT care_history_category_check 
+  CHECK (category = ANY (ARRAY['walk','medication','feeding','grooming','training','restock']));
+```
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+**2. `src/components/dates/CareScheduleSection.tsx`**
+- Import `ShoppingBag` from lucide-react
+- Add `'restock'` case to `getCategoryIcon()` returning the ShoppingBag icon
+- Add `<SelectItem value="restock">` in the category dropdown with "Food Restock" label
+- Add task details input for restock (placeholder: "e.g., 30lb bag Purina Pro Plan")
+- Add triggered reminder text: `'Time to restock dog food!'`
+- Add Quick Log button for "Food Restock"
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**3. `src/hooks/useCareHistory.tsx`** — No changes needed (already accepts any category string)
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+**4. `src/hooks/useCareReminders.tsx`** — No changes needed (category is a free string field)
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
-
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
-
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
-
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
+This keeps the feature lightweight — one migration, one UI file update.
 
