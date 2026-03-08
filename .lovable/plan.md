@@ -1,43 +1,64 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Plan: Celebratory Micro-Animation on Restock
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
-
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+When the tracker transitions from red/empty to green/stocked, play a one-shot celebration effect — a brief scale-bounce + green glow pulse on the card.
 
 ### Changes
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+**1. `src/index.css` — Add two keyframes**
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+```css
+@keyframes restock-celebrate {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.03); }
+  50% { transform: scale(0.98); }
+  70% { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+@keyframes glow-success {
+  0% { box-shadow: 0 0 0 0 hsl(145 60% 45% / 0.6); }
+  50% { box-shadow: 0 0 0 12px hsl(145 60% 45% / 0); }
+  100% { box-shadow: 0 0 0 0 hsl(145 60% 45% / 0); }
+}
+```
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+And a utility class:
+```css
+.animate-restock-celebrate {
+  animation: restock-celebrate 0.5s ease-out, glow-success 1s ease-out;
+}
+```
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+**2. `src/components/dates/FoodSupplyTracker.tsx` — Track previous status and apply animation**
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+- Add `useRef` + `useEffect` to detect when `status` transitions from `'out'` or `'unknown'` → `'stocked'`.
+- When that transition occurs, set a local `celebrating` state to `true`, then clear it after 1.5s.
+- Apply `animate-restock-celebrate` class to the Card when `celebrating` is true.
+- Also show a brief "Restocked!" text flash on the icon area (swap the CheckCircle for a Party Popper or keep CheckCircle with a scale-bounce).
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+The logic:
+```tsx
+const [celebrating, setCelebrating] = useState(false);
+const prevStatusRef = useRef(status);
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
+useEffect(() => {
+  const prev = prevStatusRef.current;
+  prevStatusRef.current = status;
+  if ((prev === 'out' || prev === 'unknown') && status === 'stocked') {
+    setCelebrating(true);
+    setTimeout(() => setCelebrating(false), 1500);
+  }
+}, [status]);
+```
 
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+Then on the known-status Card:
+```tsx
+<Card className={cn('p-4 mb-4 border-2 transition-all duration-500', config.cardClass, celebrating && 'animate-restock-celebrate')}>
+```
 
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
+### Files Changed
+- `src/index.css` — add `restock-celebrate` and `glow-success` keyframes + utility class
+- `src/components/dates/FoodSupplyTracker.tsx` — add celebration state detection + apply animation class
 
