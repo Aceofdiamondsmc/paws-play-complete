@@ -266,6 +266,7 @@ export function usePlaydates() {
     updatePlaydateStatus,
     acceptPlaydate,
     cancelPlaydate,
+    deletePlaydate,
     clearHistory,
     refresh: fetchPlaydates
   };
