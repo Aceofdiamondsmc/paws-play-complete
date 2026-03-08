@@ -68,7 +68,7 @@ export function CareScheduleSection() {
     hasMissedDose,
     clearMissedMedication 
   } = useCareNotificationContext();
-  const { history, loading: historyLoading, logActivity } = useCareHistory();
+  const { history, loading: historyLoading, logActivity, deleteEntry } = useCareHistory();
 
   const [category, setCategory] = useState('walk');
   const [selectedTime, setSelectedTime] = useState('08:00');
