@@ -214,6 +214,7 @@ export function CareScheduleSection() {
           bagSize={bagSize}
           onBagSizeChange={handleBagSizeChange}
           onDismiss={() => handleToggleTracker(false)}
+          onLogRestock={() => handleQuickLog('restock', 'Restocked')}
         />
       ) : (
         <div className="mb-4">

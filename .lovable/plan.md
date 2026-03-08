@@ -1,35 +1,43 @@
 
 
-## Plan: CTA Button + Simultaneous Preview Cards on Unauthenticated Dates Tab
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-### Two Changes
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-**1. Add "Log Your First Restock" CTA to `FoodSupplyTracker.tsx`**
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-- Add `onLogRestock?: () => void` prop to `FoodSupplyTrackerProps`
-- In the `unknown` state card (line 22-73): add a CTA button after the bag size toggle:
-  ```tsx
-  <Button size="sm" className="w-full mt-3 rounded-full bg-destructive/90 hover:bg-destructive text-white font-semibold" onClick={onLogRestock}>
-    <ShoppingBag className="w-4 h-4 mr-1" /> Log Your First Restock
-  </Button>
-  ```
-- In the known-status card: add a "Restock Now" button when status is `out`
-- Wire in `CareScheduleSection.tsx` by passing `onLogRestock={() => handleQuickLog('restock', 'Restocked')}` to `<FoodSupplyTracker>`
+### Changes
 
-**2. Make both unauthenticated preview cards appear simultaneously (`Dates.tsx`)**
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-Currently the right-side Playdate Preview Card has `opacity: 0` with `animationFillMode: 'forwards'` and a `1.5s` delay — it fades in after the left card. To make both appear together in a more aesthetically pleasing way:
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-- Remove the staggered delay: change both cards to appear immediately with `opacity: 1`
-- Instead of sequential fade-in, give them a **synchronized floating dance** — both bob gently but in opposite phase (one rises while the other dips), creating a balanced, lively feel:
-  - Left card: `animation: 'float 3s ease-in-out infinite'` (already exists)
-  - Right card: `animation: 'float-right 3s ease-in-out infinite'` with NO delay, starts at `opacity: 1`
-- Remove `animationFillMode: 'forwards'` from the right card's inline style
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-This makes the splash screen feel alive and balanced from the first frame — both cards greet the user together in a synchronized floating motion.
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-### Files Changed
-- `src/components/dates/FoodSupplyTracker.tsx` — add `onLogRestock` prop + CTA buttons
-- `src/components/dates/CareScheduleSection.tsx` — pass `onLogRestock` callback
-- `src/pages/Dates.tsx` — remove opacity/delay from right preview card
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+
+**4. Database migration** -- Update the `subscription_tier` column constraint
+
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 

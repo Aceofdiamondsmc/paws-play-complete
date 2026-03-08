@@ -12,9 +12,10 @@ interface FoodSupplyTrackerProps {
   bagSize: BagSize;
   onBagSizeChange: (size: BagSize) => void;
   onDismiss: () => void;
+  onLogRestock?: () => void;
 }
 
-export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDismiss }: FoodSupplyTrackerProps) {
+export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDismiss, onLogRestock }: FoodSupplyTrackerProps) {
   const { status, daysSince, lastEntry } = supplyStatus;
 
   if (status === 'unknown') {
@@ -67,8 +68,20 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
             <ToggleGroupItem value="small" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
               Small Bag
             </ToggleGroupItem>
-          </ToggleGroup>
+        </ToggleGroup>
         </div>
+
+        {/* CTA Button */}
+        {onLogRestock && (
+          <Button
+            size="sm"
+            className="w-full mt-3 rounded-full bg-destructive/90 hover:bg-destructive text-destructive-foreground font-semibold"
+            onClick={onLogRestock}
+          >
+            <ShoppingBag className="w-4 h-4 mr-1" />
+            Log Your First Restock
+          </Button>
+        )}
       </Card>
     );
   }
@@ -178,6 +191,18 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
+
+      {/* CTA Button for out-of-stock state */}
+      {status === 'out' && onLogRestock && (
+        <Button
+          size="sm"
+          className="w-full mt-3 rounded-full bg-destructive/90 hover:bg-destructive text-destructive-foreground font-semibold"
+          onClick={onLogRestock}
+        >
+          <ShoppingBag className="w-4 h-4 mr-1" />
+          Restock Now
+        </Button>
+      )}
     </Card>
   );
 }

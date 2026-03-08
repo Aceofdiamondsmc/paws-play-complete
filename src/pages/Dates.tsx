@@ -137,7 +137,7 @@ export default function Dates() {
         {/* Playdate Preview Card — right side */}
         <div 
           className="absolute top-6 right-4 w-44 rounded-2xl border border-white/25 bg-white/15 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 pointer-events-none select-none z-10"
-          style={{ animation: 'float-right 3s ease-in-out 1.5s infinite', opacity: 0, animationFillMode: 'forwards' }}
+          style={{ animation: 'float-right 3s ease-in-out infinite' }}
         >
           {/* Mini dog avatars */}
           <div className="flex items-center gap-2">
