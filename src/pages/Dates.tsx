@@ -87,7 +87,15 @@ export default function Dates() {
       navigate(`/me?chat=${conversation.id}`);
     }
   };
-  
+
+  const handleDeletePlaydate = async (playdateId: string) => {
+    const { error } = await deletePlaydate(playdateId);
+    if (error) {
+      toast.error('Failed to remove playdate');
+    } else {
+      toast.success('Playdate removed');
+    }
+  };
 
   if (!user) {
     return (
