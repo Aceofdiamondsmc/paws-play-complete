@@ -1,43 +1,55 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Plan: Add "Clear All History" to the Dates "All" Tab
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### Rationale
+The "All" tab exposes historical playdate data (partners, locations, dates/times) indefinitely. A privacy-conscious "Clear History" action lets users permanently remove completed, declined, and cancelled records while preserving active ones (pending/accepted).
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+### What gets cleared
+Only playdates with status `completed`, `declined`, or `cancelled`. Pending and accepted playdates are untouched.
 
 ### Changes
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+**1. `src/hooks/usePlaydates.tsx`** — Add a `clearHistory` function
+- Deletes from `playdate_requests` where `requester_id = user.id` AND status is in (`completed`, `declined`, `cancelled`).
+- Also deletes records where the user owns the receiver dog (they were the other participant).
+- Calls `refresh()` after success.
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+**2. `src/pages/Dates.tsx`** — Add UI in the "All" tab
+- When historical playdates exist, show a "Clear History" button (Trash2 icon, ghost/destructive style) in the tab header area.
+- Wrap in an `AlertDialog` confirmation: "Clear playdate history? This permanently removes all completed, declined, and cancelled playdates. Active playdates are not affected."
+- Wire to the new `clearHistory` function with a success toast.
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**3. Database: RLS check**
+- The `playdate_requests` table already has a `Requesters can delete own playdate requests` DELETE policy (`requester_id = auth.uid()`).
+- For playdates where the user is the *receiver* (not the requester), there is **no DELETE policy**. We need to add one:
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+```sql
+CREATE POLICY "Receivers can delete playdate requests"
+ON public.playdate_requests
+FOR DELETE
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM dogs
+    WHERE dogs.id = playdate_requests.receiver_dog_id
+    AND dogs.owner_id = auth.uid()
+  )
+);
+```
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+This ensures both participants can clear their own history.
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+### UI Sketch
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+```text
+┌─ All tab ─────────────────────────────┐
+│  [Clear History 🗑]   (right-aligned) │
+│                                        │
+│  PlaydateCard ...                      │
+│  PlaydateCard ...                      │
+└────────────────────────────────────────┘
+```
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
+The button only appears when there are historical (non-active) playdates to clear.
 
