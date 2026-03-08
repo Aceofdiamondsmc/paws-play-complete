@@ -146,7 +146,7 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
     : null;
 
   return (
-    <Card className={cn('p-4 mb-4 border-2 transition-all duration-500', config.cardClass)}>
+    <Card className={cn('p-4 mb-4 border-2 transition-all duration-500', config.cardClass, celebrating && 'animate-restock-celebrate')}>
       {/* Top row: icon + text + dismiss */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
