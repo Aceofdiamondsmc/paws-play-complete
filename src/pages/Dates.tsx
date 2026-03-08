@@ -134,6 +134,53 @@ export default function Dates() {
           </div>
         </div>
 
+        {/* Playdate Preview Card — right side */}
+        <div 
+          className="absolute top-16 right-4 w-44 rounded-2xl border border-white/25 bg-white/15 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 pointer-events-none select-none z-10"
+          style={{ animation: 'float-right 3s ease-in-out 1.5s infinite', opacity: 0, animationFillMode: 'forwards' }}
+        >
+          {/* Mini dog avatars */}
+          <div className="flex items-center gap-2">
+            <div className="flex -space-x-2">
+              <div className="w-7 h-7 rounded-full bg-primary/80 ring-2 ring-white/30 flex items-center justify-center text-[10px]">🐕</div>
+              <div className="w-7 h-7 rounded-full bg-accent/80 ring-2 ring-white/30 flex items-center justify-center text-[10px]">🐾</div>
+            </div>
+            <p className="text-[10px] font-bold text-white/90 leading-tight">Bella & Max</p>
+          </div>
+
+          {/* Date & time row */}
+          <div className="flex items-center gap-3 text-[9px] text-white/70">
+            <div className="flex items-center gap-1">
+              <CalendarDays className="w-3 h-3 text-white/60" />
+              <span>Mar 15</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3 text-white/60" />
+              <span>2:00 PM</span>
+            </div>
+          </div>
+
+          {/* Location row */}
+          <div className="flex items-center gap-1.5">
+            <MapPin className="w-3 h-3 text-white/60 shrink-0" />
+            <span className="text-[9px] text-white/70 truncate">Central Bark Park</span>
+          </div>
+
+          {/* Accepted chip */}
+          <div className="flex">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-400/20 border border-green-400/30">
+              <Check className="w-3 h-3 text-green-400" />
+              <span className="text-[9px] text-green-400 font-semibold">Accepted</span>
+            </span>
+          </div>
+
+          {/* Unlock overlay */}
+          <div className="absolute inset-x-0 bottom-0 h-10 rounded-b-2xl bg-gradient-to-t from-black/40 to-transparent flex items-end justify-center pb-1.5 gap-1">
+            <Lock className="w-3 h-3 text-white/60" />
+            <span className="text-[9px] text-white/60 font-medium">Sign in to unlock</span>
+          </div>
+        </div>
+
         {/* Main CTA */}
         <div className="text-center z-10">
           <div className="w-20 h-20 mx-auto mb-6 border-2 border-primary rounded-lg flex items-center justify-center bg-transparent">
