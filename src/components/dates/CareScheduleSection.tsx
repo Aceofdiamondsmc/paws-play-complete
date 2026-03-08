@@ -381,7 +381,8 @@ export function CareScheduleSection() {
             <Label>
               {category === 'medication' ? 'Medication Name & Dosage' : 
                category === 'feeding' ? 'Food Amount' :
-               category === 'grooming' ? 'Grooming Details' : 'Training Details'}
+               category === 'grooming' ? 'Grooming Details' : 
+               category === 'training' ? 'Training Details' : 'Brand & Size'}
             </Label>
             <Input
               placeholder={
