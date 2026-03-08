@@ -9,7 +9,8 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Scissors, GraduationCap, ShoppingBag, Trash2, Plus, CheckCircle, AlertTriangle, Timer, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCareNotificationContext } from '@/components/CareNotificationProvider';
-import { useCareHistory } from '@/hooks/useCareHistory';
+import { useCareHistory, type BagSize } from '@/hooks/useCareHistory';
+import { FoodSupplyTracker, EnableFoodTrackerButton } from '@/components/dates/FoodSupplyTracker';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
