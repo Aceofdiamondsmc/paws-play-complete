@@ -502,6 +502,7 @@ export function CareScheduleSection() {
                     {entry.category === 'feeding' && (entry.task_details || entry.notes || 'Fed')}
                     {entry.category === 'grooming' && (entry.task_details || entry.notes || 'Groomed')}
                     {entry.category === 'training' && (entry.task_details || entry.notes || 'Trained')}
+                    {entry.category === 'restock' && (entry.task_details || entry.notes || 'Food Restocked')}
                   </span>
                 </div>
                 <span className="text-xs text-muted-foreground">
