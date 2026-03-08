@@ -9,7 +9,8 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Scissors, GraduationCap, ShoppingBag, Trash2, Plus, CheckCircle, AlertTriangle, Timer, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCareNotificationContext } from '@/components/CareNotificationProvider';
-import { useCareHistory } from '@/hooks/useCareHistory';
+import { useCareHistory, type BagSize } from '@/hooks/useCareHistory';
+import { FoodSupplyTracker, EnableFoodTrackerButton } from '@/components/dates/FoodSupplyTracker';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -68,13 +69,31 @@ export function CareScheduleSection() {
     hasMissedDose,
     clearMissedMedication 
   } = useCareNotificationContext();
-  const { history, loading: historyLoading, logActivity, deleteEntry } = useCareHistory();
+  const [trackerEnabled, setTrackerEnabled] = useState(() => {
+    const stored = localStorage.getItem('foodSupplyTrackerEnabled');
+    return stored !== null ? stored === 'true' : true;
+  });
+  const [bagSize, setBagSize] = useState<BagSize>(() => {
+    return (localStorage.getItem('foodSupplyBagSize') as BagSize) || 'standard';
+  });
+
+  const { history, loading: historyLoading, supplyStatus, logActivity, deleteEntry } = useCareHistory(bagSize);
 
   const [category, setCategory] = useState('walk');
   const [selectedTime, setSelectedTime] = useState('08:00');
   const [recurrence, setRecurrence] = useState('daily');
   const [taskDetails, setTaskDetails] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const handleToggleTracker = (enabled: boolean) => {
+    setTrackerEnabled(enabled);
+    localStorage.setItem('foodSupplyTrackerEnabled', String(enabled));
+  };
+
+  const handleBagSizeChange = (size: BagSize) => {
+    setBagSize(size);
+    localStorage.setItem('foodSupplyBagSize', size);
+  };
 
   const handleSaveReminder = async () => {
     setSaving(true);
@@ -183,6 +202,16 @@ export function CareScheduleSection() {
         <Clock className="w-6 h-6 text-primary" />
         <h2 className="text-2xl font-bold text-primary">Care Schedule</h2>
       </div>
+
+      {/* Food Supply Tracker */}
+      {trackerEnabled && (
+        <FoodSupplyTracker
+          supplyStatus={supplyStatus}
+          bagSize={bagSize}
+          onBagSizeChange={handleBagSizeChange}
+          onDismiss={() => handleToggleTracker(false)}
+        />
+      )}
 
       {/* Notification Permission Status */}
       {permissionStatus === 'granted' ? (
@@ -483,6 +512,9 @@ export function CareScheduleSection() {
             <AlertTriangle className="w-4 h-4 mr-1" />
             Out of Stock
           </Button>
+          {!trackerEnabled && (
+            <EnableFoodTrackerButton onClick={() => handleToggleTracker(true)} />
+          )}
         </div>
       </div>
 
