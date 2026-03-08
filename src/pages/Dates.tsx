@@ -337,12 +337,38 @@ function PlaydateCard({
         </div>
       )}
 
-      {onMessage && !showActions && (
-        <div className="mt-3 pt-3 border-t border-border">
-          <Button onClick={onMessage} variant="outline" size="sm" className="w-full rounded-full">
-            <MessageSquare className="w-4 h-4 mr-1" />
-            Message
-          </Button>
+      {(onMessage || onCancel) && !showActions && (
+        <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+          {onMessage && (
+            <Button onClick={onMessage} variant="outline" size="sm" className="flex-1 rounded-full">
+              <MessageSquare className="w-4 h-4 mr-1" />
+              Message
+            </Button>
+          )}
+          {onCancel && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Cancel
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancel this playdate?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will cancel the booked playdate. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="rounded-full">Keep it</AlertDialogCancel>
+                  <AlertDialogAction onClick={onCancel} className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Yes, cancel
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       )}
     </Card>
