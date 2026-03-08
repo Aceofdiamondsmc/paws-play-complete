@@ -31,6 +31,7 @@ export default function Dates() {
     updatePlaydateStatus,
     acceptPlaydate,
     cancelPlaydate,
+    clearHistory,
     refresh
   } = usePlaydates();
 
@@ -315,9 +316,47 @@ export default function Dates() {
               <Button className="mt-4 rounded-full">Schedule Your First Playdate</Button>
             </div>
           ) : (
-            playdates.map(playdate => (
-              <PlaydateCard key={playdate.id} playdate={playdate} />
-            ))
+            <>
+              {playdates.some(p => ['completed', 'declined', 'cancelled'].includes(p.status)) && (
+                <div className="flex justify-end">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="rounded-full text-destructive hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Clear History
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear playdate history?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This permanently removes all completed, declined, and cancelled playdates. Active playdates are not affected.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={async () => {
+                            const { error } = await clearHistory();
+                            if (error) {
+                              toast.error('Failed to clear history');
+                            } else {
+                              toast.success('Playdate history cleared');
+                            }
+                          }}
+                        >
+                          Clear History
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
+              {playdates.map(playdate => (
+                <PlaydateCard key={playdate.id} playdate={playdate} />
+              ))}
+            </>
           )}
         </TabsContent>
       </Tabs>

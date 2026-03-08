@@ -176,6 +176,34 @@ export function usePlaydates() {
     return { error: null };
   };
 
+  const clearHistory = async () => {
+    if (!user || dogs.length === 0) return { error: new Error('Not authenticated') };
+
+    const dogIds = dogs.map(d => d.id);
+    const historicalStatuses = ['completed', 'declined', 'cancelled'];
+
+    // Delete where user is requester
+    const { error: reqError } = await supabase
+      .from('playdate_requests')
+      .delete()
+      .eq('requester_id', user.id)
+      .in('status', historicalStatuses);
+
+    if (reqError) return { error: reqError };
+
+    // Delete where user owns the receiver dog
+    const { error: recError } = await supabase
+      .from('playdate_requests')
+      .delete()
+      .in('receiver_dog_id', dogIds)
+      .in('status', historicalStatuses);
+
+    if (recError) return { error: recError };
+
+    await fetchPlaydates();
+    return { error: null };
+  };
+
   const cancelPlaydate = async (playdateId: string) => {
     if (!user) return { error: new Error('Not authenticated') };
 
@@ -223,6 +251,7 @@ export function usePlaydates() {
     updatePlaydateStatus,
     acceptPlaydate,
     cancelPlaydate,
+    clearHistory,
     refresh: fetchPlaydates
   };
 }
