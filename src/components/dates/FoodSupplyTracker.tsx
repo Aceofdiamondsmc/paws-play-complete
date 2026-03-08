@@ -6,6 +6,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ShoppingBag, X, Package, AlertTriangle, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SupplyStatusInfo, BagSize } from '@/hooks/useCareHistory';
+import { ConfettiBurst } from './ConfettiBurst';
 
 interface FoodSupplyTrackerProps {
   supplyStatus: SupplyStatusInfo;
