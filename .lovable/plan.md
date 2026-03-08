@@ -1,43 +1,35 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Food Supply Tracker: Default to "Empty" Red Pulse State
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+Great instinct — the red pulsating "Out of Stock" state is visually magnetic. Instead of hiding the tracker by default, we show it in its most urgent, eye-catching state to draw users in and prompt their first interaction.
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+### Approach
+
+**Default behavior change**: When a user has never logged a restock (status is `unknown`), instead of showing the current dull dashed-border "Log a restock to start tracking" card, we render the full tracker UI in its `out` (red pulse) state with an empty progress bar and a CTA to log their first restock.
 
 ### Changes
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+**1. `FoodSupplyTracker.tsx` — Replace the `unknown` state card (lines 20-38)**
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+Instead of the muted placeholder, render the tracker using the `out` config visuals: red gradient, `animate-pulse-urgent`, pulsing icon, empty progress bar (0%), and a subtitle like "Log a restock to start tracking your supply." This reuses the existing `out` styling so it looks identical to the critical state — the moth-to-flame effect.
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**2. `CareScheduleSection.tsx` — Default `trackerEnabled` to `true` (keep current behavior, line 72-74)**
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+Keep defaulting to `true` so new users see the attractive red-pulsing tracker immediately. No change needed here — current default is already `true`.
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+**3. `CareScheduleSection.tsx` — Auto-enable on restock logs (inside `handleQuickLog`, ~line 161)**
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+When a user logs a `restock` action, auto-enable the tracker if it was dismissed, so restocking always brings it back.
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+**4. `CareScheduleSection.tsx` — Show `EnableFoodTrackerButton` prominently when dismissed + has data (~line 206)**
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
+When tracker is off but has history, show the re-enable button in the tracker's normal position (not buried in the quick log scroll).
 
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+### Result
 
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
+- New users see a pulsating red "empty" tracker — visually compelling, drives first interaction
+- After first restock log, it transitions to green "Stocked" — satisfying feedback loop
+- Dismissed tracker can be re-enabled easily via prominent button or by logging a restock
+- The red pulse acts as a persistent engagement hook until the user takes action
 
