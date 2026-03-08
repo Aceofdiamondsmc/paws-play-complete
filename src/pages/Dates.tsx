@@ -112,10 +112,10 @@ export default function Dates() {
 
           {/* Mini Reminder row */}
           <div className="flex items-center gap-2">
-            <Utensils className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <Dog className="w-3.5 h-3.5 text-blue-300 shrink-0" />
             <div className="min-w-0">
-              <p className="text-[10px] font-bold text-white/90 leading-none">Breakfast</p>
-              <p className="text-[9px] text-white/50">6:00 AM · Daily</p>
+              <p className="text-[10px] font-bold text-white/90 leading-none">Walk</p>
+              <p className="text-[9px] text-white/50">7:00 AM · Daily</p>
             </div>
           </div>
 
