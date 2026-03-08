@@ -376,7 +376,7 @@ export function CareScheduleSection() {
         </div>
 
         {/* Conditional Task Details Input */}
-        {(category === 'medication' || category === 'feeding' || category === 'grooming' || category === 'training') && (
+        {(category === 'medication' || category === 'feeding' || category === 'grooming' || category === 'training' || category === 'restock') && (
           <div className="space-y-2">
             <Label>
               {category === 'medication' ? 'Medication Name & Dosage' : 
