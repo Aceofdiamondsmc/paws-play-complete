@@ -103,9 +103,6 @@ export default function Dates() {
           <Button className="rounded-full px-8 text-base" size="lg" onClick={() => navigate('/me')}>
             Sign In / Sign Up
           </Button>
-          <button onClick={() => navigate('/explore')} className="mt-3 text-sm text-white/70 underline underline-offset-4 hover:text-white transition-colors">
-            Browse as guest
-          </button>
         </div>
       </div>
     );
