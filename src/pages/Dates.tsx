@@ -112,7 +112,7 @@ export default function Dates() {
 
           {/* Mini Reminder row */}
           <div className="flex items-center gap-2">
-            <Dog className="w-3.5 h-3.5 text-blue-300 shrink-0" />
+            <Dog className="w-3.5 h-3.5 text-amber-300 shrink-0" />
             <div className="min-w-0">
               <p className="text-[10px] font-bold text-white/90 leading-none">Walk</p>
               <p className="text-[9px] text-white/50">7:00 AM · Daily</p>
@@ -136,7 +136,7 @@ export default function Dates() {
 
         {/* Playdate Preview Card — right side */}
         <div 
-          className="absolute top-16 right-4 w-44 rounded-2xl border border-white/25 bg-white/15 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 pointer-events-none select-none z-10"
+          className="absolute top-6 right-4 w-44 rounded-2xl border border-white/25 bg-white/15 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 pointer-events-none select-none z-10"
           style={{ animation: 'float-right 3s ease-in-out 1.5s infinite', opacity: 0, animationFillMode: 'forwards' }}
         >
           {/* Mini dog avatars */}

@@ -1,24 +1,43 @@
 
 
-## Two Small Fixes on Dates Page Preview Cards
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-### 1. Left card: Change dog icon to full-body dog icon + yellow color (`src/pages/Dates.tsx`, line 115)
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-Lucide's `Dog` icon shows the full dog body. The original "Breakfast" color was `text-amber-300`. Change from `text-blue-300` to `text-amber-300`.
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-```tsx
-// Line 115: change text-blue-300 → text-amber-300
-<Dog className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-```
+### Changes
 
-### 2. Right card: Raise to match left card height (`src/pages/Dates.tsx`, line 139)
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-Left card is `top-6`. Right card is `top-16`. Change right card to `top-6` so they appear at even height.
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-```tsx
-// Line 139: change top-16 → top-6
-className="absolute top-6 right-4 w-44 ..."
-```
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-No other changes.
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+
+**4. Database migration** -- Update the `subscription_tier` column constraint
+
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 
