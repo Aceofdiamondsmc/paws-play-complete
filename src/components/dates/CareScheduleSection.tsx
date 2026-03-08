@@ -191,6 +191,10 @@ export function CareScheduleSection() {
       toast.error('Failed to log activity');
     } else {
       toast.success('Activity logged!');
+      // Auto-enable food tracker when logging restock actions
+      if (cat === 'restock') {
+        handleToggleTracker(true);
+      }
     }
   };
 
