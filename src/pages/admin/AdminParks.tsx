@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParks } from '@/hooks/useParks';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -32,10 +32,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useImageUpload } from '@/hooks/useImageUpload';
-import { Plus, Pencil, Trash2, Search, Loader2, MapPin, Star, Upload, X } from 'lucide-react';
+import { useParkSuggestions } from '@/hooks/useParkSuggestions';
+import { Plus, Pencil, Trash2, Search, Loader2, MapPin, Star, Upload, X, Check, XCircle } from 'lucide-react';
 import type { Park } from '@/types';
 
 interface ParkFormData {

@@ -268,6 +268,18 @@ export default function Parks() {
           )}
         </div>
       )}
+      {/* Floating Suggest Button */}
+      {user && (
+        <Button
+          onClick={() => setSuggestOpen(true)}
+          className="fixed bottom-20 right-4 z-30 rounded-full h-12 w-12 shadow-lg"
+          size="icon"
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
+      )}
+
+      <SuggestParkModal open={suggestOpen} onOpenChange={setSuggestOpen} />
     </div>
   );
 }
