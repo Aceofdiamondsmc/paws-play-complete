@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { MapPin, List, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Loader2, MapPinOff, Search } from 'lucide-react';
+import { MapPin, List, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Loader2, MapPinOff, Search, Plus } from 'lucide-react';
+import { SuggestParkModal } from '@/components/parks/SuggestParkModal';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -44,6 +46,8 @@ function ListItemSkeleton() {
 
 export default function Parks() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const { user } = useAuth();
   
   const mapHook = useParks();
   
@@ -264,6 +268,18 @@ export default function Parks() {
           )}
         </div>
       )}
+      {/* Floating Suggest Button */}
+      {user && (
+        <Button
+          onClick={() => setSuggestOpen(true)}
+          className="fixed bottom-20 right-4 z-30 rounded-full h-12 w-12 shadow-lg"
+          size="icon"
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
+      )}
+
+      <SuggestParkModal open={suggestOpen} onOpenChange={setSuggestOpen} />
     </div>
   );
 }

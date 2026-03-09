@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParks } from '@/hooks/useParks';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -32,10 +32,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useImageUpload } from '@/hooks/useImageUpload';
-import { Plus, Pencil, Trash2, Search, Loader2, MapPin, Star, Upload, X } from 'lucide-react';
+import { useParkSuggestions } from '@/hooks/useParkSuggestions';
+import { Plus, Pencil, Trash2, Search, Loader2, MapPin, Star, Upload, X, Check, XCircle } from 'lucide-react';
 import type { Park } from '@/types';
 
 interface ParkFormData {
@@ -80,6 +82,7 @@ export default function AdminParks() {
   const { allParks, loading, refresh } = useParks();
   const { toast } = useToast();
   const { uploadImage, uploading: parkImageUploading } = useImageUpload();
+  const { suggestions, loading: suggestionsLoading, fetchPendingSuggestions, approveSuggestion, rejectSuggestion } = useParkSuggestions();
   const parkFileInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -87,6 +90,15 @@ export default function AdminParks() {
   const [selectedPark, setSelectedPark] = useState<Park | null>(null);
   const [formData, setFormData] = useState<ParkFormData>(initialFormData);
   const [isSaving, setIsSaving] = useState(false);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectNotes, setRejectNotes] = useState('');
+  const [activeTab, setActiveTab] = useState('parks');
+
+  useEffect(() => {
+    if (activeTab === 'suggestions') {
+      fetchPendingSuggestions();
+    }
+  }, [activeTab, fetchPendingSuggestions]);
 
   const filteredParks = allParks.filter(park =>
     park.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -233,6 +245,28 @@ export default function AdminParks() {
     );
   }
 
+  const handleApproveSuggestion = async (id: string) => {
+    const { error } = await approveSuggestion(id);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Approved!', description: 'Park added to the directory.' });
+      refresh();
+    }
+  };
+
+  const handleRejectSuggestion = async () => {
+    if (!rejectingId) return;
+    const { error } = await rejectSuggestion(rejectingId, rejectNotes);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Rejected', description: 'Suggestion has been rejected.' });
+    }
+    setRejectingId(null);
+    setRejectNotes('');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -246,95 +280,167 @@ export default function AdminParks() {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search parks..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="parks">All Parks</TabsTrigger>
+          <TabsTrigger value="suggestions" className="gap-1.5">
+            Suggestions
+            {suggestions.length > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{suggestions.length}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Parks Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden md:table-cell">Location</TableHead>
-                <TableHead className="hidden sm:table-cell">Rating</TableHead>
-                <TableHead className="hidden lg:table-cell">Features</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredParks.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    {searchQuery ? 'No parks match your search' : 'No parks found'}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredParks.map((park) => (
-                  <TableRow key={park.id}>
-                    <TableCell>
-                      <div className="font-medium">{park.name}</div>
-                      <div className="text-sm text-muted-foreground md:hidden">
-                        {park.city}, {park.state}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex items-center gap-1 text-sm">
-                        <MapPin className="h-3 w-3" />
-                        {park.city}, {park.state}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      {park.rating ? (
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                          <span>{park.rating.toFixed(1)}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <div className="flex flex-wrap gap-1">
-                        {park.is_fully_fenced && <Badge variant="secondary">Fenced</Badge>}
-                        {park.has_water_station && <Badge variant="secondary">Water</Badge>}
-                        {park.has_parking && <Badge variant="secondary">Parking</Badge>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenEdit(park)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenDelete(park)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+        <TabsContent value="parks" className="space-y-4 mt-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search parks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Parks Table */}
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden md:table-cell">Location</TableHead>
+                    <TableHead className="hidden sm:table-cell">Rating</TableHead>
+                    <TableHead className="hidden lg:table-cell">Features</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {filteredParks.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        {searchQuery ? 'No parks match your search' : 'No parks found'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredParks.map((park) => (
+                      <TableRow key={park.id}>
+                        <TableCell>
+                          <div className="font-medium">{park.name}</div>
+                          <div className="text-sm text-muted-foreground md:hidden">
+                            {park.city}, {park.state}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div className="flex items-center gap-1 text-sm">
+                            <MapPin className="h-3 w-3" />
+                            {park.city}, {park.state}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {park.rating ? (
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                              <span>{park.rating.toFixed(1)}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex flex-wrap gap-1">
+                            {park.is_fully_fenced && <Badge variant="secondary">Fenced</Badge>}
+                            {park.has_water_station && <Badge variant="secondary">Water</Badge>}
+                            {park.has_parking && <Badge variant="secondary">Parking</Badge>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(park)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenDelete(park)} className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="suggestions" className="space-y-4 mt-4">
+          {suggestionsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : suggestions.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                No pending suggestions
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {suggestions.map((s) => (
+                <Card key={s.id}>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg">{s.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {[s.address, s.city, s.state].filter(Boolean).join(', ')}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">Pending</Badge>
+                    </div>
+                    {s.description && <p className="text-sm">{s.description}</p>}
+                    <div className="flex flex-wrap gap-1">
+                      {s.is_fully_fenced && <Badge variant="secondary">Fenced</Badge>}
+                      {s.has_water_station && <Badge variant="secondary">Water</Badge>}
+                      {s.has_small_dog_area && <Badge variant="secondary">Small Dogs</Badge>}
+                      {s.has_large_dog_area && <Badge variant="secondary">Large Dogs</Badge>}
+                      {s.has_agility_equipment && <Badge variant="secondary">Agility</Badge>}
+                      {s.has_parking && <Badge variant="secondary">Parking</Badge>}
+                      {s.has_grass_surface && <Badge variant="secondary">Grass</Badge>}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button size="sm" onClick={() => handleApproveSuggestion(s.id)} className="gap-1">
+                        <Check className="h-4 w-4" /> Approve
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setRejectingId(s.id)} className="gap-1 text-destructive hover:text-destructive">
+                        <XCircle className="h-4 w-4" /> Reject
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Reject Dialog */}
+      <AlertDialog open={!!rejectingId} onOpenChange={(open) => { if (!open) { setRejectingId(null); setRejectNotes(''); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject Suggestion</AlertDialogTitle>
+            <AlertDialogDescription>Optionally provide a reason for rejection.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} placeholder="Reason (optional)..." rows={3} />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRejectSuggestion} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

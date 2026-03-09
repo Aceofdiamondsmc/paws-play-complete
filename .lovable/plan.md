@@ -1,65 +1,43 @@
 
 
-## Plan: User Park Suggestions with Admin Approval
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-### Concept
-Create a `park_suggestions` table where authenticated users can submit parks they'd like to see listed. These submissions sit in a "pending" state until an admin reviews and either approves (promoting to the `parks` table) or rejects them. Users get a simple submission form; admins get a review queue.
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-### Database
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-**New table: `park_suggestions`**
-- `id` (uuid, PK)
-- `user_id` (uuid, references auth.users, not null)
-- `name`, `address`, `city`, `state`, `description` (text fields)
-- `latitude`, `longitude` (double precision, nullable)
-- `image_url` (text, nullable)
-- `is_fully_fenced`, `has_water_station`, `has_small_dog_area`, `has_large_dog_area`, `has_agility_equipment`, `has_parking`, `has_grass_surface` (booleans, default false)
-- `status` (text, default `'pending'` — values: `pending`, `approved`, `rejected`)
-- `admin_notes` (text, nullable — reason for rejection)
-- `created_at`, `reviewed_at` (timestamps)
+### Changes
 
-**RLS policies:**
-- Users can INSERT their own suggestions (`user_id = auth.uid()`)
-- Users can SELECT their own suggestions (to see status)
-- Admins can SELECT all, UPDATE status (approve/reject), DELETE
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-### Frontend Changes
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-**1. `src/pages/Parks.tsx`** — Add a "Suggest a Park" button
-- Floating or in the header area, opens a modal/sheet with a form for name, address, city, state, and optional amenity toggles.
-- On submit, inserts into `park_suggestions` with `status = 'pending'`.
-- Success toast: "Thanks! Your suggestion is under review."
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-**2. New: `src/components/parks/SuggestParkModal.tsx`**
-- Form with fields: name (required), address, city, state, description, and amenity switches matching the parks table schema.
-- Uses the same amenity toggle pattern as AdminParks for consistency.
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-**3. `src/pages/admin/AdminParks.tsx`** — Add a "Pending Suggestions" tab/section
-- Query `park_suggestions` where `status = 'pending'`.
-- Each suggestion shows submitter info, park details, and Approve/Reject buttons.
-- **Approve**: copies all fields into the `parks` table, sets suggestion `status = 'approved'`.
-- **Reject**: sets `status = 'rejected'`, optionally with `admin_notes`.
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
-**4. `src/hooks/useParkSuggestions.tsx`** — New hook
-- `submitSuggestion(data)` — insert into `park_suggestions`
-- `fetchPendingSuggestions()` — admin use
-- `approveSuggestion(id)` — copies to `parks`, updates status
-- `rejectSuggestion(id, notes?)` — updates status
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
 
-### User Flow
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
 
-```text
-User on Parks page
-  → Taps "Suggest a Park" button
-  → Fills in name + location details + amenities
-  → Submits → toast "Suggestion submitted for review!"
+**4. Database migration** -- Update the `subscription_tier` column constraint
 
-Admin on Admin Parks page
-  → Sees "Pending (3)" badge on suggestions tab
-  → Reviews details → Approve or Reject
-  → Approve copies data to parks table
-```
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
 
-### No existing table changes
-The `parks` table is untouched. Approved suggestions get inserted as new rows in `parks` by the admin action.
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 
