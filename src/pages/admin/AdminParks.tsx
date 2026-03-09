@@ -82,6 +82,7 @@ export default function AdminParks() {
   const { allParks, loading, refresh } = useParks();
   const { toast } = useToast();
   const { uploadImage, uploading: parkImageUploading } = useImageUpload();
+  const { suggestions, loading: suggestionsLoading, fetchPendingSuggestions, approveSuggestion, rejectSuggestion } = useParkSuggestions();
   const parkFileInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -89,6 +90,15 @@ export default function AdminParks() {
   const [selectedPark, setSelectedPark] = useState<Park | null>(null);
   const [formData, setFormData] = useState<ParkFormData>(initialFormData);
   const [isSaving, setIsSaving] = useState(false);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectNotes, setRejectNotes] = useState('');
+  const [activeTab, setActiveTab] = useState('parks');
+
+  useEffect(() => {
+    if (activeTab === 'suggestions') {
+      fetchPendingSuggestions();
+    }
+  }, [activeTab, fetchPendingSuggestions]);
 
   const filteredParks = allParks.filter(park =>
     park.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
