@@ -441,6 +441,78 @@ export type Database = {
         }
         Relationships: []
       }
+      park_suggestions: {
+        Row: {
+          address: string | null
+          admin_notes: string | null
+          city: string | null
+          created_at: string | null
+          description: string | null
+          has_agility_equipment: boolean | null
+          has_grass_surface: boolean | null
+          has_large_dog_area: boolean | null
+          has_parking: boolean | null
+          has_small_dog_area: boolean | null
+          has_water_station: boolean | null
+          id: string
+          image_url: string | null
+          is_fully_fenced: boolean | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          reviewed_at: string | null
+          state: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          admin_notes?: string | null
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          has_agility_equipment?: boolean | null
+          has_grass_surface?: boolean | null
+          has_large_dog_area?: boolean | null
+          has_parking?: boolean | null
+          has_small_dog_area?: boolean | null
+          has_water_station?: boolean | null
+          id?: string
+          image_url?: string | null
+          is_fully_fenced?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          reviewed_at?: string | null
+          state?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          admin_notes?: string | null
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          has_agility_equipment?: boolean | null
+          has_grass_surface?: boolean | null
+          has_large_dog_area?: boolean | null
+          has_parking?: boolean | null
+          has_small_dog_area?: boolean | null
+          has_water_station?: boolean | null
+          id?: string
+          image_url?: string | null
+          is_fully_fenced?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          reviewed_at?: string | null
+          state?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       parks: {
         Row: {
           added_by: string | null
