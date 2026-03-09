@@ -46,6 +46,8 @@ function ListItemSkeleton() {
 
 export default function Parks() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const { user } = useAuth();
   
   const mapHook = useParks();
   
