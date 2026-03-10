@@ -141,10 +141,10 @@ export default function AdminSettings() {
         .from('app_settings')
         .upsert({
           key,
-          value,
+          value: value as any,
           updated_at: new Date().toISOString(),
           updated_by: user?.id ?? null,
-        });
+        } as any);
       if (error) throw error;
       toast.success(`${key.replace(/_/g, ' ')} updated`);
       fetchSettings();
