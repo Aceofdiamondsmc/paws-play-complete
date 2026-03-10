@@ -103,19 +103,18 @@ export default function Parks() {
         {/* Filter Pills - only show for list view when data is ready */}
         {viewMode === 'list' && dataReady && (
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {filterOptions.map(filter => {
+          {filterOptions.map(filter => {
               const Icon = iconMap[filter.icon];
               const isActive = activeFilters.includes(filter.id as any);
               return (
                 <button
                   key={filter.id}
                   onClick={() => toggleFilter(filter.id as any)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border",
-                    isActive 
-                      ? "bg-primary text-primary-foreground border-primary shadow-md" 
-                      : "bg-card text-muted-foreground border-border hover:bg-muted"
-                  )}
+                  className={`flex items-center gap-1.5 px-3 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
+                    isActive
+                      ? filter.activeColor
+                      : `${filter.color} hover:opacity-80`
+                  }`}
                 >
                   <Icon className="w-4 h-4" />
                   {filter.label}
