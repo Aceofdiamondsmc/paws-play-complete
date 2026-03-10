@@ -1,74 +1,41 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Plan: Unify Filter Pills Across Parks and Services Tabs
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### What changes
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+**1. Parks filter pills → colorful individual colors with glow (matching Services)**
 
-### Changes
+Each Parks filter gets its own color identity, replacing the plain `bg-primary`/`bg-card` styling:
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+| Filter | Inactive | Active (with glow) |
+|--------|----------|---------------------|
+| Fully Fenced | `bg-amber-100 text-amber-600` | `bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.5)]` |
+| Water Station | `bg-blue-100 text-blue-600` | `bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]` |
+| Small Dog Area | `bg-pink-100 text-pink-600` | `bg-pink-500 text-white shadow-[0_0_20px_rgba(236,72,153,0.5)]` |
+| Large Dog Area | `bg-indigo-100 text-indigo-600` | `bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.5)]` |
+| Agility Equipment | `bg-orange-100 text-orange-600` | `bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.5)]` |
+| Parking | `bg-slate-100 text-slate-600` | `bg-slate-500 text-white shadow-[0_0_20px_rgba(100,116,139,0.5)]` |
+| Grass Surface | `bg-green-100 text-green-600` | `bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]` |
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+The `filterOptions` array gets `color` and `activeColor` fields (same pattern as `serviceCategories` in Explore.tsx). The button classes switch from `cn(...)` with border logic to the simpler template literal pattern used in Services.
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**2. Services card category badges → match their pill color**
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+Currently the category badge on each service card is a plain `<Badge variant="secondary">`. Update `ServiceCard` in `Explore.tsx` to use a color map that matches the category pill colors:
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+- Dog Walkers → `bg-blue-100 text-blue-600 border-blue-200`
+- Daycare → `bg-green-100 text-green-600 border-green-200`
+- Vet Clinics → `bg-red-100 text-red-600 border-red-200`
+- Trainers → `bg-orange-100 text-orange-600 border-orange-200`
+- Groomers → `bg-purple-100 text-purple-600 border-purple-200`
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+This creates visual continuity — the pill color at the top matches the badge color on each card below.
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+### Files
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
+| File | Change |
+|------|--------|
+| `src/pages/Parks.tsx` | Add `color`/`activeColor` to filter options, update pill button classes, remove `FilterOption` type import |
+| `src/pages/Explore.tsx` | Add category color map, update `ServiceCard` badge to use matching colors |
 
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
