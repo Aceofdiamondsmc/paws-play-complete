@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Trees, Compass, MessageCircle, CalendarDays, PawPrint, User, ShoppingCart } from 'lucide-react';
+import { Trees, Scissors, MessageCircle, CalendarDays, PawPrint, User, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/useNotifications';
 
 const navItems = [
   { path: '/dates', icon: CalendarDays, label: 'Dates' },
   { path: '/social', icon: MessageCircle, label: 'Social' },
-  { path: '/explore', icon: Compass, label: 'Explore' },
+  { path: '/explore', icon: Scissors, label: 'Services' },
   { path: '/pack', icon: PawPrint, label: 'Pack' },
   { path: '/shop', icon: ShoppingCart, label: 'Shop' },
   { path: '/parks', icon: Trees, label: 'Parks' },

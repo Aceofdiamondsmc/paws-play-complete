@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Compass, Search, Dog, Scissors, Stethoscope, Home, MapPin, List, Map as MapIcon, BadgeCheck, Loader2 } from 'lucide-react';
+import { Scissors as ScissorsIcon, Search, Dog, Scissors, Stethoscope, Home, MapPin, List, Map as MapIcon, BadgeCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -113,8 +113,8 @@ export default function Explore() {
       <div className="bg-card/95 backdrop-blur border-b border-border p-4 space-y-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Compass className="w-6 h-6 text-primary" />
-            Explore
+            <ScissorsIcon className="w-6 h-6 text-primary" />
+            Services
           </h1>
           <div className="flex gap-2">
             <Button

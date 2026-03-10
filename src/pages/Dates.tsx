@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox, ShieldBan, MessageSquare, Trash2, CheckCircle, Utensils, Lock, Package } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox, ShieldBan, MessageSquare, Trash2, CheckCircle, Utensils, Lock, Package, Users, ChevronDown } from 'lucide-react';
 import { CareScheduleSection } from '@/components/dates/CareScheduleSection';
 import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePlaydates } from '@/hooks/usePlaydates';
@@ -15,6 +16,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import datesBackground from '@/assets/dates-background.jpg';
+import { useGroupPlaydates } from '@/hooks/useGroupPlaydates';
+import { CreateGroupPlaydateModal } from '@/components/playdate/CreateGroupPlaydateModal';
+import { GroupPlaydateCard } from '@/components/playdate/GroupPlaydateCard';
 
 export default function Dates() {
   const navigate = useNavigate();
@@ -37,6 +41,8 @@ export default function Dates() {
   } = usePlaydates();
 
   const [blockTarget, setBlockTarget] = useState<{ id: string; name?: string } | null>(null);
+  const [groupPlaydateModalOpen, setGroupPlaydateModalOpen] = useState(false);
+  const { groupPlaydates, loading: groupLoading } = useGroupPlaydates();
 
   const handleBlockConfirm = async (reason?: string) => {
     if (!blockTarget) return;
@@ -218,10 +224,25 @@ export default function Dates() {
           <CalendarDays className="w-6 h-6 text-primary" />
           Playdates
         </h1>
-        <Button size="sm" className="rounded-full">
-          <Plus className="w-4 h-4 mr-1" />
-          New
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" className="rounded-full">
+              <Plus className="w-4 h-4 mr-1" />
+              New
+              <ChevronDown className="w-3 h-3 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate('/pack')}>
+              <Dog className="w-4 h-4 mr-2" />
+              1-on-1 Playdate
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setGroupPlaydateModalOpen(true)}>
+              <Users className="w-4 h-4 mr-2" />
+              Group Playdate
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Tabs defaultValue="all" className="p-4">
@@ -374,6 +395,33 @@ export default function Dates() {
         </TabsContent>
       </Tabs>
 
+      {/* Group Playdates Section */}
+      <div className="px-4 pb-4">
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
+          <Users className="w-5 h-5 text-primary" />
+          Group Playdates
+        </h2>
+        {groupLoading ? (
+          <div className="flex justify-center py-6">
+            <div className="animate-spin w-6 h-6 border-3 border-primary border-t-transparent rounded-full" />
+          </div>
+        ) : groupPlaydates.length === 0 ? (
+          <Card className="p-6 text-center bg-muted/50">
+            <Users className="w-10 h-10 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">No upcoming group playdates</p>
+            <Button size="sm" className="mt-3 rounded-full" onClick={() => setGroupPlaydateModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Create One
+            </Button>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {groupPlaydates.map(gp => (
+              <GroupPlaydateCard key={gp.id} playdate={gp} />
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Care Schedule Section */}
       <div className="px-4 pb-4">
         <CareScheduleSection />
@@ -384,6 +432,11 @@ export default function Dates() {
         onOpenChange={(open) => !open && setBlockTarget(null)}
         userName={blockTarget?.name}
         onConfirm={handleBlockConfirm}
+      />
+
+      <CreateGroupPlaydateModal
+        open={groupPlaydateModalOpen}
+        onOpenChange={setGroupPlaydateModalOpen}
       />
     </div>
   );
