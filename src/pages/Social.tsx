@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { usePosts } from '@/hooks/usePosts';
+import { useLostDogAlerts } from '@/hooks/useLostDogAlerts';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useParks } from '@/hooks/useParks';
