@@ -15,7 +15,7 @@ export interface CareHistoryEntry {
 }
 
 export type SupplyStatus = 'stocked' | 'low' | 'out' | 'unknown';
-export type BagSize = 'standard' | 'small';
+export type BagSize = 'large' | 'standard' | 'small';
 
 export interface SupplyStatusInfo {
   status: SupplyStatus;
