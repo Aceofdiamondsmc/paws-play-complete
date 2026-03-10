@@ -1,32 +1,43 @@
 
 
-## Plan: Enhance Floating "Add Park" Button Visibility
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-### Problem
-The floating `+` button on the Parks page blends in with the primary-colored tab bar, making it easy to miss.
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-### Solution
-Replace the plain icon-only FAB with a slightly wider pill-shaped button that includes a small label. This makes it self-documenting and visually distinct without being intrusive.
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-### Change: `src/pages/Parks.tsx` (lines 271-280)
+### Changes
 
-Replace the current icon-only `Button` with a pill-shaped FAB:
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-```tsx
-{user && (
-  <Button
-    onClick={() => setSuggestOpen(true)}
-    className="fixed bottom-24 right-4 z-30 rounded-full h-12 px-4 shadow-lg gap-1.5 bg-[#228B22] hover:bg-[#1a6b1a] text-white"
-  >
-    <Plus className="h-5 w-5" />
-    <span className="text-xs font-semibold">Add Park</span>
-  </Button>
-)}
-```
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-**What changes:**
-- Pill shape with label "Add Park" next to the `+` icon — instantly communicable.
-- Uses the green accent color (`#228B22`, matching the active nav icon) instead of the default primary orange — visually differentiates from the bottom nav.
-- Bumped to `bottom-24` so it sits comfortably above the nav bar.
-- No other files or components touched.
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+
+**4. Database migration** -- Update the `subscription_tier` column constraint
+
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 
