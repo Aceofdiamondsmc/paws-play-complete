@@ -1,41 +1,43 @@
 
 
-## Plan: "My Suggestions" Section on Profile Page
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
 ### Overview
-Add a polished "My Suggestions" card to the Me.tsx profile page (between Health & Vaccines and Admin Dashboard), plus a bottom sheet for detailed viewing. Extend the existing `useParkSuggestions` hook with a `fetchMySuggestions` method instead of creating a new hook.
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
 ### Changes
 
-**1. `src/hooks/useParkSuggestions.tsx`** — Add `mySuggestions` state + fetch method
-- Add `mySuggestions` state and `fetchMySuggestions()` that queries `park_suggestions` where `user_id = user.id`, ordered by `created_at desc`.
-- Auto-fetch on mount when user is authenticated.
-- Return `mySuggestions`, `mySuggestionsLoading`, and `fetchMySuggestions`.
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-**2. New: `src/components/parks/MySuggestionsList.tsx`** — The detail list component
-- Renders inside a Sheet (bottom drawer) triggered from the profile page.
-- Each suggestion is a card showing: park name, city/state, submitted date, amenity badges, and a prominent status badge.
-- Status badges:
-  - **Pending**: outline style, amber tint — "Under Review"
-  - **Approved**: green tint — "Live on Map!"
-  - **Rejected**: destructive style — "Not Approved" with `admin_notes` shown in a subtle callout box.
-- Empty state: friendly illustration prompt + CTA to navigate to Parks page.
-- Skeleton loading state for polish.
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-**3. `src/pages/Me.tsx`** — Add "My Suggestions" card
-- Import `useParkSuggestions` and the new `MySuggestionsList`.
-- Add a card after Health & Vaccines showing suggestion count with a status summary (e.g., "2 pending, 1 approved").
-- Tapping opens a Sheet with `MySuggestionsList`.
-- Only shown when user has >= 1 suggestion (keeps profile clean for new users).
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-### UX Polish
-- Status badges use color-coded backgrounds (amber/green/red) with icons (Clock, CheckCircle2, XCircle) for instant scannability.
-- Approved suggestions show a celebratory "Your park is live!" message.
-- Rejected suggestions show admin feedback in a muted callout so it feels constructive, not punitive.
-- Amenity chips shown as small muted badges for context.
-- Relative timestamps ("3 days ago") via date-fns `formatDistanceToNow`.
-- Sheet uses the existing Sheet component pattern from the codebase.
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-### No database changes needed
-The existing RLS policy `park_suggestions_select_own` already allows users to read their own suggestions.
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+
+**4. Database migration** -- Update the `subscription_tier` column constraint
+
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 

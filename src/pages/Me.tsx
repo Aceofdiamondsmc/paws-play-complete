@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp, TreePine } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,6 +21,10 @@ import { OnboardingFlow } from '@/components/profile/OnboardingFlow';
 import { NotificationsList } from '@/components/profile/NotificationsList';
 import { useAdmin } from '@/hooks/useAdmin';
 import { FriendsList } from '@/components/profile/FriendsList';
+import { MySuggestionsList } from '@/components/parks/MySuggestionsList';
+import { useParkSuggestions } from '@/hooks/useParkSuggestions';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 
 // Pet-themed placeholder images
@@ -34,6 +38,7 @@ const DOG_AVATARS = [
 export default function Me() {
   const { user, profile, dogs, signIn, signUp, signInWithGoogle, signOut, loading, refreshProfile } = useAuth();
   const { isAdmin } = useAdmin();
+  const { mySuggestions, mySuggestionsLoading } = useParkSuggestions();
   const { friends, pendingRequests } = useFriendships();
   const [showFriendsList, setShowFriendsList] = useState(false);
   const { conversations, totalUnread, refresh: refreshConversations } = useMessages();
@@ -51,6 +56,7 @@ export default function Me() {
   const [showVaccinationForm, setShowVaccinationForm] = useState(false);
   const [vaccinationDog, setVaccinationDog] = useState<{ id: string; name: string } | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   // Deep-link: auto-open chat from ?chat= query param
   useEffect(() => {
@@ -452,6 +458,35 @@ export default function Me() {
           )}
         </Card>
 
+        {/* My Suggestions Card - only show if user has suggestions */}
+        {mySuggestions.length > 0 && (
+          <Card 
+            className="p-4 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+            onClick={() => setShowSuggestions(true)}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <TreePine className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold">My Park Suggestions</h3>
+                <p className="text-sm text-muted-foreground">
+                  {mySuggestions.filter(s => s.status === 'pending').length > 0 &&
+                    `${mySuggestions.filter(s => s.status === 'pending').length} pending`}
+                  {mySuggestions.filter(s => s.status === 'pending').length > 0 &&
+                    mySuggestions.filter(s => s.status === 'approved').length > 0 && ', '}
+                  {mySuggestions.filter(s => s.status === 'approved').length > 0 &&
+                    `${mySuggestions.filter(s => s.status === 'approved').length} approved`}
+                  {mySuggestions.filter(s => s.status === 'pending').length === 0 &&
+                    mySuggestions.filter(s => s.status === 'approved').length === 0 &&
+                    `${mySuggestions.length} suggestion${mySuggestions.length === 1 ? '' : 's'}`}
+                </p>
+              </div>
+              <Badge variant="secondary" className="rounded-full">{mySuggestions.length}</Badge>
+            </div>
+          </Card>
+        )}
+
         {/* Admin Dashboard Link - Only visible to admins */}
         {isAdmin && (
           <Card className="p-4">
@@ -531,6 +566,20 @@ export default function Me() {
         onClose={() => setShowEditProfile(false)}
         profile={profile}
       />
+
+      <Sheet open={showSuggestions} onOpenChange={setShowSuggestions}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
+          <SheetHeader className="pb-2">
+            <SheetTitle>My Park Suggestions</SheetTitle>
+            <SheetDescription>
+              Track the status of the dog parks you've submitted for review.
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(85vh-120px)]">
+            <MySuggestionsList />
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
