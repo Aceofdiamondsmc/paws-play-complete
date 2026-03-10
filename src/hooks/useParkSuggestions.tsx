@@ -49,6 +49,21 @@ export function useParkSuggestions() {
   const [suggestions, setSuggestions] = useState<ParkSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // User's own suggestions via react-query
+  const { data: mySuggestions = [], isLoading: mySuggestionsLoading, refetch: refetchMySuggestions } = useQuery({
+    queryKey: ['my-park-suggestions', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('park_suggestions')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ParkSuggestion[];
+    },
+    enabled: !!user?.id,
+  });
+
   const fetchPendingSuggestions = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
