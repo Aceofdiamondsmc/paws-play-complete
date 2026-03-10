@@ -103,7 +103,7 @@ export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite }
             </Badge>
           )}
           {park.has_water_station && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-secondary text-secondary-foreground">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-blue-100 text-blue-700 border-blue-300">
               <Droplets className="w-2.5 h-2.5 mr-0.5" />
               Water
             </Badge>
