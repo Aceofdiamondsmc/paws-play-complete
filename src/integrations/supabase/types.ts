@@ -370,6 +370,131 @@ export type Database = {
           },
         ]
       }
+      group_playdate_rsvps: {
+        Row: {
+          created_at: string
+          dog_id: string
+          group_playdate_id: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dog_id: string
+          group_playdate_id: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dog_id?: string
+          group_playdate_id?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_playdate_rsvps_group_playdate_id_fkey"
+            columns: ["group_playdate_id"]
+            isOneToOne: false
+            referencedRelation: "group_playdates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_playdates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          location_name: string
+          max_dogs: number | null
+          organizer_id: string
+          scheduled_date: string
+          scheduled_time: string
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name: string
+          max_dogs?: number | null
+          organizer_id: string
+          scheduled_date: string
+          scheduled_time: string
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string
+          max_dogs?: number | null
+          organizer_id?: string
+          scheduled_date?: string
+          scheduled_time?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      lost_dog_alerts: {
+        Row: {
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          dog_id: string
+          id: string
+          last_seen_lat: number | null
+          last_seen_lng: number | null
+          last_seen_location: string | null
+          post_id: string | null
+          resolved_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          dog_id: string
+          id?: string
+          last_seen_lat?: number | null
+          last_seen_lng?: number | null
+          last_seen_location?: string | null
+          post_id?: string | null
+          resolved_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          dog_id?: string
+          id?: string
+          last_seen_lat?: number | null
+          last_seen_lng?: number | null
+          last_seen_location?: string | null
+          post_id?: string | null
+          resolved_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
