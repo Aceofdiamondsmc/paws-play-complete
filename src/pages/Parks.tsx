@@ -272,10 +272,10 @@ export default function Parks() {
       {user && (
         <Button
           onClick={() => setSuggestOpen(true)}
-          className="fixed bottom-20 right-4 z-30 rounded-full h-12 w-12 shadow-lg"
-          size="icon"
+          className="fixed bottom-24 right-4 z-30 rounded-full h-12 px-4 shadow-lg gap-1.5 bg-success hover:bg-success/90 text-success-foreground"
         >
           <Plus className="h-5 w-5" />
+          <span className="text-xs font-semibold">Add Park</span>
         </Button>
       )}
 
