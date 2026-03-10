@@ -243,8 +243,17 @@ export default function Explore() {
   );
 }
 
+const categoryColorMap: Record<string, string> = {
+  'Dog Walkers': 'bg-blue-100 text-blue-600 border-blue-200',
+  'Daycare': 'bg-green-100 text-green-600 border-green-200',
+  'Vet Clinics': 'bg-red-100 text-red-600 border-red-200',
+  'Trainers': 'bg-orange-100 text-orange-600 border-orange-200',
+  'Groomers': 'bg-purple-100 text-purple-600 border-purple-200',
+};
+
 function ServiceCard({ service, onClick }: { service: Service; onClick: () => void }) {
   const imageUrl = getServiceImage(service);
+  const badgeColor = categoryColorMap[service.category] || '';
   
   return (
     <Card className="p-4 card-playful cursor-pointer hover:shadow-lg transition-shadow" onClick={onClick}>
@@ -278,7 +287,7 @@ function ServiceCard({ service, onClick }: { service: Service; onClick: () => vo
               )}
             </div>
           </div>
-          <Badge variant="secondary" className="mt-1">{service.category}</Badge>
+          <Badge variant="secondary" className={`mt-1 border ${badgeColor}`}>{service.category}</Badge>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
             <span className="text-warning flex items-center gap-0.5">
               ★ {service.rating}
