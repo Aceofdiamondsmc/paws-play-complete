@@ -56,6 +56,7 @@ export default function Me() {
   const [showVaccinationForm, setShowVaccinationForm] = useState(false);
   const [vaccinationDog, setVaccinationDog] = useState<{ id: string; name: string } | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   // Deep-link: auto-open chat from ?chat= query param
   useEffect(() => {
