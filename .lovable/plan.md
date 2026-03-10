@@ -1,43 +1,34 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Plan: Real-time Status Updates + Submission Confetti
 
 ### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
-
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+Two enhancements to make the My Suggestions flow feel world-class: (1) real-time Supabase listener so status changes appear instantly with a toast, and (2) a confetti burst animation on successful park submission.
 
 ### Changes
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+**1. `src/components/parks/MySuggestionsList.tsx`** — Add Supabase Realtime listener
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+- Subscribe to `postgres_changes` on `park_suggestions` table (UPDATE events) filtered to the current user's rows.
+- On status change, show a sonner toast with the park name and new status (e.g., "Sunset Park was approved!").
+- Call `refetchMySuggestions()` to refresh the list automatically.
+- Use `db-` channel prefix per project convention (`db-my-park-suggestions`).
+- Cleanup subscription on unmount.
+- Add entrance animation via Tailwind `animate-in` on each card for smooth list transitions.
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**2. `src/components/parks/SuggestParkModal.tsx`** — Add confetti on successful submission
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+- Import and render the existing `ConfettiBurst` component on successful submit.
+- Show confetti for ~1 second before closing the modal, creating a celebratory moment.
+- Also call `refetchMySuggestions()` after submit so the new suggestion appears immediately in the profile sheet.
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+**3. `src/hooks/useParkSuggestions.tsx`** — No changes needed
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+The hook already exposes `refetchMySuggestions` via react-query's `refetch`. The realtime listener in the component will call this directly.
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+### Technical Notes
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
+- Realtime channel uses the naming convention `db-my-park-suggestions` to avoid collisions with table names (per project architecture memory).
+- The existing `park_suggestions_select_own` RLS policy ensures users only receive updates for their own rows.
+- The `ConfettiBurst` component and its `@keyframes confetti-burst` animation already exist in the codebase.
 
