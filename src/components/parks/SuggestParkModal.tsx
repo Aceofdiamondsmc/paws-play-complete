@@ -52,9 +52,14 @@ export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) 
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
+      setShowConfetti(true);
       toast({ title: 'Suggestion submitted!', description: 'Thanks! Your suggestion is under review.' });
-      setForm(initialForm);
-      onOpenChange(false);
+      refetchMySuggestions();
+      setTimeout(() => {
+        setShowConfetti(false);
+        setForm(initialForm);
+        onOpenChange(false);
+      }, 1200);
     }
   };
 
