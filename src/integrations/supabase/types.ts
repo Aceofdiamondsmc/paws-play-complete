@@ -29,6 +29,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       care_history: {
         Row: {
           category: string | null
@@ -1826,6 +1847,18 @@ export type Database = {
             }
             Returns: string
           }
+      admin_get_platform_stats: {
+        Args: never
+        Returns: {
+          pending_suggestions: number
+          total_dogs: number
+          total_parks: number
+          total_posts: number
+          total_services: number
+          total_users: number
+          users_this_week: number
+        }[]
+      }
       admin_get_users: {
         Args: never
         Returns: {
