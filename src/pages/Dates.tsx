@@ -41,6 +41,8 @@ export default function Dates() {
   } = usePlaydates();
 
   const [blockTarget, setBlockTarget] = useState<{ id: string; name?: string } | null>(null);
+  const [groupPlaydateModalOpen, setGroupPlaydateModalOpen] = useState(false);
+  const { groupPlaydates, loading: groupLoading } = useGroupPlaydates();
 
   const handleBlockConfirm = async (reason?: string) => {
     if (!blockTarget) return;
