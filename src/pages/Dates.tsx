@@ -224,10 +224,25 @@ export default function Dates() {
           <CalendarDays className="w-6 h-6 text-primary" />
           Playdates
         </h1>
-        <Button size="sm" className="rounded-full">
-          <Plus className="w-4 h-4 mr-1" />
-          New
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" className="rounded-full">
+              <Plus className="w-4 h-4 mr-1" />
+              New
+              <ChevronDown className="w-3 h-3 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate('/pack')}>
+              <Dog className="w-4 h-4 mr-2" />
+              1-on-1 Playdate
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setGroupPlaydateModalOpen(true)}>
+              <Users className="w-4 h-4 mr-2" />
+              Group Playdate
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Tabs defaultValue="all" className="p-4">
