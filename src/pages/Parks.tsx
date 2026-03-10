@@ -11,16 +11,14 @@ import { ParksMap } from '@/components/parks/ParksMap';
 import { ParkListItem } from '@/components/parks/ParkListItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import type { FilterOption } from '@/types';
-
-const filterOptions: FilterOption[] = [
-  { id: 'fenced', label: 'Fully Fenced', icon: 'Fence' },
-  { id: 'water', label: 'Water Station', icon: 'Droplets' },
-  { id: 'small-dogs', label: 'Small Dog Area', icon: 'Dog' },
-  { id: 'large-dogs', label: 'Large Dog Area', icon: 'Dog' },
-  { id: 'agility', label: 'Agility Equipment', icon: 'Dumbbell' },
-  { id: 'parking', label: 'Parking', icon: 'Car' },
-  { id: 'grass', label: 'Grass Surface', icon: 'TreePine' },
+const filterOptions = [
+  { id: 'fenced', label: 'Fully Fenced', icon: 'Fence', color: 'bg-amber-100 text-amber-600', activeColor: 'bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.5)]' },
+  { id: 'water', label: 'Water Station', icon: 'Droplets', color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]' },
+  { id: 'small-dogs', label: 'Small Dog Area', icon: 'Dog', color: 'bg-pink-100 text-pink-600', activeColor: 'bg-pink-500 text-white shadow-[0_0_20px_rgba(236,72,153,0.5)]' },
+  { id: 'large-dogs', label: 'Large Dog Area', icon: 'Dog', color: 'bg-indigo-100 text-indigo-600', activeColor: 'bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.5)]' },
+  { id: 'agility', label: 'Agility Equipment', icon: 'Dumbbell', color: 'bg-orange-100 text-orange-600', activeColor: 'bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.5)]' },
+  { id: 'parking', label: 'Parking', icon: 'Car', color: 'bg-slate-100 text-slate-600', activeColor: 'bg-slate-500 text-white shadow-[0_0_20px_rgba(100,116,139,0.5)]' },
+  { id: 'grass', label: 'Grass Surface', icon: 'TreePine', color: 'bg-green-100 text-green-600', activeColor: 'bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]' },
 ];
 
 const iconMap: Record<string, React.ElementType> = {
