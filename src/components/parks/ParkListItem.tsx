@@ -108,6 +108,36 @@ export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite }
               Water
             </Badge>
           )}
+          {park.has_small_dog_area && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-pink-100 text-pink-700 border-pink-300">
+              <Dog className="w-2.5 h-2.5 mr-0.5" />
+              Small Dogs
+            </Badge>
+          )}
+          {park.has_large_dog_area && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-indigo-100 text-indigo-700 border-indigo-300">
+              <Dog className="w-2.5 h-2.5 mr-0.5" />
+              Large Dogs
+            </Badge>
+          )}
+          {park.has_agility_equipment && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-orange-100 text-orange-700 border-orange-300">
+              <Dumbbell className="w-2.5 h-2.5 mr-0.5" />
+              Agility
+            </Badge>
+          )}
+          {park.has_parking && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-slate-100 text-slate-700 border-slate-300">
+              <Car className="w-2.5 h-2.5 mr-0.5" />
+              Parking
+            </Badge>
+          )}
+          {park.has_grass_surface && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-green-100 text-green-700 border-green-300">
+              <TreePine className="w-2.5 h-2.5 mr-0.5" />
+              Grass
+            </Badge>
+          )}
         </div>
       </div>
 
