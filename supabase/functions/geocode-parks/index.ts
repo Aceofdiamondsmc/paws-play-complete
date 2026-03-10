@@ -110,12 +110,20 @@ serve(async (req: Request) => {
         if (data.features && data.features.length > 0) {
           const [lng, lat] = data.features[0].center;
           
+          // Update lat/lng only; let a trigger or separate step handle geom
+          const validLat = typeof lat === 'number' && isFinite(lat) && lat >= -90 && lat <= 90;
+          const validLng = typeof lng === 'number' && isFinite(lng) && lng >= -180 && lng <= 180;
+          if (!validLat || !validLng) {
+            results.failed++;
+            results.errors.push(`Invalid coordinates for ${park.name}: ${lat}, ${lng}`);
+            continue;
+          }
+
           const { error: updateError } = await supabase
             .from("parks")
             .update({ 
               latitude: lat, 
               longitude: lng,
-              geom: `SRID=4326;POINT(${lng} ${lat})`
             })
             .eq("Id", park.Id);
 

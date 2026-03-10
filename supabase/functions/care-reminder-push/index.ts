@@ -12,6 +12,16 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Authenticate via CRON_SECRET header
+  const cronSecret = Deno.env.get('CRON_SECRET');
+  const providedSecret = req.headers.get('x-cron-secret');
+  if (!cronSecret || providedSecret !== cronSecret) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -30,7 +40,6 @@ Deno.serve(async (req) => {
     const now = new Date();
     console.log(`Server UTC time: ${now.toISOString()}`);
 
-    // Query all enabled reminders (including user_timezone)
     const { data: reminders, error: remindersError } = await supabase
       .from('care_reminders')
       .select('id, user_id, category, task_details, reminder_time, snoozed_until, user_timezone')
@@ -52,33 +61,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Helper: get current HH:MM and YYYY-MM-DD in a given timezone
     function getLocalTimeAndDate(utcNow: Date, timezone: string): { hhmm: string; dateStr: string } {
       const localTimeStr = utcNow.toLocaleString('en-US', { timeZone: timezone, hour12: false });
       const localDate = new Date(localTimeStr);
       const hh = String(localDate.getHours()).padStart(2, '0');
       const mm = String(localDate.getMinutes()).padStart(2, '0');
-      // Get local date string in YYYY-MM-DD
       const yyyy = localDate.getFullYear();
       const mo = String(localDate.getMonth() + 1).padStart(2, '0');
       const dd = String(localDate.getDate()).padStart(2, '0');
       return { hhmm: `${hh}:${mm}`, dateStr: `${yyyy}-${mo}-${dd}` };
     }
 
-    // Filter reminders due right now (per user's timezone)
     const dueReminders = reminders.filter((r) => {
       const tz = r.user_timezone || 'America/New_York';
       const { hhmm: userHHMM } = getLocalTimeAndDate(now, tz);
       const reminderHHMM = r.reminder_time.slice(0, 5);
-
       if (reminderHHMM !== userHHMM) return false;
-
-      // Skip snoozed
       if (r.snoozed_until) {
         const snoozeExpiry = new Date(r.snoozed_until);
         if (snoozeExpiry > now) return false;
       }
-
       return true;
     });
 
@@ -91,10 +93,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check which have already been sent today (using user's local date)
     const reminderIds = dueReminders.map((r) => r.id);
-
-    // Get all unique local dates for due reminders
     const reminderLocalDates = new Map<string, string>();
     for (const r of dueReminders) {
       const tz = r.user_timezone || 'America/New_York';
@@ -111,7 +110,6 @@ Deno.serve(async (req) => {
       console.error('Error checking sent log:', sentError);
     }
 
-    // Filter out reminders already sent on their local date
     const sentSet = new Set(
       (alreadySent || []).map((s) => `${s.reminder_id}|${s.sent_date}`)
     );
@@ -151,7 +149,6 @@ Deno.serve(async (req) => {
         const osResult = await osResponse.json();
         console.log(`Push for reminder ${reminder.id}:`, JSON.stringify(osResult));
 
-        // Log as sent using user's local date
         const { error: logError } = await supabase
           .from('care_reminder_sent_log')
           .insert({ reminder_id: reminder.id, sent_date: localDate });
@@ -182,29 +179,14 @@ Deno.serve(async (req) => {
 function getNotificationContent(category: string, taskDetails: string | null): { title: string; body: string } {
   switch (category) {
     case 'medication':
-      return {
-        title: '💊 Medication Reminder',
-        body: taskDetails ? `Time for ${taskDetails}` : 'Time to give medication',
-      };
+      return { title: '💊 Medication Reminder', body: taskDetails ? `Time for ${taskDetails}` : 'Time to give medication' };
     case 'feeding':
-      return {
-        title: '🥣 Feeding Reminder',
-        body: taskDetails ? `Time to feed: ${taskDetails}` : 'Time to feed your pup!',
-      };
+      return { title: '🥣 Feeding Reminder', body: taskDetails ? `Time to feed: ${taskDetails}` : 'Time to feed your pup!' };
     case 'grooming':
-      return {
-        title: '✂️ Grooming Reminder',
-        body: taskDetails ? `Grooming reminder: ${taskDetails}` : 'Time for grooming!',
-      };
+      return { title: '✂️ Grooming Reminder', body: taskDetails ? `Grooming reminder: ${taskDetails}` : 'Time for grooming!' };
     case 'training':
-      return {
-        title: '🎓 Training Reminder',
-        body: taskDetails ? `Training reminder: ${taskDetails}` : 'Time for training!',
-      };
+      return { title: '🎓 Training Reminder', body: taskDetails ? `Training reminder: ${taskDetails}` : 'Time for training!' };
     default:
-      return {
-        title: '🐾 Dog Walk Reminder',
-        body: 'Time to take your pup for a walk!',
-      };
+      return { title: '🐾 Dog Walk Reminder', body: 'Time to take your pup for a walk!' };
   }
 }
