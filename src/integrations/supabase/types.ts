@@ -1826,6 +1826,25 @@ export type Database = {
             }
             Returns: string
           }
+      admin_get_users: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          bio: string
+          city: string
+          created_at: string
+          display_name: string
+          dogs_count: number
+          id: string
+          is_admin: boolean
+          is_public: boolean
+          onboarding_completed: boolean
+          posts_count: number
+          state: string
+          updated_at: string
+          username: string
+        }[]
+      }
       block_user_and_decline_requests: {
         Args: { p_blocked: string; p_blocker: string }
         Returns: undefined
