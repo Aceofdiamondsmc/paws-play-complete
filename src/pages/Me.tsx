@@ -458,6 +458,35 @@ export default function Me() {
           )}
         </Card>
 
+        {/* My Suggestions Card - only show if user has suggestions */}
+        {mySuggestions.length > 0 && (
+          <Card 
+            className="p-4 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+            onClick={() => setShowSuggestions(true)}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <TreePine className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold">My Park Suggestions</h3>
+                <p className="text-sm text-muted-foreground">
+                  {mySuggestions.filter(s => s.status === 'pending').length > 0 &&
+                    `${mySuggestions.filter(s => s.status === 'pending').length} pending`}
+                  {mySuggestions.filter(s => s.status === 'pending').length > 0 &&
+                    mySuggestions.filter(s => s.status === 'approved').length > 0 && ', '}
+                  {mySuggestions.filter(s => s.status === 'approved').length > 0 &&
+                    `${mySuggestions.filter(s => s.status === 'approved').length} approved`}
+                  {mySuggestions.filter(s => s.status === 'pending').length === 0 &&
+                    mySuggestions.filter(s => s.status === 'approved').length === 0 &&
+                    `${mySuggestions.length} suggestion${mySuggestions.length === 1 ? '' : 's'}`}
+                </p>
+              </div>
+              <Badge variant="secondary" className="rounded-full">{mySuggestions.length}</Badge>
+            </div>
+          </Card>
+        )}
+
         {/* Admin Dashboard Link - Only visible to admins */}
         {isAdmin && (
           <Card className="p-4">
