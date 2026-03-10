@@ -1,110 +1,43 @@
 
 
-## Plan: Build Admin Users Management Page
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
 ### Overview
-Build a full-featured Admin Users page that lets you search, inspect, and moderate user accounts. This covers the key admin needs for a social pet app: viewing user activity, managing roles, and handling abuse/blocks.
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-### Database Changes
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-**1. Migration: Create an admin-accessible view for user data**
+### Changes
 
-Create a `SECURITY DEFINER` function `admin_get_users()` that joins `profiles` with activity counts (posts, dogs, blocks) so the admin can see everything in one place without needing direct RLS-bypassing SELECT on `profiles`.
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-```sql
--- Function to get user list for admins (bypasses profile RLS safely)
-CREATE OR REPLACE FUNCTION public.admin_get_users()
-RETURNS TABLE (
-  id uuid,
-  display_name text,
-  username text,
-  avatar_url text,
-  bio text,
-  city text,
-  state text,
-  is_public boolean,
-  onboarding_completed boolean,
-  created_at timestamptz,
-  updated_at timestamptz,
-  posts_count bigint,
-  dogs_count bigint,
-  is_admin boolean
-)
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT
-    p.id,
-    p.display_name,
-    p.username,
-    p.avatar_url,
-    p.bio,
-    p.city,
-    p.state,
-    p.is_public,
-    p.onboarding_completed,
-    p.created_at,
-    p.updated_at,
-    (SELECT count(*) FROM posts WHERE author_id = p.id) AS posts_count,
-    (SELECT count(*) FROM dogs WHERE owner_id = p.id) AS dogs_count,
-    (EXISTS (SELECT 1 FROM admin_users WHERE user_id = p.id)) AS is_admin
-  FROM profiles p
-  ORDER BY p.created_at DESC;
-$$;
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
--- Only admins can call it
-GRANT EXECUTE ON FUNCTION public.admin_get_users() TO authenticated;
-```
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-**2. Migration: RLS policy for admin to read `user_blocks`**
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-```sql
-CREATE POLICY "admin_read_blocks" ON public.user_blocks
-FOR SELECT TO authenticated
-USING (is_admin());
-```
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
-### Frontend Changes
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
 
-**`src/pages/admin/AdminUsers.tsx`** — Full rewrite with these sections:
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
 
-**Header area:**
-- Total user count + new users this week stat cards
-- Search bar (filters by display name, username, city)
+**4. Database migration** -- Update the `subscription_tier` column constraint
 
-**User table:**
-- Columns: Avatar, Name/Username, Location, Dogs, Posts, Status (public/private), Joined, Actions
-- Sortable by join date (default newest first)
-- Paginated client-side (20 per page)
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
 
-**User detail drawer (Sheet):**
-- Opens when clicking a row
-- Shows full profile info, bio, dogs list, post count
-- Action buttons:
-  - **Toggle Admin** — insert/delete from `admin_users` table
-  - **View Blocks** — shows who this user has blocked and who blocked them (via `user_blocks`)
-  - **View Posts** — link to Admin Social filtered by this user
+### Tier Order (lowest to highest)
 
-**Key patterns followed:**
-- Same table/card layout as AdminSocial and AdminParks
-- Uses `supabase.rpc('admin_get_users')` for data fetching
-- Uses `admin_users` table for role management (consistent with existing pattern)
-- Search + loading skeleton pattern from AdminSocial
-
-### Files
-
-| File | Action |
-|------|--------|
-| `src/pages/admin/AdminUsers.tsx` | Rewrite |
-| Database migration | New function + RLS policy |
-
-### What this covers for a pet social app
-
-- **Spam/fake accounts**: Quickly spot accounts with 0 dogs, 0 posts, no avatar
-- **Abuse management**: See block relationships to identify problematic users
-- **Role management**: Promote/demote admins without touching the database directly
-- **User support**: Look up any user by name/username to investigate issues
-- **Growth tracking**: See total users and new signups at a glance
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 
