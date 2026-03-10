@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParkSuggestions, ParkSuggestion } from '@/hooks/useParkSuggestions';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -6,6 +7,9 @@ import { Clock, CheckCircle2, XCircle, MapPin, Droplets, Fence, ParkingCircle, D
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const amenityConfig = [
   { key: 'is_fully_fenced', label: 'Fenced', icon: Fence },
@@ -60,8 +64,33 @@ function AmenityChips({ suggestion }: { suggestion: ParkSuggestion }) {
 }
 
 export function MySuggestionsList() {
-  const { mySuggestions, mySuggestionsLoading } = useParkSuggestions();
+  const { mySuggestions, mySuggestionsLoading, refetchMySuggestions } = useParkSuggestions();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('db-my-park-suggestions')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'park_suggestions', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const newRecord = payload.new as ParkSuggestion;
+          const statusLabel = newRecord.status === 'approved' ? 'approved! 🌳' : newRecord.status === 'rejected' ? 'not approved' : 'updated';
+          toast({
+            title: 'Suggestion Updated!',
+            description: `${newRecord.name} was ${statusLabel}`,
+          });
+          refetchMySuggestions();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, toast, refetchMySuggestions]);
 
   if (mySuggestionsLoading) {
     return (
@@ -96,8 +125,8 @@ export function MySuggestionsList() {
 
   return (
     <div className="space-y-3 p-1">
-      {mySuggestions.map(suggestion => (
-        <Card key={suggestion.id} className="p-4">
+      {mySuggestions.map((suggestion, index) => (
+        <Card key={suggestion.id} className="p-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <h4 className="font-semibold text-foreground truncate">{suggestion.name}</h4>

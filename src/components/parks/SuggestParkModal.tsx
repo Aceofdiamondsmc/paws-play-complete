@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2 } from 'lucide-react';
 import { useParkSuggestions, type ParkSuggestionInput } from '@/hooks/useParkSuggestions';
 import { useToast } from '@/hooks/use-toast';
+import { ConfettiBurst } from '@/components/dates/ConfettiBurst';
 
 interface SuggestParkModalProps {
   open: boolean;
@@ -32,7 +33,8 @@ const initialForm: ParkSuggestionInput = {
 export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) {
   const [form, setForm] = useState<ParkSuggestionInput>(initialForm);
   const [submitting, setSubmitting] = useState(false);
-  const { submitSuggestion } = useParkSuggestions();
+  const [showConfetti, setShowConfetti] = useState(false);
+  const { submitSuggestion, refetchMySuggestions } = useParkSuggestions();
   const { toast } = useToast();
 
   const update = <K extends keyof ParkSuggestionInput>(key: K, val: ParkSuggestionInput[K]) =>
@@ -50,9 +52,14 @@ export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) 
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
+      setShowConfetti(true);
       toast({ title: 'Suggestion submitted!', description: 'Thanks! Your suggestion is under review.' });
-      setForm(initialForm);
-      onOpenChange(false);
+      refetchMySuggestions();
+      setTimeout(() => {
+        setShowConfetti(false);
+        setForm(initialForm);
+        onOpenChange(false);
+      }, 1200);
     }
   };
 
@@ -110,6 +117,12 @@ export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) 
             </div>
           </div>
         </div>
+
+        {showConfetti && (
+          <div className="relative flex justify-center py-2">
+            <ConfettiBurst />
+          </div>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
