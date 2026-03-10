@@ -33,7 +33,8 @@ const initialForm: ParkSuggestionInput = {
 export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) {
   const [form, setForm] = useState<ParkSuggestionInput>(initialForm);
   const [submitting, setSubmitting] = useState(false);
-  const { submitSuggestion } = useParkSuggestions();
+  const [showConfetti, setShowConfetti] = useState(false);
+  const { submitSuggestion, refetchMySuggestions } = useParkSuggestions();
   const { toast } = useToast();
 
   const update = <K extends keyof ParkSuggestionInput>(key: K, val: ParkSuggestionInput[K]) =>
