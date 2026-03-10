@@ -395,6 +395,33 @@ export default function Dates() {
         </TabsContent>
       </Tabs>
 
+      {/* Group Playdates Section */}
+      <div className="px-4 pb-4">
+        <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
+          <Users className="w-5 h-5 text-primary" />
+          Group Playdates
+        </h2>
+        {groupLoading ? (
+          <div className="flex justify-center py-6">
+            <div className="animate-spin w-6 h-6 border-3 border-primary border-t-transparent rounded-full" />
+          </div>
+        ) : groupPlaydates.length === 0 ? (
+          <Card className="p-6 text-center bg-muted/50">
+            <Users className="w-10 h-10 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">No upcoming group playdates</p>
+            <Button size="sm" className="mt-3 rounded-full" onClick={() => setGroupPlaydateModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Create One
+            </Button>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {groupPlaydates.map(gp => (
+              <GroupPlaydateCard key={gp.id} playdate={gp} />
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Care Schedule Section */}
       <div className="px-4 pb-4">
         <CareScheduleSection />
