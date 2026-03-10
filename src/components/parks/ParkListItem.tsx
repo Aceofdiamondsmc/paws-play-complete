@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Star, Navigation, PawPrint, Fence, Droplets, MapPin } from 'lucide-react';
+import { Star, Navigation, PawPrint, Fence, Droplets, MapPin, Dog, Dumbbell, Car, TreePine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
