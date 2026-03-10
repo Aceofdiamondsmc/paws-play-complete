@@ -180,5 +180,8 @@ export function useParkSuggestions() {
     submitSuggestion,
     approveSuggestion,
     rejectSuggestion,
+    mySuggestions,
+    mySuggestionsLoading,
+    refetchMySuggestions,
   };
 }
