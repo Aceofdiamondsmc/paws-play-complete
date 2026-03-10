@@ -274,6 +274,26 @@ export default function Social() {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Lost Dog Alerts Banner */}
+        {activeAlerts.length > 0 && (
+          <div className="space-y-2">
+            {activeAlerts.map(alert => (
+              <div key={alert.id} className="flex items-center gap-3 p-3 rounded-xl border-2 border-destructive/30 bg-destructive/5 animate-pulse">
+                <div className="w-10 h-10 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground font-bold text-lg shrink-0">
+                  🚨
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-destructive text-sm">LOST DOG: {alert.dog?.name || 'Unknown'}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Last seen: {alert.last_seen_location || 'Unknown'}
+                    {alert.contact_phone && ` · Call: ${alert.contact_phone}`}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Create Post Form - only show if user is logged in */}
         {user && (
           <CreatePostForm onPost={handlePost} isPosting={isPosting} isAdmin={isAdmin} />

@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.message-notification]
 verify_jwt = false
+
+[functions.lost-dog-alert]
+verify_jwt = false

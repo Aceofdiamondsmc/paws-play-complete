@@ -433,6 +433,11 @@ export default function Dates() {
         userName={blockTarget?.name}
         onConfirm={handleBlockConfirm}
       />
+
+      <CreateGroupPlaydateModal
+        open={groupPlaydateModalOpen}
+        onOpenChange={setGroupPlaydateModalOpen}
+      />
     </div>
   );
 }
