@@ -64,8 +64,33 @@ function AmenityChips({ suggestion }: { suggestion: ParkSuggestion }) {
 }
 
 export function MySuggestionsList() {
-  const { mySuggestions, mySuggestionsLoading } = useParkSuggestions();
+  const { mySuggestions, mySuggestionsLoading, refetchMySuggestions } = useParkSuggestions();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('db-my-park-suggestions')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'park_suggestions', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const newRecord = payload.new as ParkSuggestion;
+          const statusLabel = newRecord.status === 'approved' ? 'approved! 🌳' : newRecord.status === 'rejected' ? 'not approved' : 'updated';
+          toast({
+            title: 'Suggestion Updated!',
+            description: `${newRecord.name} was ${statusLabel}`,
+          });
+          refetchMySuggestions();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, toast, refetchMySuggestions]);
 
   if (mySuggestionsLoading) {
     return (
