@@ -76,13 +76,16 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
             onValueChange={(val) => val && onBagSizeChange(val as BagSize)}
             className="gap-1"
           >
+            <ToggleGroupItem value="large" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+              Large
+            </ToggleGroupItem>
             <ToggleGroupItem value="standard" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
               Standard
             </ToggleGroupItem>
             <ToggleGroupItem value="small" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
               Small Bag
             </ToggleGroupItem>
-        </ToggleGroup>
+          </ToggleGroup>
         </div>
 
         {/* CTA Button */}
