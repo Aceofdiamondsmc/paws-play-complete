@@ -62,8 +62,8 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
             <div className="h-full rounded-full transition-all duration-700 ease-out bg-destructive" style={{ width: '0%' }} />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-muted-foreground">Full</span>
             <span className="text-[10px] text-muted-foreground">Empty</span>
+            <span className="text-[10px] text-muted-foreground">Full</span>
           </div>
         </div>
 
