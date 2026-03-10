@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Compass, Search, Dog, Scissors, Stethoscope, Home, MapPin, List, Map as MapIcon, BadgeCheck, Loader2 } from 'lucide-react';
+import { Scissors as ScissorsIcon, Search, Dog, Scissors, Stethoscope, Home, MapPin, List, Map as MapIcon, BadgeCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
