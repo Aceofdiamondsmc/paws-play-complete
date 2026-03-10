@@ -16,6 +16,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import datesBackground from '@/assets/dates-background.jpg';
+import { useGroupPlaydates } from '@/hooks/useGroupPlaydates';
+import { CreateGroupPlaydateModal } from '@/components/playdate/CreateGroupPlaydateModal';
+import { GroupPlaydateCard } from '@/components/playdate/GroupPlaydateCard';
 
 export default function Dates() {
   const navigate = useNavigate();
