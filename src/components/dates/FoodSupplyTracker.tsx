@@ -186,10 +186,10 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-[10px] text-muted-foreground">Full</span>
-          <span className="text-[10px] text-muted-foreground">Empty</span>
-        </div>
+         <div className="flex justify-between mt-1">
+           <span className="text-[10px] text-muted-foreground">Empty</span>
+           <span className="text-[10px] text-muted-foreground">Full</span>
+         </div>
       </div>
 
       {/* Bag size toggle */}
