@@ -126,7 +126,7 @@ export function MySuggestionsList() {
   return (
     <div className="space-y-3 p-1">
       {mySuggestions.map(suggestion => (
-        <Card key={suggestion.id} className="p-4">
+        <Card key={suggestion.id} className="p-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <h4 className="font-semibold text-foreground truncate">{suggestion.name}</h4>
