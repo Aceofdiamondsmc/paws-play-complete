@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2 } from 'lucide-react';
 import { useParkSuggestions, type ParkSuggestionInput } from '@/hooks/useParkSuggestions';
 import { useToast } from '@/hooks/use-toast';
+import { ConfettiBurst } from '@/components/dates/ConfettiBurst';
 
 interface SuggestParkModalProps {
   open: boolean;
