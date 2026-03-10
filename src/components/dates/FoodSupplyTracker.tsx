@@ -103,7 +103,7 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
     );
   }
 
-  const maxDays = bagSize === 'small' ? 15 : 30;
+  const maxDays = bagSize === 'large' ? 30 : bagSize === 'standard' ? 15 : 7;
   const progressPercent = daysSince !== null ? Math.max(0, Math.min(100, ((maxDays - daysSince) / maxDays) * 100)) : 100;
 
   const statusConfig = {
