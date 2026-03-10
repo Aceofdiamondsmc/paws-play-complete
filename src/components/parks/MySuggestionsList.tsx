@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParkSuggestions, ParkSuggestion } from '@/hooks/useParkSuggestions';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -6,6 +7,9 @@ import { Clock, CheckCircle2, XCircle, MapPin, Droplets, Fence, ParkingCircle, D
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const amenityConfig = [
   { key: 'is_fully_fenced', label: 'Fenced', icon: Fence },
