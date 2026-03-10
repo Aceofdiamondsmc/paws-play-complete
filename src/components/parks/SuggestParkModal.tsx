@@ -118,6 +118,12 @@ export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) 
           </div>
         </div>
 
+        {showConfetti && (
+          <div className="relative flex justify-center py-2">
+            <ConfettiBurst />
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={submitting}>
