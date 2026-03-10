@@ -1,35 +1,43 @@
 
 
-## Plan: Food Supply Tracker Tweaks
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-Three targeted changes, no new files.
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-### 1. Swap "Full" and "Empty" labels
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-The progress bar fills from left (empty) to right (full), but labels are reversed. Swap them so "Empty" is on the left and "Full" is on the right — matching the bar direction. Applies in both the `unknown` state and the normal state sections.
+### Changes
 
-### 2. Add "Large" bag size option — shift all thresholds
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-Update the `BagSize` type and threshold logic:
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-| Size | Supply Duration | Yellow (low) | Red (out) |
-|------|----------------|-------------|-----------|
-| **Large** (new) | ~30 day | 15 days | 26 days |
-| **Standard** (was standard) | ~15 day | 8 days | 13 days |
-| **Small Bag** (new logic) | ~7 day | 4 days | 6 days |
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-**Files affected:**
-- `src/hooks/useCareHistory.tsx` — Update `BagSize` type to `'large' | 'standard' | 'small'`, update `computeSupplyStatus` thresholds, update `maxDays` mapping
-- `src/components/dates/FoodSupplyTracker.tsx` — Add "Large" toggle option, update badge text (`~30 day`, `~15 day`, `~7 day`), update `maxDays` mapping
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-### 3. Make the supply duration badge pop
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
-Add a subtle yellow/amber glow + slightly bolder styling to the badge showing `~30 day supply` / `~15 day supply` / `~7 day supply`. Use a `shadow-[0_0_6px_rgba(234,179,8,0.4)]` and a light amber background regardless of status, so it always stands out.
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
 
-### Files
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
 
-| File | Change |
-|------|--------|
-| `src/hooks/useCareHistory.tsx` | Update `BagSize` type, add `large` thresholds, shift existing thresholds down |
-| `src/components/dates/FoodSupplyTracker.tsx` | Swap Full/Empty, add Large toggle, update badge text + glow styling |
+**4. Database migration** -- Update the `subscription_tier` column constraint
+
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 

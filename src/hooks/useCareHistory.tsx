@@ -15,7 +15,7 @@ export interface CareHistoryEntry {
 }
 
 export type SupplyStatus = 'stocked' | 'low' | 'out' | 'unknown';
-export type BagSize = 'standard' | 'small';
+export type BagSize = 'large' | 'standard' | 'small';
 
 export interface SupplyStatusInfo {
   status: SupplyStatus;
@@ -35,9 +35,11 @@ function computeSupplyStatus(lastEntry: CareHistoryEntry | null, bagSize: BagSiz
   }
 
   const daysSince = differenceInDays(new Date(), new Date(lastEntry.completed_at));
-  const thresholds = bagSize === 'small'
+  const thresholds = bagSize === 'large'
+    ? { yellow: 15, red: 26 }
+    : bagSize === 'standard'
     ? { yellow: 8, red: 13 }
-    : { yellow: 15, red: 26 };
+    : { yellow: 4, red: 6 };
 
   const status: SupplyStatus =
     daysSince >= thresholds.red ? 'out' :

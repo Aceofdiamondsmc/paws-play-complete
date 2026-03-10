@@ -44,9 +44,9 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-bold text-sm">Food Supply Empty</span>
-                <Badge variant="outline" className="text-[10px] px-2 py-0 font-medium bg-destructive/15 text-destructive border-destructive/30">
-                  {bagSize === 'small' ? '~15 day supply' : '~30 day supply'}
-                </Badge>
+                 <Badge variant="outline" className="text-[10px] px-2 py-0 font-medium bg-amber-100 text-amber-700 border-amber-300 shadow-[0_0_6px_rgba(234,179,8,0.4)]">
+                   {bagSize === 'large' ? '~30 day supply' : bagSize === 'standard' ? '~15 day supply' : '~7 day supply'}
+                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">Log a restock to start tracking your supply</p>
             </div>
@@ -62,8 +62,8 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
             <div className="h-full rounded-full transition-all duration-700 ease-out bg-destructive" style={{ width: '0%' }} />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-muted-foreground">Full</span>
             <span className="text-[10px] text-muted-foreground">Empty</span>
+            <span className="text-[10px] text-muted-foreground">Full</span>
           </div>
         </div>
 
@@ -76,13 +76,16 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
             onValueChange={(val) => val && onBagSizeChange(val as BagSize)}
             className="gap-1"
           >
+            <ToggleGroupItem value="large" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+              Large
+            </ToggleGroupItem>
             <ToggleGroupItem value="standard" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
               Standard
             </ToggleGroupItem>
             <ToggleGroupItem value="small" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
               Small Bag
             </ToggleGroupItem>
-        </ToggleGroup>
+          </ToggleGroup>
         </div>
 
         {/* CTA Button */}
@@ -100,7 +103,7 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
     );
   }
 
-  const maxDays = bagSize === 'small' ? 15 : 30;
+  const maxDays = bagSize === 'large' ? 30 : bagSize === 'standard' ? 15 : 7;
   const progressPercent = daysSince !== null ? Math.max(0, Math.min(100, ((maxDays - daysSince) / maxDays) * 100)) : 100;
 
   const statusConfig = {
@@ -158,9 +161,9 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-sm">{config.label}</span>
-              <Badge variant="outline" className={cn('text-[10px] px-2 py-0 font-medium', config.badgeClass)}>
-                {bagSize === 'small' ? '~15 day supply' : '~30 day supply'}
-              </Badge>
+               <Badge variant="outline" className="text-[10px] px-2 py-0 font-medium bg-amber-100 text-amber-700 border-amber-300 shadow-[0_0_6px_rgba(234,179,8,0.4)]">
+                 {bagSize === 'large' ? '~30 day supply' : bagSize === 'standard' ? '~15 day supply' : '~7 day supply'}
+               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">{config.subtitle}</p>
             {brandInfo && (
@@ -183,10 +186,10 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-[10px] text-muted-foreground">Full</span>
-          <span className="text-[10px] text-muted-foreground">Empty</span>
-        </div>
+         <div className="flex justify-between mt-1">
+           <span className="text-[10px] text-muted-foreground">Empty</span>
+           <span className="text-[10px] text-muted-foreground">Full</span>
+         </div>
       </div>
 
       {/* Bag size toggle */}
@@ -198,13 +201,16 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
           onValueChange={(val) => val && onBagSizeChange(val as BagSize)}
           className="gap-1"
         >
-          <ToggleGroupItem value="standard" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-            Standard
-          </ToggleGroupItem>
-          <ToggleGroupItem value="small" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-            Small Bag
-          </ToggleGroupItem>
-        </ToggleGroup>
+           <ToggleGroupItem value="large" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+             Large
+           </ToggleGroupItem>
+           <ToggleGroupItem value="standard" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+             Standard
+           </ToggleGroupItem>
+           <ToggleGroupItem value="small" className="rounded-full h-6 px-3 text-[11px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+             Small Bag
+           </ToggleGroupItem>
+         </ToggleGroup>
       </div>
 
       {/* CTA Button for out-of-stock state */}
