@@ -566,6 +566,20 @@ export default function Me() {
         onClose={() => setShowEditProfile(false)}
         profile={profile}
       />
+
+      <Sheet open={showSuggestions} onOpenChange={setShowSuggestions}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
+          <SheetHeader className="pb-2">
+            <SheetTitle>My Park Suggestions</SheetTitle>
+            <SheetDescription>
+              Track the status of the dog parks you've submitted for review.
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(85vh-120px)]">
+            <MySuggestionsList />
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
