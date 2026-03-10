@@ -161,9 +161,9 @@ export function FoodSupplyTracker({ supplyStatus, bagSize, onBagSizeChange, onDi
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-sm">{config.label}</span>
-              <Badge variant="outline" className={cn('text-[10px] px-2 py-0 font-medium', config.badgeClass)}>
-                {bagSize === 'small' ? '~15 day supply' : '~30 day supply'}
-              </Badge>
+               <Badge variant="outline" className="text-[10px] px-2 py-0 font-medium bg-amber-100 text-amber-700 border-amber-300 shadow-[0_0_6px_rgba(234,179,8,0.4)]">
+                 {bagSize === 'large' ? '~30 day supply' : bagSize === 'standard' ? '~15 day supply' : '~7 day supply'}
+               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">{config.subtitle}</p>
             {brandInfo && (
