@@ -112,8 +112,8 @@ export default function AdminSettings() {
         .select('*');
       if (error) throw error;
       const mapped: Record<string, AppSetting> = {};
-      (data || []).forEach((row: AppSetting) => {
-        mapped[row.key] = row;
+      (data || []).forEach((row: any) => {
+        mapped[row.key] = row as AppSetting;
       });
       setSettings(mapped);
 
