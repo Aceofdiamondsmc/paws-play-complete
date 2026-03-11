@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck, ImageOff, MessageSquare } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck, ImageOff, MessageSquare, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -44,14 +44,22 @@ import { useMessages } from '@/hooks/useMessages';
 type FilterTab = 'all' | 'friends' | 'reviews';
 
 // Pack Alert banners with one-time sound effect
-function PackAlertBanners({ alerts }: { alerts: any[] }) {
+function PackAlertBanners({ alerts, userId, onResolve }: { alerts: any[]; userId?: string; onResolve: (id: string) => void }) {
   const playedRef = useRef(false);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+
   useEffect(() => {
     if (alerts.length > 0 && !playedRef.current) {
       playPackAlertSound();
       playedRef.current = true;
     }
   }, [alerts]);
+
+  const handleResolve = async (alertId: string) => {
+    setResolvingId(alertId);
+    await onResolve(alertId);
+    setResolvingId(null);
+  };
 
   return (
     <div className="space-y-2">
@@ -67,6 +75,18 @@ function PackAlertBanners({ alerts }: { alerts: any[] }) {
               {alert.contact_phone && ` · Call: ${alert.contact_phone}`}
             </p>
           </div>
+          {userId && alert.user_id === userId && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={resolvingId === alert.id}
+              className="shrink-0 bg-green-500/15 hover:bg-green-500/25 text-green-700 dark:text-green-400 font-semibold text-xs"
+              onClick={(e) => { e.stopPropagation(); handleResolve(alert.id); }}
+            >
+              <Check className="h-3.5 w-3.5 mr-1" />
+              {resolvingId === alert.id ? 'Saving…' : 'Found'}
+            </Button>
+          )}
         </div>
       ))}
     </div>
@@ -122,7 +142,7 @@ export default function Social() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts();
-  const { activeAlerts } = useLostDogAlerts();
+  const { activeAlerts, resolveAlert } = useLostDogAlerts();
   const { allParks } = useParks();
   const { isAdmin } = useAdmin();
   const [isPosting, setIsPosting] = useState(false);
@@ -307,7 +327,7 @@ export default function Social() {
       <div className="p-4 space-y-4">
         {/* Pack Alerts Banner */}
         {activeAlerts.length > 0 && (
-          <PackAlertBanners alerts={activeAlerts} />
+          <PackAlertBanners alerts={activeAlerts} userId={user?.id} onResolve={resolveAlert} />
         )}
 
         {/* Create Post Form - only show if user is logged in */}
