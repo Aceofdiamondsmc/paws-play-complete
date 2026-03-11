@@ -28,6 +28,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { useParks } from '@/hooks/useParks';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { playPackAlertSound } from '@/lib/alert-sounds';
 import { cn } from '@/lib/utils';
 
 import { AspectRatio } from '@/components/ui/aspect-ratio';
