@@ -12,6 +12,7 @@ import { ServicesMap } from '@/components/explore/ServicesMap';
 import { ExploreAssistant } from '@/components/explore/ExploreAssistant';
 import { AddServiceCTA } from '@/components/explore/AddServiceCTA';
 import { WeatherWidget } from '@/components/explore/WeatherWidget';
+import { FreeTrialBanner } from '@/components/explore/FreeTrialBanner';
 
 const serviceCategories = [
   { id: 'Dog Walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]' },
