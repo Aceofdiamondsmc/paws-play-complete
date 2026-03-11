@@ -125,6 +125,9 @@ export function useLostDogAlerts() {
   const resolveAlert = async (alertId: string) => {
     if (!user) return { error: new Error('Not authenticated') };
 
+    // Get alert info for the reunited notification
+    const alert = activeAlerts.find(a => a.id === alertId);
+
     const { error } = await supabase
       .from('lost_dog_alerts')
       .update({ status: 'reunited', resolved_at: new Date().toISOString() })
@@ -132,10 +135,23 @@ export function useLostDogAlerts() {
       .eq('user_id', user.id);
 
     if (!error) {
+      playReunitedSound();
+
+      // Send reunited push notification
+      try {
+        await supabase.functions.invoke('lost-dog-alert', {
+          body: {
+            type: 'reunited',
+            dog_name: alert?.dog?.name,
+          },
+        });
+      } catch (e) {
+        console.warn('Reunited push notification failed:', e);
+      }
+
       await fetchActiveAlerts();
     }
     return { error };
   };
-
   return { activeAlerts, loading, createAlert, resolveAlert, refresh: fetchActiveAlerts };
 }
