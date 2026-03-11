@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck, ImageOff, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
