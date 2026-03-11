@@ -81,6 +81,9 @@ const App = () => (
                 <Route path="tools" element={<AdminTools />} />
                 <Route path="settings" element={<AdminSettings />} />
               </Route>
+              {/* Legacy redirects */}
+              <Route path="/explore" element={<Navigate to="/services" replace />} />
+              <Route path="/explore/:id" element={<ExploreIdRedirect />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
