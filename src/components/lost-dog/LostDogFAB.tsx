@@ -18,7 +18,7 @@ export function LostDogFAB() {
         aria-label="Report lost dog"
       >
         <AlertTriangle className="w-5 h-5" />
-        <span className="text-sm font-bold">SOS</span>
+        <span className="text-sm font-bold">Pack Alert</span>
       </button>
 
       <LostDogAlertModal open={open} onOpenChange={setOpen} />
