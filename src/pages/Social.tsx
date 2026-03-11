@@ -142,7 +142,7 @@ export default function Social() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts();
-  const { activeAlerts } = useLostDogAlerts();
+  const { activeAlerts, resolveAlert } = useLostDogAlerts();
   const { allParks } = useParks();
   const { isAdmin } = useAdmin();
   const [isPosting, setIsPosting] = useState(false);
