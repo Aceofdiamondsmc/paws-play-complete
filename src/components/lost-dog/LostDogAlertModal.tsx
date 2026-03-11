@@ -62,7 +62,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     if (error) {
       toast.error('Failed to create alert');
     } else {
-      toast.success('Lost dog alert sent! Check the Social feed.');
+      toast.success('Pack Alert sent! Check the Social feed.');
       onOpenChange(false);
       resetForm();
     }

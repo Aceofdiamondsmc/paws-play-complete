@@ -127,7 +127,7 @@ export function useLostDogAlerts() {
 
     const { error } = await supabase
       .from('lost_dog_alerts')
-      .update({ status: 'found', resolved_at: new Date().toISOString() })
+      .update({ status: 'reunited', resolved_at: new Date().toISOString() })
       .eq('id', alertId)
       .eq('user_id', user.id);
 
