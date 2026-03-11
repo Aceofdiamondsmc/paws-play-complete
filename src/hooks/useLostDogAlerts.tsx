@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-
+import { playReunitedSound } from '@/lib/alert-sounds';
 export interface LostDogAlert {
   id: string;
   user_id: string;
