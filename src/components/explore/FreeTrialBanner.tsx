@@ -74,7 +74,7 @@ export function FreeTrialBanner() {
           <div className="p-2 rounded-full bg-warning/20">
             <Crown className="w-5 h-5 text-warning" />
           </div>
-          <div>
+          <div className="flex-1">
             <p className="font-bold text-sm flex items-center gap-1.5">
               Premium Member
               <Badge variant="secondary" className="text-xs bg-warning/20 text-warning border-warning/30">Active</Badge>
@@ -82,6 +82,10 @@ export function FreeTrialBanner() {
             <p className="text-xs text-muted-foreground">You have full access to all premium features</p>
           </div>
         </div>
+        <Button variant="outline" size="sm" className="w-full mt-3" onClick={handleManage} disabled={isManaging}>
+          {isManaging ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Settings className="w-4 h-4 mr-2" />}
+          Manage Subscription
+        </Button>
       </Card>
     );
   }
