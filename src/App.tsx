@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { StatsProvider } from "@/contexts/StatsContext";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -30,6 +30,11 @@ import AdminSocial from "./pages/admin/AdminSocial";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTools from "./pages/admin/AdminTools";
+
+const ExploreIdRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/services/${id}`} replace />;
+};
 
 const queryClient = new QueryClient();
 
@@ -76,6 +81,9 @@ const App = () => (
                 <Route path="tools" element={<AdminTools />} />
                 <Route path="settings" element={<AdminSettings />} />
               </Route>
+              {/* Legacy redirects */}
+              <Route path="/explore" element={<Navigate to="/services" replace />} />
+              <Route path="/explore/:id" element={<ExploreIdRedirect />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
