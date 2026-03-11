@@ -114,13 +114,11 @@ export function playUrgentSound() {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
-
     const now = ctx.currentTime;
     const master = ctx.createGain();
     master.gain.value = 0.45;
     master.connect(ctx.destination);
 
-    // Whimper — descending wobble
     const whimper = ctx.createOscillator();
     const whimperGain = ctx.createGain();
     whimper.type = 'sine';
@@ -134,7 +132,6 @@ export function playUrgentSound() {
     whimper.start(now);
     whimper.stop(now + 0.38);
 
-    // Bell 1
     const bell1 = ctx.createOscillator();
     const bell1Gain = ctx.createGain();
     bell1.type = 'sine';
@@ -145,7 +142,6 @@ export function playUrgentSound() {
     bell1.start(now + 0.45);
     bell1.stop(now + 0.85);
 
-    // Bell 1 harmonic
     const bell1H = ctx.createOscillator();
     const bell1HGain = ctx.createGain();
     bell1H.type = 'sine';
@@ -156,7 +152,6 @@ export function playUrgentSound() {
     bell1H.start(now + 0.45);
     bell1H.stop(now + 0.7);
 
-    // Bell 2 (repeat, slightly higher)
     const bell2 = ctx.createOscillator();
     const bell2Gain = ctx.createGain();
     bell2.type = 'sine';
@@ -167,7 +162,6 @@ export function playUrgentSound() {
     bell2.start(now + 0.9);
     bell2.stop(now + 1.3);
 
-    // Bell 2 harmonic
     const bell2H = ctx.createOscillator();
     const bell2HGain = ctx.createGain();
     bell2H.type = 'sine';
@@ -177,8 +171,114 @@ export function playUrgentSound() {
     bell2H.connect(bell2HGain).connect(master);
     bell2H.start(now + 0.9);
     bell2H.stop(now + 1.15);
+  } catch {
+    // Silently fail
+  }
+}
 
-    // Don't close shared context
+/** Urgent "loud bark" + rising siren for Pack Alert (missing dog) */
+export function playPackAlertSound() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.value = 0.5;
+    master.connect(ctx.destination);
+
+    // Bark 1
+    const bark1 = ctx.createOscillator();
+    const bark1Gain = ctx.createGain();
+    bark1.type = 'square';
+    bark1.frequency.setValueAtTime(250, now);
+    bark1.frequency.exponentialRampToValueAtTime(180, now + 0.08);
+    bark1Gain.gain.setValueAtTime(0.7, now);
+    bark1Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    bark1.connect(bark1Gain).connect(master);
+    bark1.start(now);
+    bark1.stop(now + 0.1);
+
+    // Bark 2
+    const bark2 = ctx.createOscillator();
+    const bark2Gain = ctx.createGain();
+    bark2.type = 'square';
+    bark2.frequency.setValueAtTime(300, now + 0.15);
+    bark2.frequency.exponentialRampToValueAtTime(200, now + 0.23);
+    bark2Gain.gain.setValueAtTime(0.7, now + 0.15);
+    bark2Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    bark2.connect(bark2Gain).connect(master);
+    bark2.start(now + 0.15);
+    bark2.stop(now + 0.25);
+
+    // Rising siren sweep
+    const siren = ctx.createOscillator();
+    const sirenGain = ctx.createGain();
+    siren.type = 'sine';
+    siren.frequency.setValueAtTime(400, now + 0.35);
+    siren.frequency.exponentialRampToValueAtTime(1200, now + 0.85);
+    sirenGain.gain.setValueAtTime(0.5, now + 0.35);
+    sirenGain.gain.exponentialRampToValueAtTime(0.01, now + 0.95);
+    siren.connect(sirenGain).connect(master);
+    siren.start(now + 0.35);
+    siren.stop(now + 0.95);
+  } catch {
+    // Silently fail
+  }
+}
+
+/** Cheerful ascending chime for Pack Reunited (dog found) */
+export function playReunitedSound() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.value = 0.4;
+    master.connect(ctx.destination);
+
+    // C5
+    const n1 = ctx.createOscillator();
+    const n1g = ctx.createGain();
+    n1.type = 'sine';
+    n1.frequency.setValueAtTime(523, now);
+    n1g.gain.setValueAtTime(0.5, now);
+    n1g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+    n1.connect(n1g).connect(master);
+    n1.start(now);
+    n1.stop(now + 0.4);
+
+    // E5
+    const n2 = ctx.createOscillator();
+    const n2g = ctx.createGain();
+    n2.type = 'sine';
+    n2.frequency.setValueAtTime(659, now + 0.15);
+    n2g.gain.setValueAtTime(0.5, now + 0.15);
+    n2g.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+    n2.connect(n2g).connect(master);
+    n2.start(now + 0.15);
+    n2.stop(now + 0.55);
+
+    // G5
+    const n3 = ctx.createOscillator();
+    const n3g = ctx.createGain();
+    n3.type = 'sine';
+    n3.frequency.setValueAtTime(784, now + 0.3);
+    n3g.gain.setValueAtTime(0.5, now + 0.3);
+    n3g.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+    n3.connect(n3g).connect(master);
+    n3.start(now + 0.3);
+    n3.stop(now + 0.8);
+
+    // C6
+    const n4 = ctx.createOscillator();
+    const n4g = ctx.createGain();
+    n4.type = 'sine';
+    n4.frequency.setValueAtTime(1047, now + 0.45);
+    n4g.gain.setValueAtTime(0.35, now + 0.45);
+    n4g.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+    n4.connect(n4g).connect(master);
+    n4.start(now + 0.45);
+    n4.stop(now + 1.0);
   } catch {
     // Silently fail
   }
