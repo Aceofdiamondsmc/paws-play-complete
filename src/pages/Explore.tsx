@@ -199,7 +199,7 @@ export default function Explore() {
           <ServicesMap 
             services={filteredServices || []} 
             selectedCategory={selectedCategory}
-            onServiceClick={(id) => navigate(`/explore/${id}`)}
+            onServiceClick={(id) => navigate(`/services/${id}`)}
           />
         )}
 
