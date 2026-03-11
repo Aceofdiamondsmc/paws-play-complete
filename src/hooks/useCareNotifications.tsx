@@ -9,7 +9,6 @@ interface MissedMedication {
   reminder_id: string;
   user_id: string;
   task_details: string | null;
-  reminder_time: string;
 }
 
 export function useCareNotifications(reminders: CareReminder[]) {
