@@ -188,7 +188,10 @@ export default function Explore() {
           <WeatherWidget latitude={userCoords.latitude} longitude={userCoords.longitude} />
         )}
 
-        {/* Add Service CTA - moved to top */}
+        {/* Free Trial / Subscription Status */}
+        <FreeTrialBanner />
+
+        {/* Add Service CTA */}
         <AddServiceCTA />
 
 {/* Map View */}
