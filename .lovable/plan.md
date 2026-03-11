@@ -1,35 +1,74 @@
 
 
-## Update stripe-webhook to Save to `subscriptions` Table
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-The current webhook only writes to `service_submissions`. Your `subscriptions` table has the right schema (`status`, `trial_end_date`, `trial_start_date`, `stripe_subscription_id`, `stripe_customer_id`, `user_id`, `price_id`, `subscription_tier`, `cancel_at_period_end`). The webhook needs to upsert into this table for all subscription-related events.
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
 ### Changes
 
-**`supabase/functions/stripe-webhook/index.ts`**
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-Add logic to upsert the `subscriptions` table alongside the existing `service_submissions` updates:
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-1. **`checkout.session.completed`** -- When the session has a subscription, retrieve it from Stripe and upsert into `subscriptions`:
-   - `user_id` from `session.metadata.userId`
-   - `stripe_subscription_id`, `stripe_customer_id`
-   - `status`: map from Stripe status (`trialing`, `active`, etc.)
-   - `trial_end_date` / `trial_start_date`: from `subscription.trial_end` / `subscription.trial_start` (convert epoch to ISO)
-   - `price_id`: from `subscription.items.data[0].price.id`
-   - `subscription_tier`: from `session.metadata.tier` or `type`
-   - `cancel_at_period_end`: from `subscription.cancel_at_period_end`
-   - Upsert on `stripe_subscription_id` conflict
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-2. **`customer.subscription.updated`** (new event) -- Handle trial-to-active transitions, cancellation toggles:
-   - Upsert with updated `status`, `trial_end_date`, `cancel_at_period_end`
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-3. **`invoice.paid`** -- After existing `service_submissions` update, also update `subscriptions` status to `active` and clear trial fields if applicable
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
-4. **`customer.subscription.deleted`** -- Update `subscriptions` row status to `canceled`
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
 
-The existing `service_submissions` logic remains unchanged. The `subscriptions` upsert is additive -- if no `userId` is in metadata (e.g., old service listing checkouts), the subscriptions upsert is skipped.
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
 
-### Key Detail
+**4. Database migration** -- Update the `subscription_tier` column constraint
 
-The upsert uses `.upsert()` with `onConflict: 'stripe_subscription_id'` so repeated webhook deliveries are idempotent. The `subscription_status` enum already supports: `trialing`, `active`, `canceled`, `past_due`, `none`.
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
 
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
+
+---
+
+## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
+
+### What was implemented:
+
+1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
+
+2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
+
+3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
+
+### Database tables created:
+- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
+- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
+- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
+
+### Files created/modified:
+- `src/hooks/useLostDogAlerts.tsx` (new)
+- `src/hooks/useGroupPlaydates.tsx` (new)
+- `src/components/lost-dog/LostDogFAB.tsx` (new)
+- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
+- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
+- `src/components/playdate/GroupPlaydateCard.tsx` (new)
+- `supabase/functions/lost-dog-alert/index.ts` (new)
+- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
+- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
+- `src/pages/Explore.tsx` (edited — header rename)
+- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
+- `src/pages/Social.tsx` (edited — lost dog alert banners)
+- `supabase/config.toml` (edited — added lost-dog-alert function)
