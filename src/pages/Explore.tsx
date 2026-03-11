@@ -182,6 +182,11 @@ export default function Explore() {
           })}
         </div>
 
+        {/* Weather Widget */}
+        {userCoords && (
+          <WeatherWidget latitude={userCoords.latitude} longitude={userCoords.longitude} />
+        )}
+
         {/* Add Service CTA - moved to top */}
         <AddServiceCTA />
 
