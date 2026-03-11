@@ -327,7 +327,7 @@ export default function Social() {
       <div className="p-4 space-y-4">
         {/* Pack Alerts Banner */}
         {activeAlerts.length > 0 && (
-          <PackAlertBanners alerts={activeAlerts} />
+          <PackAlertBanners alerts={activeAlerts} userId={user?.id} onResolve={resolveAlert} />
         )}
 
         {/* Create Post Form - only show if user is logged in */}
