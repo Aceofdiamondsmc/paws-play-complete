@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Weather edge function - public endpoint
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
