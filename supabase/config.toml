@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.get-weather]
 verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.create-trial-checkout]
+verify_jwt = false
