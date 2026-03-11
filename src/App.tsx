@@ -50,8 +50,8 @@ const App = () => (
               <Route path="/submission-success" element={<SubmissionSuccess />} />
               <Route element={<AppLayout />}>
                 <Route path="/parks" element={<Parks />} />
-                <Route path="/explore" element={<Explore />} />
-                <Route path="/explore/:id" element={<ServiceDetails />} />
+                <Route path="/services" element={<Explore />} />
+                <Route path="/services/:id" element={<ServiceDetails />} />
                 <Route path="/social" element={<Social />} />
                 <Route path="/social/post/:id" element={<Social />} />
                 <Route path="/dates" element={<Dates />} />

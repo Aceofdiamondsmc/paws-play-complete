@@ -85,8 +85,8 @@ serve(async (req) => {
           type: "premium_trial",
         },
       },
-      success_url: `${origin}/explore?trial_started=true`,
-      cancel_url: `${origin}/explore`,
+      success_url: `${origin}/services?trial_started=true`,
+      cancel_url: `${origin}/services`,
       metadata: {
         userId: user.id,
         type: "premium_trial",
