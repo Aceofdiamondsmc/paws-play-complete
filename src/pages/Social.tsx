@@ -44,14 +44,22 @@ import { useMessages } from '@/hooks/useMessages';
 type FilterTab = 'all' | 'friends' | 'reviews';
 
 // Pack Alert banners with one-time sound effect
-function PackAlertBanners({ alerts }: { alerts: any[] }) {
+function PackAlertBanners({ alerts, userId, onResolve }: { alerts: any[]; userId?: string; onResolve: (id: string) => void }) {
   const playedRef = useRef(false);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+
   useEffect(() => {
     if (alerts.length > 0 && !playedRef.current) {
       playPackAlertSound();
       playedRef.current = true;
     }
   }, [alerts]);
+
+  const handleResolve = async (alertId: string) => {
+    setResolvingId(alertId);
+    await onResolve(alertId);
+    setResolvingId(null);
+  };
 
   return (
     <div className="space-y-2">
@@ -67,6 +75,18 @@ function PackAlertBanners({ alerts }: { alerts: any[] }) {
               {alert.contact_phone && ` · Call: ${alert.contact_phone}`}
             </p>
           </div>
+          {userId && alert.user_id === userId && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={resolvingId === alert.id}
+              className="shrink-0 bg-green-500/15 hover:bg-green-500/25 text-green-700 dark:text-green-400 font-semibold text-xs"
+              onClick={(e) => { e.stopPropagation(); handleResolve(alert.id); }}
+            >
+              <Check className="h-3.5 w-3.5 mr-1" />
+              {resolvingId === alert.id ? 'Saving…' : 'Found'}
+            </Button>
+          )}
         </div>
       ))}
     </div>
