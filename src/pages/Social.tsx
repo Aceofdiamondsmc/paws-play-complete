@@ -43,6 +43,36 @@ import { useMessages } from '@/hooks/useMessages';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
+// Pack Alert banners with one-time sound effect
+function PackAlertBanners({ alerts }: { alerts: any[] }) {
+  const playedRef = useRef(false);
+  useEffect(() => {
+    if (alerts.length > 0 && !playedRef.current) {
+      playPackAlertSound();
+      playedRef.current = true;
+    }
+  }, [alerts]);
+
+  return (
+    <div className="space-y-2">
+      {alerts.map((alert: any) => (
+        <div key={alert.id} className="flex items-center gap-3 p-3 rounded-xl border-2 border-destructive/30 bg-destructive/5 animate-pulse">
+          <div className="w-10 h-10 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground font-bold text-lg shrink-0">
+            🚨
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-destructive text-sm">🚨 PAWS ALERT: {alert.dog?.name || 'Unknown'} is missing!</p>
+            <p className="text-xs text-muted-foreground truncate">
+              Last seen: {alert.last_seen_location || 'Unknown'}
+              {alert.contact_phone && ` · Call: ${alert.contact_phone}`}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 // Image with loading/error fallback
 function PostImage({ src, alt }: { src: string; alt: string }) {
