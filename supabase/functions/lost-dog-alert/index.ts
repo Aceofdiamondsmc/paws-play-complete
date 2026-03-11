@@ -33,9 +33,9 @@ serve(async (req) => {
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
         included_segments: ['All'],
-        headings: { en: `🚨 LOST DOG: ${dog_name || 'Help Find This Dog'}` },
+        headings: { en: `🚨 PAWS ALERT: ${dog_name || 'A dog'} is missing!` },
         contents: {
-          en: `Last seen near ${last_seen || 'unknown location'}. ${description || 'Please keep an eye out!'}`,
+          en: `Last seen near ${last_seen || 'unknown location'}. ${description || 'Please keep an eye out and help reunite the pack!'}`,
         },
         priority: 10,
         android_sound: 'notification',

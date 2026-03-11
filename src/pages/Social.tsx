@@ -274,7 +274,7 @@ export default function Social() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Lost Dog Alerts Banner */}
+        {/* Pack Alerts Banner */}
         {activeAlerts.length > 0 && (
           <div className="space-y-2">
             {activeAlerts.map(alert => (
@@ -283,7 +283,7 @@ export default function Social() {
                   🚨
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-destructive text-sm">LOST DOG: {alert.dog?.name || 'Unknown'}</p>
+                  <p className="font-bold text-destructive text-sm">🚨 PAWS ALERT: {alert.dog?.name || 'Unknown'} is missing!</p>
                   <p className="text-xs text-muted-foreground truncate">
                     Last seen: {alert.last_seen_location || 'Unknown'}
                     {alert.contact_phone && ` · Call: ${alert.contact_phone}`}
