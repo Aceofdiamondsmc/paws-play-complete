@@ -75,10 +75,23 @@ export function useSubscription() {
     ? Math.max(0, Math.ceil((new Date(state.trialEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
 
+  const manageSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to open subscription management');
+    }
+  };
+
   return {
     ...state,
     trialDaysLeft,
     startTrial,
+    manageSubscription,
     refreshSubscription: checkSubscription,
   };
 }

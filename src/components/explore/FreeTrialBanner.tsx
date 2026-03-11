@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Crown, Clock, Loader2, UserPlus } from 'lucide-react';
+import { Sparkles, Crown, Clock, Loader2, UserPlus, Settings } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
@@ -10,8 +10,9 @@ import { useNavigate } from 'react-router-dom';
 
 export function FreeTrialBanner() {
   const { user } = useAuth();
-  const { isSubscribed, isTrialing, trialDaysLeft, isLoading, startTrial } = useSubscription();
+  const { isSubscribed, isTrialing, trialDaysLeft, isLoading, startTrial, manageSubscription } = useSubscription();
   const [isStarting, setIsStarting] = useState(false);
+  const [isManaging, setIsManaging] = useState(false);
   const navigate = useNavigate();
 
   // Show sign-up CTA for logged-out users
@@ -56,6 +57,15 @@ export function FreeTrialBanner() {
     }
   };
 
+  const handleManage = async () => {
+    setIsManaging(true);
+    try {
+      await manageSubscription();
+    } finally {
+      setIsManaging(false);
+    }
+  };
+
   // Active paid subscription
   if (isSubscribed && !isTrialing) {
     return (
@@ -64,7 +74,7 @@ export function FreeTrialBanner() {
           <div className="p-2 rounded-full bg-warning/20">
             <Crown className="w-5 h-5 text-warning" />
           </div>
-          <div>
+          <div className="flex-1">
             <p className="font-bold text-sm flex items-center gap-1.5">
               Premium Member
               <Badge variant="secondary" className="text-xs bg-warning/20 text-warning border-warning/30">Active</Badge>
@@ -72,6 +82,10 @@ export function FreeTrialBanner() {
             <p className="text-xs text-muted-foreground">You have full access to all premium features</p>
           </div>
         </div>
+        <Button variant="outline" size="sm" className="w-full mt-3" onClick={handleManage} disabled={isManaging}>
+          {isManaging ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Settings className="w-4 h-4 mr-2" />}
+          Manage Subscription
+        </Button>
       </Card>
     );
   }
@@ -84,7 +98,7 @@ export function FreeTrialBanner() {
           <div className="p-2 rounded-full bg-success/20">
             <Clock className="w-5 h-5 text-success" />
           </div>
-          <div>
+          <div className="flex-1">
             <p className="font-bold text-sm flex items-center gap-1.5">
               Premium Trial Active
               <Badge variant="secondary" className="text-xs bg-success/20 text-success border-success/30">
@@ -94,6 +108,10 @@ export function FreeTrialBanner() {
             <p className="text-xs text-muted-foreground">Enjoying full premium access • Cancel anytime</p>
           </div>
         </div>
+        <Button variant="outline" size="sm" className="w-full mt-3" onClick={handleManage} disabled={isManaging}>
+          {isManaging ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Settings className="w-4 h-4 mr-2" />}
+          Manage Subscription
+        </Button>
       </Card>
     );
   }
