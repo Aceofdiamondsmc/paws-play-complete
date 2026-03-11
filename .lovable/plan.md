@@ -1,44 +1,74 @@
 
 
-## Apply Pack Alert Notification Templates and Add Sound Effects
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-Update the push notification copy, social post content, resolution flow, and in-app alert sounds to match the three provided templates.
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
 ### Changes
 
-**1. `supabase/functions/lost-dog-alert/index.ts`** -- Template 1 (Urgent)
-- Heading: `🚨 PAWS ALERT: Missing Member!`
-- Body: `[Dog Name] was last seen at [Location]. Our pack needs your eyes on the street. Tap for details and contact info.`
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-**2. `src/hooks/useLostDogAlerts.tsx`**
-- Update social post content to match the urgent community tone: lead with `🚨 PAWS ALERT: Missing Member!` and include "Our pack needs your eyes on the street."
-- In `resolveAlert`: after updating status to `'reunited'`, send a **resolution push notification** by invoking a new payload to the `lost-dog-alert` edge function with a `type: 'reunited'` flag.
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-**3. `supabase/functions/lost-dog-alert/index.ts`** -- Template 2 (Reunited)
-- Accept an optional `type` field in the request body.
-- When `type === 'reunited'`:
-  - Heading: `🎉 Good News: Pack Reunited!`
-  - Body: `[Dog Name] is Safe & Sound! Thank you to everyone who kept a lookout. The pack is back together!`
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-**4. `src/lib/alert-sounds.ts`** -- Add two new sound functions
-- `playPackAlertSound()`: Urgent "loud bark" -- two sharp low-frequency bursts (square wave ~200-300Hz) followed by a rising siren sweep, louder master gain (0.5). Distinct from the existing care reminder sounds.
-- `playReunitedSound()`: Cheerful chime -- ascending major triad (C5-E5-G5) with a bright sine tone and gentle decay. Warm, celebratory feel.
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-**5. `src/pages/Social.tsx`** -- Play sounds when alerts render
-- Import `playPackAlertSound` from alert-sounds.
-- Play `playPackAlertSound()` once when active alert banners first appear (use a ref to avoid replaying on re-renders).
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
-**6. `src/hooks/useLostDogAlerts.tsx`** -- Play reunited sound on resolution
-- Import `playReunitedSound` and call it after successful `resolveAlert`.
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
 
-### Template 3 (Proximity Alert) -- Future
-The geo-fenced "Near You" template requires location-based user segmentation in OneSignal (not yet configured). This plan adds a comment in the edge function noting the planned template for when geo-fencing is implemented.
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
 
-### Summary of notification tone differences
+**4. Database migration** -- Update the `subscription_tier` column constraint
 
-| Event | Title | Body tone | Sound |
-|-------|-------|-----------|-------|
-| Missing | `🚨 PAWS ALERT: Missing Member!` | Urgent, action-oriented | Sharp bark + siren |
-| Reunited | `🎉 Good News: Pack Reunited!` | Celebratory, grateful | Cheerful chime |
-| Proximity | `📍 Pack Alert: Near You` | Hyper-local, neighborly | (future) |
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
 
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
+
+---
+
+## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
+
+### What was implemented:
+
+1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
+
+2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
+
+3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
+
+### Database tables created:
+- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
+- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
+- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
+
+### Files created/modified:
+- `src/hooks/useLostDogAlerts.tsx` (new)
+- `src/hooks/useGroupPlaydates.tsx` (new)
+- `src/components/lost-dog/LostDogFAB.tsx` (new)
+- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
+- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
+- `src/components/playdate/GroupPlaydateCard.tsx` (new)
+- `supabase/functions/lost-dog-alert/index.ts` (new)
+- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
+- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
+- `src/pages/Explore.tsx` (edited — header rename)
+- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
+- `src/pages/Social.tsx` (edited — lost dog alert banners)
+- `supabase/config.toml` (edited — added lost-dog-alert function)

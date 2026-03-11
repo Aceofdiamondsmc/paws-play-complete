@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-
+import { playReunitedSound } from '@/lib/alert-sounds';
 export interface LostDogAlert {
   id: string;
   user_id: string;
@@ -71,7 +71,7 @@ export function useLostDogAlerts() {
         .single();
 
       // Create the Social post
-      const postContent = `🚨 PAWS ALERT 🚨\n\n${dog?.name || 'A dog'} (${dog?.breed || 'Unknown breed'}) is missing!\n\n📍 Last seen: ${data.last_seen_location}\n📝 ${data.description}\n📞 Contact: ${data.contact_phone}\n\nPlease share and keep an eye out! 🐾`;
+      const postContent = `🚨 PAWS ALERT: Missing Member! 🚨\n\n${dog?.name || 'A dog'} (${dog?.breed || 'Unknown breed'}) is missing!\n\n📍 Last seen: ${data.last_seen_location}\n📝 ${data.description}\n📞 Contact: ${data.contact_phone}\n\nOur pack needs your eyes on the street. Please share! 🐾`;
 
       const { data: post, error: postError } = await supabase
         .from('posts')
@@ -125,6 +125,9 @@ export function useLostDogAlerts() {
   const resolveAlert = async (alertId: string) => {
     if (!user) return { error: new Error('Not authenticated') };
 
+    // Get alert info for the reunited notification
+    const alert = activeAlerts.find(a => a.id === alertId);
+
     const { error } = await supabase
       .from('lost_dog_alerts')
       .update({ status: 'reunited', resolved_at: new Date().toISOString() })
@@ -132,10 +135,23 @@ export function useLostDogAlerts() {
       .eq('user_id', user.id);
 
     if (!error) {
+      playReunitedSound();
+
+      // Send reunited push notification
+      try {
+        await supabase.functions.invoke('lost-dog-alert', {
+          body: {
+            type: 'reunited',
+            dog_name: alert?.dog?.name,
+          },
+        });
+      } catch (e) {
+        console.warn('Reunited push notification failed:', e);
+      }
+
       await fetchActiveAlerts();
     }
     return { error };
   };
-
   return { activeAlerts, loading, createAlert, resolveAlert, refresh: fetchActiveAlerts };
 }

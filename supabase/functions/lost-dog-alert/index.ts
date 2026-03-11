@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { dog_name, last_seen, description } = await req.json();
+    const { dog_name, last_seen, description, type } = await req.json();
 
     const ONESIGNAL_APP_ID = Deno.env.get('ONESIGNAL_APP_ID');
     const ONESIGNAL_REST_API_KEY = Deno.env.get('ONESIGNAL_REST_API_KEY');
@@ -23,7 +23,36 @@ serve(async (req) => {
       });
     }
 
-    // Send broadcast push notification to all users
+    // Template 2: Reunited
+    if (type === 'reunited') {
+      const response = await fetch('https://api.onesignal.com/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`,
+        },
+        body: JSON.stringify({
+          app_id: ONESIGNAL_APP_ID,
+          included_segments: ['All'],
+          headings: { en: `🎉 Good News: Pack Reunited!` },
+          contents: {
+            en: `${dog_name || 'A dog'} is Safe & Sound! Thank you to everyone who kept a lookout. The pack is back together!`,
+          },
+          priority: 10,
+          android_sound: 'notification',
+          ios_sound: 'default',
+        }),
+      });
+
+      const result = await response.json();
+      console.log('OneSignal reunited broadcast result:', result);
+
+      return new Response(JSON.stringify({ success: true, push: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Template 1: Urgent (default)
     const response = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
@@ -33,9 +62,9 @@ serve(async (req) => {
       body: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
         included_segments: ['All'],
-        headings: { en: `🚨 PAWS ALERT: ${dog_name || 'A dog'} is missing!` },
+        headings: { en: `🚨 PAWS ALERT: Missing Member!` },
         contents: {
-          en: `Last seen near ${last_seen || 'unknown location'}. ${description || 'Please keep an eye out and help reunite the pack!'}`,
+          en: `${dog_name || 'A dog'} was last seen at ${last_seen || 'unknown location'}. Our pack needs your eyes on the street. Tap for details and contact info.`,
         },
         priority: 10,
         android_sound: 'notification',
@@ -45,6 +74,11 @@ serve(async (req) => {
 
     const result = await response.json();
     console.log('OneSignal broadcast result:', result);
+
+    // TODO: Template 3 (Proximity Alert) — future geo-fenced "Near You" template
+    // Title: 📍 Pack Alert: Near You
+    // Body: A neighbor's dog is missing nearby in [Neighborhood]. Can you help bring [Dog Name] home?
+    // Requires location-based user segmentation in OneSignal.
 
     return new Response(JSON.stringify({ success: true, push: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
