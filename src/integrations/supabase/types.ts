@@ -89,13 +89,6 @@ export type Database = {
             referencedRelation: "care_reminders"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "walk_history_reminder_id_fkey"
-            columns: ["reminder_id"]
-            isOneToOne: false
-            referencedRelation: "missed_medications"
-            referencedColumns: ["reminder_id"]
-          },
         ]
       }
       care_reminder_sent_log: {
@@ -1447,6 +1440,51 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          id: string
+          price_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_tier: string | null
+          trial_end_date: string | null
+          trial_start_date: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          id?: string
+          price_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_tier?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          id?: string
+          price_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_tier?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_blocks: {
         Row: {
           blocked_id: string
@@ -1551,7 +1589,6 @@ export type Database = {
           fuzzy_lat: number | null
           fuzzy_lng: number | null
           id: string | null
-          updated_at: string | null
           username: string | null
         }
         Insert: {
@@ -1559,7 +1596,6 @@ export type Database = {
           fuzzy_lat?: never
           fuzzy_lng?: never
           id?: string | null
-          updated_at?: string | null
           username?: string | null
         }
         Update: {
@@ -1567,7 +1603,6 @@ export type Database = {
           fuzzy_lat?: never
           fuzzy_lng?: never
           id?: string | null
-          updated_at?: string | null
           username?: string | null
         }
         Relationships: []
@@ -1616,24 +1651,44 @@ export type Database = {
       }
       missed_medications: {
         Row: {
+          category: string | null
+          completed_at: string | null
+          id: string | null
+          notes: string | null
           reminder_id: string | null
-          reminder_time: string | null
+          status: string | null
           task_details: string | null
           user_id: string | null
         }
         Insert: {
+          category?: string | null
+          completed_at?: string | null
+          id?: string | null
+          notes?: string | null
           reminder_id?: string | null
-          reminder_time?: string | null
+          status?: string | null
           task_details?: string | null
           user_id?: string | null
         }
         Update: {
+          category?: string | null
+          completed_at?: string | null
+          id?: string | null
+          notes?: string | null
           reminder_id?: string | null
-          reminder_time?: string | null
+          status?: string | null
           task_details?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "walk_history_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "care_reminders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       park_counts: {
         Row: {
@@ -2267,6 +2322,7 @@ export type Database = {
         }[]
       }
       gettransactionid: { Args: never; Returns: unknown }
+      has_active_subscription: { Args: never; Returns: boolean }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
@@ -2913,6 +2969,12 @@ export type Database = {
     Enums: {
       enrichment_status: "pending" | "processing" | "complete" | "error"
       post_visibility: "public" | "private"
+      subscription_status:
+        | "trialing"
+        | "active"
+        | "canceled"
+        | "past_due"
+        | "none"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -3050,6 +3112,13 @@ export const Constants = {
     Enums: {
       enrichment_status: ["pending", "processing", "complete", "error"],
       post_visibility: ["public", "private"],
+      subscription_status: [
+        "trialing",
+        "active",
+        "canceled",
+        "past_due",
+        "none",
+      ],
     },
   },
 } as const
