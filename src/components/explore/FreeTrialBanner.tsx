@@ -57,6 +57,15 @@ export function FreeTrialBanner() {
     }
   };
 
+  const handleManage = async () => {
+    setIsManaging(true);
+    try {
+      await manageSubscription();
+    } finally {
+      setIsManaging(false);
+    }
+  };
+
   // Active paid subscription
   if (isSubscribed && !isTrialing) {
     return (
