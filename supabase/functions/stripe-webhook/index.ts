@@ -12,6 +12,48 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
+// Helper to upsert into the subscriptions table
+async function upsertSubscription(
+  supabase: ReturnType<typeof createClient>,
+  subscription: Stripe.Subscription,
+  userId: string | null,
+  tier?: string | null,
+) {
+  if (!userId) {
+    logStep("No userId available, skipping subscriptions upsert");
+    return;
+  }
+
+  const priceId = subscription.items.data[0]?.price?.id ?? null;
+
+  const row = {
+    stripe_subscription_id: subscription.id,
+    stripe_customer_id: subscription.customer as string,
+    user_id: userId,
+    status: subscription.status as string, // trialing, active, canceled, past_due, etc.
+    price_id: priceId,
+    subscription_tier: tier ?? null,
+    cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+    trial_start_date: subscription.trial_start
+      ? new Date(subscription.trial_start * 1000).toISOString()
+      : null,
+    trial_end_date: subscription.trial_end
+      ? new Date(subscription.trial_end * 1000).toISOString()
+      : null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from("subscriptions")
+    .upsert(row, { onConflict: "stripe_subscription_id" });
+
+  if (error) {
+    logStep("Failed to upsert subscriptions row", { error: error.message });
+  } else {
+    logStep("Subscriptions row upserted", { stripe_subscription_id: subscription.id, status: row.status });
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -68,39 +110,65 @@ serve(async (req) => {
         });
 
         const submissionId = session.metadata?.submissionId;
-        if (!submissionId) {
-          logStep("No submissionId in metadata, skipping");
-          break;
+        const userId = session.metadata?.userId ?? null;
+        const tier = session.metadata?.tier ?? session.metadata?.type ?? null;
+
+        // --- Existing service_submissions logic (unchanged) ---
+        if (submissionId) {
+          const updateData: Record<string, unknown> = {
+            payment_status: "paid",
+            stripe_customer_id: session.customer as string,
+          };
+
+          if (session.mode === "subscription" && session.subscription) {
+            const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+            updateData.stripe_subscription_id = subscription.id;
+            updateData.subscription_valid_until = new Date(subscription.current_period_end * 1000).toISOString();
+          } else {
+            const validUntil = new Date();
+            validUntil.setFullYear(validUntil.getFullYear() + 1);
+            updateData.subscription_valid_until = validUntil.toISOString();
+          }
+
+          const { error: updateError } = await supabase
+            .from("service_submissions")
+            .update(updateData)
+            .eq("id", submissionId);
+
+          if (updateError) {
+            logStep("Failed to update submission", { error: updateError.message });
+          } else {
+            logStep("Submission updated successfully", { submissionId, ...updateData });
+          }
         }
 
-        // Update submission payment status
-        const updateData: Record<string, unknown> = {
-          payment_status: "paid",
-          stripe_customer_id: session.customer as string,
-        };
-
-        // For subscriptions, add subscription ID and valid until date
+        // --- New: upsert subscriptions table ---
         if (session.mode === "subscription" && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-          updateData.stripe_subscription_id = subscription.id;
-          updateData.subscription_valid_until = new Date(subscription.current_period_end * 1000).toISOString();
-        } else {
-          // One-time payment: valid for 1 year
-          const validUntil = new Date();
-          validUntil.setFullYear(validUntil.getFullYear() + 1);
-          updateData.subscription_valid_until = validUntil.toISOString();
+          await upsertSubscription(supabase, subscription, userId, tier);
+        }
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        logStep("Subscription updated", { subscriptionId: subscription.id, status: subscription.status });
+
+        // Try to get userId from subscription metadata
+        const userId = subscription.metadata?.userId ?? null;
+
+        // If no userId in metadata, look it up from existing row
+        let resolvedUserId = userId;
+        if (!resolvedUserId) {
+          const { data: existing } = await supabase
+            .from("subscriptions")
+            .select("user_id")
+            .eq("stripe_subscription_id", subscription.id)
+            .maybeSingle();
+          resolvedUserId = existing?.user_id ?? null;
         }
 
-        const { error: updateError } = await supabase
-          .from("service_submissions")
-          .update(updateData)
-          .eq("id", submissionId);
-
-        if (updateError) {
-          logStep("Failed to update submission", { error: updateError.message });
-        } else {
-          logStep("Submission updated successfully", { submissionId, ...updateData });
-        }
+        await upsertSubscription(supabase, subscription, resolvedUserId);
         break;
       }
 
@@ -112,6 +180,7 @@ serve(async (req) => {
         if (invoice.subscription) {
           const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
           
+          // --- Existing service_submissions logic (unchanged) ---
           const { error } = await supabase
             .from("service_submissions")
             .update({
@@ -125,6 +194,17 @@ serve(async (req) => {
           } else {
             logStep("Subscription validity extended");
           }
+
+          // --- New: update subscriptions table ---
+          const { data: existing } = await supabase
+            .from("subscriptions")
+            .select("user_id")
+            .eq("stripe_subscription_id", subscription.id)
+            .maybeSingle();
+
+          if (existing?.user_id) {
+            await upsertSubscription(supabase, subscription, existing.user_id);
+          }
         }
         break;
       }
@@ -134,6 +214,7 @@ serve(async (req) => {
         const subscription = event.data.object as Stripe.Subscription;
         logStep("Subscription deleted", { subscriptionId: subscription.id });
 
+        // --- Existing service_submissions logic (unchanged) ---
         const { error } = await supabase
           .from("service_submissions")
           .update({ payment_status: "refunded" })
@@ -141,6 +222,18 @@ serve(async (req) => {
 
         if (error) {
           logStep("Failed to mark subscription as canceled", { error: error.message });
+        }
+
+        // --- New: update subscriptions table ---
+        const { error: subError } = await supabase
+          .from("subscriptions")
+          .update({ status: "canceled", updated_at: new Date().toISOString() })
+          .eq("stripe_subscription_id", subscription.id);
+
+        if (subError) {
+          logStep("Failed to update subscriptions status to canceled", { error: subError.message });
+        } else {
+          logStep("Subscriptions row marked as canceled");
         }
         break;
       }
