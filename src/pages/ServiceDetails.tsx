@@ -40,7 +40,7 @@ export default function ServiceDetails() {
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <h2 className="text-xl font-bold mb-2">Service not found</h2>
         <p className="text-muted-foreground mb-4">This service may have been removed.</p>
-        <Button onClick={() => navigate('/explore')}>Back to Explore</Button>
+        <Button onClick={() => navigate('/services')}>Back to Services</Button>
       </div>
     );
   }

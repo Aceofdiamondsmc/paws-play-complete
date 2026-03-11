@@ -187,7 +187,7 @@ export default function SubmitService() {
       {/* Header */}
       <div className="bg-card border-b p-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/explore')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/services')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>

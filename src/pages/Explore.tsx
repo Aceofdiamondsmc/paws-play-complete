@@ -199,7 +199,7 @@ export default function Explore() {
           <ServicesMap 
             services={filteredServices || []} 
             selectedCategory={selectedCategory}
-            onServiceClick={(id) => navigate(`/explore/${id}`)}
+            onServiceClick={(id) => navigate(`/services/${id}`)}
           />
         )}
 
@@ -228,7 +228,7 @@ export default function Explore() {
                 ))
               ) : filteredServices && filteredServices.length > 0 ? (
                 filteredServices.map(service => (
-                  <ServiceCard key={service.id} service={service} onClick={() => navigate(`/explore/${service.id}`)} />
+                  <ServiceCard key={service.id} service={service} onClick={() => navigate(`/services/${service.id}`)} />
                 ))
               ) : (
                 <Card className="p-6 text-center bg-muted/50">

@@ -72,7 +72,7 @@ export default function SubmissionSuccess() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Button onClick={() => navigate('/explore')} className="w-full">
+            <Button onClick={() => navigate('/services')} className="w-full">
               Explore Services
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>

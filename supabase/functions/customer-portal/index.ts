@@ -51,7 +51,7 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://pawsplayrepeat.lovable.app";
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/explore`,
+      return_url: `${origin}/services`,
     });
 
     logStep("Portal session created", { url: portalSession.url });

@@ -7,7 +7,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 const navItems = [
   { path: '/dates', icon: CalendarDays, label: 'Dates' },
   { path: '/social', icon: MessageCircle, label: 'Social' },
-  { path: '/explore', icon: Scissors, label: 'Services' },
+  { path: '/services', icon: Scissors, label: 'Services' },
   { path: '/pack', icon: PawPrint, label: 'Pack' },
   { path: '/shop', icon: ShoppingCart, label: 'Shop' },
   { path: '/parks', icon: Trees, label: 'Parks' },
