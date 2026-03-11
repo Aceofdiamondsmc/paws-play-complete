@@ -90,7 +90,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="w-5 h-5" />
-            Report Lost Dog
+            Report Pack Alert
           </DialogTitle>
         </DialogHeader>
 
