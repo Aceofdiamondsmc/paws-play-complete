@@ -10,8 +10,9 @@ import { useNavigate } from 'react-router-dom';
 
 export function FreeTrialBanner() {
   const { user } = useAuth();
-  const { isSubscribed, isTrialing, trialDaysLeft, isLoading, startTrial } = useSubscription();
+  const { isSubscribed, isTrialing, trialDaysLeft, isLoading, startTrial, manageSubscription } = useSubscription();
   const [isStarting, setIsStarting] = useState(false);
+  const [isManaging, setIsManaging] = useState(false);
   const navigate = useNavigate();
 
   // Show sign-up CTA for logged-out users
