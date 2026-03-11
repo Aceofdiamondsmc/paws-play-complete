@@ -31,6 +31,11 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTools from "./pages/admin/AdminTools";
 
+const ExploreIdRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/services/${id}`} replace />;
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
