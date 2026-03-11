@@ -72,6 +72,7 @@ function triggerVibration() {
 }
 
 export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
+  const navigate = useNavigate();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
