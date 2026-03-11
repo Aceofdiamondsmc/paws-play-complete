@@ -2,18 +2,46 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Crown, Clock, Loader2 } from 'lucide-react';
+import { Sparkles, Crown, Clock, Loader2, UserPlus } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export function FreeTrialBanner() {
   const { user } = useAuth();
   const { isSubscribed, isTrialing, trialDaysLeft, isLoading, startTrial } = useSubscription();
   const [isStarting, setIsStarting] = useState(false);
+  const navigate = useNavigate();
 
-  // Don't show for unauthenticated users
-  if (!user) return null;
+  // Show sign-up CTA for logged-out users
+  if (!user) {
+    return (
+      <Card className="p-5 border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+        <div className="relative space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h3 className="font-bold text-lg">1st Month Free</h3>
+          </div>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>✓ Full access to all premium features</li>
+            <li>✓ Priority service listings</li>
+            <li>✓ Cancel anytime — no charge if cancelled within 30 days</li>
+          </ul>
+          <p className="text-xs text-muted-foreground">Then $9.99/month</p>
+          <Button
+            onClick={() => navigate('/')}
+            className="w-full rounded-full font-bold"
+            size="lg"
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Sign Up to Start Free Trial
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return <Skeleton className="h-24 w-full rounded-xl" />;
