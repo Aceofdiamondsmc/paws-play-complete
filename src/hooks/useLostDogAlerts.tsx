@@ -71,7 +71,7 @@ export function useLostDogAlerts() {
         .single();
 
       // Create the Social post
-      const postContent = `🚨 PAWS ALERT 🚨\n\n${dog?.name || 'A dog'} (${dog?.breed || 'Unknown breed'}) is missing!\n\n📍 Last seen: ${data.last_seen_location}\n📝 ${data.description}\n📞 Contact: ${data.contact_phone}\n\nPlease share and keep an eye out! 🐾`;
+      const postContent = `🚨 PAWS ALERT: Missing Member! 🚨\n\n${dog?.name || 'A dog'} (${dog?.breed || 'Unknown breed'}) is missing!\n\n📍 Last seen: ${data.last_seen_location}\n📝 ${data.description}\n📞 Contact: ${data.contact_phone}\n\nOur pack needs your eyes on the street. Please share! 🐾`;
 
       const { data: post, error: postError } = await supabase
         .from('posts')
