@@ -666,9 +666,15 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
           <div className="flex flex-col items-center gap-3 text-center p-6">
             <PawPrint className="w-12 h-12 text-muted-foreground" />
             <p className="text-muted-foreground">{mapError}</p>
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Retry
-            </Button>
+            {mapError.includes('sign in') ? (
+              <Button onClick={() => navigate('/me')}>
+                Sign In
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+            )}
           </div>
         </div>
       )}
