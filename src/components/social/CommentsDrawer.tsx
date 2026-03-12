@@ -128,40 +128,35 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     {editingCommentId === comment.id ? (
-                      // Inline Editing Mode
-                      <div className="space-y-2">
-                        <Textarea
+                      <div className="flex items-center gap-1.5">
+                        <Input
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
                           disabled={saving}
-                          className="min-h-[60px] text-sm"
+                          className="flex-1 rounded-full text-sm h-9 border-primary/20 focus:border-primary"
                           autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveEdit();
+                            if (e.key === 'Escape') handleCancelEdit();
+                          }}
                         />
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={handleSaveEdit}
-                            disabled={saving || !editText.trim()}
-                            className="rounded-full"
-                          >
-                            {saving ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Check className="w-3 h-3 mr-1" />
-                            )}
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleCancelEdit}
-                            disabled={saving}
-                            className="rounded-full"
-                          >
-                            <X className="w-3 h-3 mr-1" />
-                            Cancel
-                          </Button>
-                        </div>
+                        <Button
+                          size="icon"
+                          className="rounded-full w-8 h-8 shrink-0"
+                          onClick={handleSaveEdit}
+                          disabled={saving || !editText.trim()}
+                        >
+                          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="rounded-full w-8 h-8 shrink-0"
+                          onClick={handleCancelEdit}
+                          disabled={saving}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     ) : (
                       // Display Mode

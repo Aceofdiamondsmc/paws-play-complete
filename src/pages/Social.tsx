@@ -342,7 +342,7 @@ export default function Social() {
             strokeWidth={2}
           />
         </Button>
-      </div>
+      </div>}
       {/* Header with warm cream/orange gradient */}
       <div className="sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20">
         <div className="px-4 pt-4 pb-2">
