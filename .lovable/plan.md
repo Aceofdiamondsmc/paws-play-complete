@@ -1,74 +1,51 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Fix Mock Post Avatars — One-Time SQL Update
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### Problem
+All mock posts share Harry's `author_id` (`b7f3a702-...`) and have `author_avatar_url = NULL`. The `public_posts` view uses `COALESCE(p.author_avatar_url, pr.avatar_url)`, so every mock post falls back to Harry's **current** profile avatar — meaning all 20+ mock "users" show Harry's face.
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+### Solution
+Run a one-time SQL UPDATE to set a unique `author_avatar_url` on each mock post based on its `author_display_name`. Use the [UI Avatars](https://ui-avatars.com) service to generate distinct, colorful initials-based avatars for each fake user name (e.g., `https://ui-avatars.com/api/?name=Samantha&background=random&size=200`).
 
-### Changes
+Also fix Harry's own post (`578adb4e-...`) which has `author_display_name = NULL` and `pup_name = NULL` — set display name to "Harry" and pup_name to "Banky".
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+### SQL to execute (via insert tool, not migration)
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+```sql
+-- Set unique avatar per mock display name on Harry's mock posts
+UPDATE posts 
+SET author_avatar_url = 'https://ui-avatars.com/api/?name=' || replace(author_display_name, ' ', '+') || '&background=random&size=200&bold=true'
+WHERE author_id = 'b7f3a702-a508-4fe9-8447-daee5d11acba'
+  AND author_display_name IS NOT NULL
+  AND author_avatar_url IS NULL;
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+-- Fix Harry's own post (missing display name and pup name)
+UPDATE posts 
+SET author_display_name = 'Harry',
+    author_avatar_url = (SELECT avatar_url FROM profiles WHERE id = 'b7f3a702-a508-4fe9-8447-daee5d11acba'),
+    pup_name = 'Banky'
+WHERE id = '578adb4e-fc2c-4b24-aff9-57fcf91e73e4';
+```
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+### Also fix other NULL-avatar posts from real users
+Posts from Jaden (`61791abe-...`), YahYah (`00de1e2e-...`), Bella (`70a9b510-...`), and the Paws Play Repeat Team post (`b95c0ecd-...`) also have NULL `author_avatar_url`. Snapshot their current profile avatars:
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+```sql
+UPDATE posts p
+SET author_avatar_url = pr.avatar_url
+FROM profiles pr
+WHERE p.author_id = pr.id
+  AND p.author_avatar_url IS NULL
+  AND p.author_id != 'b7f3a702-a508-4fe9-8447-daee5d11acba';
+```
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+### Result
+- Each mock post gets a unique colored-initials avatar matching its display name
+- Harry's own post shows his real avatar and "Banky" as the pup name
+- Other real users' posts get their current profile avatar frozen in
+- Future profile changes will never cascade to old posts (already fixed in code)
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+### Files changed
+None — data-only fix via SQL.
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
