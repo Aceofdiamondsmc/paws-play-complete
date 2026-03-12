@@ -414,7 +414,10 @@ export default function Pack() {
             <Zap className="w-7 h-7 text-white" fill="white" />
           </div>
         </div>
-        <h1 className="text-4xl font-bold text-white mt-4">{currentDog.name}</h1>
+        <h1 className="text-4xl font-bold text-white mt-4 flex items-center justify-center gap-2">
+          {currentDog.name}
+          <VaccinationBadge certified={currentDog.vaccination_certified} size={24} />
+        </h1>
         <p className="text-white/90 text-lg">{currentDog.breed || 'Golden Retriever'}</p>
       </div>
 
