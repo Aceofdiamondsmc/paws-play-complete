@@ -18,6 +18,7 @@ interface Comment {
   post_id: string;
   author_id: string;
   body: string;
+  image_url: string | null;
   created_at: string | null;
   updated_at: string | null;
   author?: Partial<Profile>;
@@ -412,14 +413,15 @@ export function usePostComments(postId: string | null) {
     fetchComments();
   }, [fetchComments]);
 
-  const addComment = async (body: string) => {
+  const addComment = async (body: string, imageUrl?: string | null) => {
     if (!user || !postId) return { error: new Error('Not ready') };
 
     const { error } = await supabase.from('post_comments').insert({
       post_id: postId,
       author_id: user.id,
-      body
-    });
+      body,
+      image_url: imageUrl || null,
+    } as any);
 
     if (!error) {
       await fetchComments();
@@ -428,12 +430,12 @@ export function usePostComments(postId: string | null) {
     return { error };
   };
 
-  const updateComment = async (commentId: string, body: string) => {
+  const updateComment = async (commentId: string, body: string, imageUrl?: string | null) => {
     if (!user || !postId) return { error: new Error('Not ready') };
 
     const { error } = await supabase
       .from('post_comments')
-      .update({ body, updated_at: new Date().toISOString() })
+      .update({ body, image_url: imageUrl ?? undefined, updated_at: new Date().toISOString() } as any)
       .eq('id', commentId)
       .eq('author_id', user.id);
 
