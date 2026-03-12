@@ -12,6 +12,7 @@ import { useFriendships } from '@/hooks/useFriendships';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { useMessages } from '@/hooks/useMessages';
 import { RequestPlaydateModal } from '@/components/playdate/RequestPlaydateModal';
+import { UserProfilePopover } from '@/components/pack/UserProfilePopover';
 import { toast } from 'sonner';
 import { UserPlus, UserCheck, Clock as ClockIcon } from 'lucide-react';
 
@@ -625,15 +626,20 @@ export default function Pack() {
               </h3>
               <div className="bg-[#1e3a2f] rounded-2xl p-4 border border-[#4ade80]/30">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-12 h-12 border-2 border-[#4ade80]/30">
-                      <AvatarImage src={currentDog.owner.avatar_url || undefined} />
-                      <AvatarFallback className="bg-[#4ade80]/20">
-                        <PawPrint className="w-6 h-6 text-[#4ade80]" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-semibold text-white">{currentDog.owner.display_name || 'Sarah Johnson'}</span>
-                  </div>
+                  <UserProfilePopover
+                    userId={currentDog.owner_id}
+                    onMessage={user && currentDog.owner_id !== user.id ? () => handleMessage(currentDog.owner_id) : undefined}
+                  >
+                    <button className="flex items-center gap-3 text-left">
+                      <Avatar className="w-12 h-12 border-2 border-[#4ade80]/30">
+                        <AvatarImage src={currentDog.owner.avatar_url || undefined} />
+                        <AvatarFallback className="bg-[#4ade80]/20">
+                          <PawPrint className="w-6 h-6 text-[#4ade80]" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-semibold text-white">{currentDog.owner.display_name || 'Dog Parent'}</span>
+                    </button>
+                  </UserProfilePopover>
                   {user && currentDog.owner_id !== user.id && (() => {
                     const isFriend = friends.some(f => f.friend.id === currentDog.owner_id);
                     const friendshipRecord = friends.find(f => f.friend.id === currentDog.owner_id);

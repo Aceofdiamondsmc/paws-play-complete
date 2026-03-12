@@ -103,60 +103,9 @@ export function useParkSuggestions() {
   };
 
   const approveSuggestion = async (id: string) => {
-    // Fetch the suggestion first
-    const { data: suggestion, error: fetchError } = await supabase
-      .from('park_suggestions')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (fetchError || !suggestion) return { error: fetchError || new Error('Not found') };
-
-    const s = suggestion as ParkSuggestion;
-
-    // Get next park ID
-    const { data: maxIdData } = await supabase
-      .from('parks')
-      .select('Id')
-      .order('Id', { ascending: false })
-      .limit(1)
-      .single();
-
-    const nextId = ((maxIdData as any)?.Id || 0) + 1;
-
-    // Insert into parks table
-    const { error: insertError } = await supabase
-      .from('parks')
-      .insert({
-        Id: nextId,
-        name: s.name,
-        address: s.address,
-        city: s.city,
-        state: s.state,
-        description: s.description,
-        latitude: s.latitude,
-        longitude: s.longitude,
-        image_url: s.image_url,
-        is_fully_fenced: s.is_fully_fenced,
-        has_water_station: s.has_water_station,
-        has_small_dog_area: s.has_small_dog_area,
-        has_large_dog_area: s.has_large_dog_area,
-        has_agility_equipment: s.has_agility_equipment,
-        has_parking: s.has_parking,
-        has_grass_surface: s.has_grass_surface,
-        is_dog_friendly: true,
-      });
-
-    if (insertError) return { error: insertError };
-
-    // Mark suggestion as approved
-    const { error: updateError } = await supabase
-      .from('park_suggestions')
-      .update({ status: 'approved', reviewed_at: new Date().toISOString() })
-      .eq('id', id);
-
-    if (!updateError) await fetchPendingSuggestions();
-    return { error: updateError };
+    const { error } = await supabase.rpc('approve_park_suggestion', { suggestion_id: id });
+    if (!error) await fetchPendingSuggestions();
+    return { error };
   };
 
   const rejectSuggestion = async (id: string, adminNotes?: string) => {

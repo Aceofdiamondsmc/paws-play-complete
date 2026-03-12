@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck, ImageOff, MessageSquare, Check, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,7 @@ import EditPostModal from '@/components/social/EditPostModal';
 import AdminEditPostModal from '@/components/social/AdminEditPostModal';
 import VideoPlayer from '@/components/social/VideoPlayer';
 import { useMessages } from '@/hooks/useMessages';
+import { useFriendships } from '@/hooks/useFriendships';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
@@ -205,6 +206,15 @@ export default function Social() {
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   
   const { startConversation } = useMessages();
+  const { friends } = useFriendships();
+  
+  // Build set of accepted friend IDs for filtering
+  const friendIds = useMemo(() => {
+    const ids = new Set<string>();
+    friends.forEach(f => ids.add(f.friend.id));
+    if (user?.id) ids.add(user.id);
+    return ids;
+  }, [friends, user?.id]);
 
   const handleMessageAuthor = async (authorId: string) => {
     if (!user) {
@@ -304,6 +314,8 @@ export default function Social() {
   // Filter posts based on active filter
   const filteredPosts = activeFilter === 'reviews' 
     ? posts.filter((p) => p.content?.toLowerCase().includes('park'))
+    : activeFilter === 'friends'
+    ? posts.filter((p) => friendIds.has(p.author_id))
     : posts;
 
   return (
