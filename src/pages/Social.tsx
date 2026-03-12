@@ -209,7 +209,7 @@ export default function Social() {
   const { friends } = useFriendships();
   
   // Build set of accepted friend IDs for filtering
-  const friendIds = React.useMemo(() => {
+  const friendIds = useMemo(() => {
     const ids = new Set<string>();
     friends.forEach(f => ids.add(f.friend.id));
     if (user?.id) ids.add(user.id);
