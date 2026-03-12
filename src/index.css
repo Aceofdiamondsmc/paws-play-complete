@@ -307,3 +307,22 @@
 
 /* Import Nunito font */
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+
+/* Print styles for flyer */
+@media print {
+  body > *:not(#flyer-template),
+  [data-radix-portal],
+  .fixed,
+  nav,
+  header {
+    display: none !important;
+  }
+
+  #flyer-template {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: white;
+  }
+}

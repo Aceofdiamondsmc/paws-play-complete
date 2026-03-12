@@ -455,6 +455,7 @@ export type Database = {
           last_seen_location: string | null
           post_id: string | null
           resolved_at: string | null
+          reward: string | null
           status: string
           user_id: string
         }
@@ -469,6 +470,7 @@ export type Database = {
           last_seen_location?: string | null
           post_id?: string | null
           resolved_at?: string | null
+          reward?: string | null
           status?: string
           user_id: string
         }
@@ -483,6 +485,7 @@ export type Database = {
           last_seen_location?: string | null
           post_id?: string | null
           resolved_at?: string | null
+          reward?: string | null
           status?: string
           user_id?: string
         }

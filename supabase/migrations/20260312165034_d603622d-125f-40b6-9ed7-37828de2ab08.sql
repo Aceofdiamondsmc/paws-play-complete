@@ -1,0 +1,1 @@
+ALTER TABLE lost_dog_alerts ADD COLUMN reward text;
