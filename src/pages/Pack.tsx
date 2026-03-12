@@ -454,10 +454,16 @@ export default function Pack() {
         <div className="p-6 pt-8 space-y-5">
           {/* Verified Badge + Distance */}
           <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#4ade80]/20 text-[#4ade80] font-semibold text-sm border border-[#4ade80]/30">
-              <CheckCircle className="w-4 h-4" />
-              Verified
-            </span>
+            {currentDog.vaccination_certified ? (
+              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#4ade80]/20 text-[#4ade80] font-semibold text-sm border border-[#4ade80]/30">
+                <CheckCircle className="w-4 h-4" />
+                Verified
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-muted text-muted-foreground font-semibold text-sm border border-border">
+                Unverified
+              </span>
+            )}
             {currentDog.distance_meters && (
               <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#3b82f6]/20 text-[#60a5fa] font-semibold text-sm border border-[#3b82f6]/30">
                 <MapPin className="w-4 h-4" />
