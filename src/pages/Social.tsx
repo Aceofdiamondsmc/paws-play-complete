@@ -314,6 +314,8 @@ export default function Social() {
   // Filter posts based on active filter
   const filteredPosts = activeFilter === 'reviews' 
     ? posts.filter((p) => p.content?.toLowerCase().includes('park'))
+    : activeFilter === 'friends'
+    ? posts.filter((p) => friendIds.has(p.author_id))
     : posts;
 
   return (
