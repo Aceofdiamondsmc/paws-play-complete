@@ -170,28 +170,48 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
         {/* Sticky Comment Input */}
         <div className="p-4 border-t border-border bg-background shrink-0">
           {user ? (
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <Input
-                placeholder="Write a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                disabled={submitting}
-                className="flex-1 rounded-full border-primary/20 focus:border-primary"
-              />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={submitting || !newComment.trim()}
-                className="rounded-full bg-primary hover:bg-primary/90 shrink-0"
-              >
-                {submitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </Button>
-            </form>
+            <div className="space-y-1">
+              {editingCommentId && (
+                <div className="flex items-center gap-1 px-2 text-xs text-muted-foreground">
+                  <Pencil className="w-3 h-3" />
+                  <span>Editing</span>
+                  <span>·</span>
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              <form onSubmit={editingCommentId ? (e) => { e.preventDefault(); handleSaveEdit(); } : handleSubmit} className="flex gap-2">
+                <Input
+                  id="comment-input"
+                  placeholder={editingCommentId ? "Edit your comment..." : "Write a comment..."}
+                  value={editingCommentId ? editText : newComment}
+                  onChange={(e) => editingCommentId ? setEditText(e.target.value) : setNewComment(e.target.value)}
+                  onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                  onKeyDown={(e) => { if (e.key === 'Escape' && editingCommentId) handleCancelEdit(); }}
+                  disabled={submitting || saving}
+                  className="flex-1 rounded-full border-primary/20 focus:border-primary"
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={editingCommentId ? (saving || !editText.trim()) : (submitting || !newComment.trim())}
+                  className="rounded-full bg-primary hover:bg-primary/90 shrink-0"
+                >
+                  {(submitting || saving) ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : editingCommentId ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
+              </form>
+            </div>
           ) : (
             <p className="text-center text-muted-foreground text-sm py-2">
               Log in to add a comment
