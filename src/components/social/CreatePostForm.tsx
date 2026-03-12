@@ -21,9 +21,10 @@ import { toast } from '@/hooks/use-toast';
 import { ensureJpeg } from '@/lib/heic-convert';
 
 interface CreatePostFormProps {
-  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string, authorDisplayName?: string, authorAvatarUrl?: string) => Promise<void>;
+  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string, authorDisplayName?: string, authorAvatarUrl?: string, dogId?: string) => Promise<void>;
   isPosting: boolean;
   isAdmin?: boolean;
+  dogs?: { id: string; name: string }[];
 }
 
 // Interactive star rating input
