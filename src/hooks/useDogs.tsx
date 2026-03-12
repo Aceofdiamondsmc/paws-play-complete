@@ -12,6 +12,7 @@ interface DogData {
   weight_lbs?: number;
   health_notes?: string;
   play_style?: string[];
+  vaccination_certified?: boolean;
 }
 
 export function useDogs() {
@@ -36,7 +37,8 @@ export function useDogs() {
         age_years: data.age_years || null,
         weight_lbs: data.weight_lbs || null,
         health_notes: data.health_notes || null,
-        play_style: Array.isArray(data.play_style) ? data.play_style : []
+        play_style: Array.isArray(data.play_style) ? data.play_style : [],
+        vaccination_certified: data.vaccination_certified ?? false
       };
 
       const { data: dog, error } = await supabase
@@ -74,6 +76,7 @@ export function useDogs() {
       if (data.weight_lbs !== undefined) updateData.weight_lbs = data.weight_lbs;
       if (data.health_notes !== undefined) updateData.health_notes = data.health_notes;
       if (data.play_style !== undefined) updateData.play_style = data.play_style;
+      if (data.vaccination_certified !== undefined) updateData.vaccination_certified = data.vaccination_certified;
 
       const { error } = await supabase
         .from('dogs')

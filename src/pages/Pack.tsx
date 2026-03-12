@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint, ShieldBan, MessageSquare, MoreHorizontal, UserMinus } from 'lucide-react';
+import { VaccinationBadge } from '@/components/profile/VaccinationBadge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,6 +37,7 @@ const testDogs: DogWithOwner[] = [
     weight_lbs: null,
     health_notes: null,
     play_style: ['Fetch', 'Swimming'],
+    vaccination_certified: null,
     owner: {
       id: 'test-owner-1',
       display_name: 'Sarah Johnson',
@@ -58,6 +60,7 @@ const testDogs: DogWithOwner[] = [
     weight_lbs: null,
     health_notes: null,
     play_style: ['Cuddling', 'Tug-of-war'],
+    vaccination_certified: null,
     owner: {
       id: 'test-owner-2',
       display_name: 'Mike Chen',
@@ -80,6 +83,7 @@ const testDogs: DogWithOwner[] = [
     weight_lbs: null,
     health_notes: null,
     play_style: ['Chase', 'Fetch'],
+    vaccination_certified: null,
     owner: {
       id: 'test-owner-3',
       display_name: 'Emily Davis',
@@ -102,6 +106,7 @@ const testDogs: DogWithOwner[] = [
     weight_lbs: null,
     health_notes: null,
     play_style: ['Cuddling', 'Swimming'],
+    vaccination_certified: null,
     owner: {
       id: 'test-owner-4',
       display_name: 'James Wilson',
@@ -409,7 +414,10 @@ export default function Pack() {
             <Zap className="w-7 h-7 text-white" fill="white" />
           </div>
         </div>
-        <h1 className="text-4xl font-bold text-white mt-4">{currentDog.name}</h1>
+        <h1 className="text-4xl font-bold text-white mt-4 flex items-center justify-center gap-2">
+          {currentDog.name}
+          <VaccinationBadge certified={currentDog.vaccination_certified} size={24} />
+        </h1>
         <p className="text-white/90 text-lg">{currentDog.breed || 'Golden Retriever'}</p>
       </div>
 

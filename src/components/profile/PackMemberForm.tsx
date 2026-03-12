@@ -23,6 +23,7 @@ import {
 import { useDogs } from '@/hooks/useDogs';
 import { toast } from 'sonner';
 import { BreedCombobox } from './BreedCombobox';
+import { Switch } from '@/components/ui/switch';
 
 // Play style options stored directly (no separate table)
 const PLAY_STYLE_OPTIONS = [
@@ -52,6 +53,7 @@ interface PackMemberFormProps {
     weight_lbs?: number | null;
     health_notes?: string | null;
     play_style?: string[] | null;
+    vaccination_certified?: boolean | null;
   };
 }
 
@@ -74,6 +76,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   const [selectedPlayStyles, setSelectedPlayStyles] = useState<string[]>(
     editingDog?.play_style || []
   );
+  const [vaccinationCertified, setVaccinationCertified] = useState(editingDog?.vaccination_certified ?? false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
@@ -93,6 +96,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
     setHealthInfo(editingDog?.health_notes || '');
     setAvatarUrl(editingDog?.avatar_url || '');
     setSelectedPlayStyles(editingDog?.play_style || []);
+    setVaccinationCertified(editingDog?.vaccination_certified ?? false);
     // Reset validation state
     setErrors({});
     setTouched({});
@@ -163,7 +167,8 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         age_years: ageYears ? parseInt(ageYears) : undefined,
         weight_lbs: weightLbs ? parseFloat(weightLbs) : undefined,
         health_notes: healthInfo.trim(),
-        play_style: selectedPlayStyles
+        play_style: selectedPlayStyles,
+        vaccination_certified: vaccinationCertified
       };
 
       if (editingDog) {
@@ -377,6 +382,19 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
               className="mt-1"
               rows={2}
             />
+          </div>
+
+          {/* Vaccination Certification */}
+          <div className="flex items-start gap-3 rounded-xl border border-border p-4 bg-muted/30">
+            <Switch
+              id="vaccination-certified"
+              checked={vaccinationCertified}
+              onCheckedChange={setVaccinationCertified}
+              className="mt-0.5"
+            />
+            <Label htmlFor="vaccination-certified" className="text-sm leading-relaxed cursor-pointer">
+              I certify that <strong>{name.trim() || 'my dog'}</strong> is up-to-date on all local vaccination requirements (Rabies, DHPP, etc.)
+            </Label>
           </div>
 
           {/* Submit */}
