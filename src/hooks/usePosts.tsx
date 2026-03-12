@@ -413,14 +413,15 @@ export function usePostComments(postId: string | null) {
     fetchComments();
   }, [fetchComments]);
 
-  const addComment = async (body: string) => {
+  const addComment = async (body: string, imageUrl?: string | null) => {
     if (!user || !postId) return { error: new Error('Not ready') };
 
     const { error } = await supabase.from('post_comments').insert({
       post_id: postId,
       author_id: user.id,
-      body
-    });
+      body,
+      image_url: imageUrl || null,
+    } as any);
 
     if (!error) {
       await fetchComments();
