@@ -475,20 +475,19 @@ export default function Pack() {
           </div>
 
           {/* Match Badges */}
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-transparent text-gray-300 font-medium text-sm border border-gray-500/50">
-              <Star className="w-4 h-4" />
-              High Energy Match
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#ec4899]/15 text-[#f472b6] font-medium text-sm border border-[#ec4899]/40">
-              <Heart className="w-4 h-4" />
-              Perfect Playmate
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-transparent text-gray-300 font-medium text-sm border border-gray-500/50">
-              <Star className="w-4 h-4" />
-              Social Butterfly
-            </span>
-          </div>
+          {(() => {
+            const badges = computeMatchBadges(currentDog, userDogs);
+            return badges.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {badges.map((badge, idx) => (
+                  <span key={idx} className={cn("inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-medium text-sm border", badge.className)}>
+                    <badge.icon className="w-4 h-4" />
+                    {badge.label}
+                  </span>
+                ))}
+              </div>
+            ) : null;
+          })()}
 
           {/* Play Style */}
           <div>
