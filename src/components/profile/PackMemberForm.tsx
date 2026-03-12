@@ -52,6 +52,7 @@ interface PackMemberFormProps {
     weight_lbs?: number | null;
     health_notes?: string | null;
     play_style?: string[] | null;
+    vaccination_certified?: boolean | null;
   };
 }
 
