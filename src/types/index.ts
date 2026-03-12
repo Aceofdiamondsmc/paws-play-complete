@@ -60,6 +60,7 @@ export interface Dog {
   weight_lbs: number | null;
   health_notes: string | null;
   play_style: string[] | null;
+  vaccination_certified: boolean | null;
   created_at: string | null;
   updated_at: string | null;
 }

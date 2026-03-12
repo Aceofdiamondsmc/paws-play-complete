@@ -105,6 +105,38 @@ export function HelpSupport({ open, onOpenChange }: HelpSupportProps) {
                 </Button>
               </AccordionContent>
             </AccordionItem>
+
+            {/* Release of Liability */}
+            <AccordionItem value="liability">
+              <AccordionTrigger className="text-left">
+                <span className="flex items-center gap-2">
+                  <Scale className="w-4 h-4 text-muted-foreground shrink-0" />
+                  Release of Liability
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3 text-muted-foreground">
+                <p>
+                  <strong className="text-foreground">Paws Play Repeat</strong> provides a platform for connection. By using this app, you acknowledge and agree to the following:
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-sm">
+                  <li>
+                    Users are solely responsible for verifying the <strong className="text-foreground">health, vaccination status, and temperament</strong> of any dog they interact with.
+                  </li>
+                  <li>
+                    The app does not guarantee the accuracy of user-provided health records, including self-certifications and uploaded documents.
+                  </li>
+                  <li>
+                    All interactions between dogs arranged through this platform are at the <strong className="text-foreground">users' own risk</strong>.
+                  </li>
+                  <li>
+                    Paws Play Repeat is not liable for any injuries, damages, or disputes arising from playdates, meetups, or any other interactions facilitated by the app.
+                  </li>
+                </ul>
+                <div className="bg-muted rounded-xl p-3 text-sm">
+                  <strong className="text-foreground">💡 Tip:</strong> Always meet new dogs in a public, neutral space and supervise all interactions closely.
+                </div>
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         </ScrollArea>
 

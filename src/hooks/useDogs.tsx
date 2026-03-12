@@ -76,6 +76,7 @@ export function useDogs() {
       if (data.weight_lbs !== undefined) updateData.weight_lbs = data.weight_lbs;
       if (data.health_notes !== undefined) updateData.health_notes = data.health_notes;
       if (data.play_style !== undefined) updateData.play_style = data.play_style;
+      if (data.vaccination_certified !== undefined) updateData.vaccination_certified = data.vaccination_certified;
 
       const { error } = await supabase
         .from('dogs')

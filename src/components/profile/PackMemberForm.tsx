@@ -384,6 +384,19 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
             />
           </div>
 
+          {/* Vaccination Certification */}
+          <div className="flex items-start gap-3 rounded-xl border border-border p-4 bg-muted/30">
+            <Switch
+              id="vaccination-certified"
+              checked={vaccinationCertified}
+              onCheckedChange={setVaccinationCertified}
+              className="mt-0.5"
+            />
+            <Label htmlFor="vaccination-certified" className="text-sm leading-relaxed cursor-pointer">
+              I certify that <strong>{name.trim() || 'my dog'}</strong> is up-to-date on all local vaccination requirements (Rabies, DHPP, etc.)
+            </Label>
+          </div>
+
           {/* Submit */}
           <div className="flex gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
