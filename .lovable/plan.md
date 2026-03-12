@@ -1,74 +1,41 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Vaccination Self-Certification & Legal Disclaimer
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
-
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+The `vaccination_certified` column already exists in the `dogs` table (boolean, default false). No database migration needed.
 
 ### Changes
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+**1. `src/components/profile/PackMemberForm.tsx`**
+- Add `vaccination_certified` state (boolean), prepopulated from `editingDog`
+- Add a Switch/Checkbox after Health Notes: "I certify that [name || 'my dog'] is up-to-date on all local vaccination requirements (Rabies, DHPP, etc.)"
+- Include `vaccination_certified` in the `dogData` object sent to `addDog`/`updateDog`
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+**2. `src/hooks/useDogs.tsx`**
+- Add `vaccination_certified` to the `DogData` interface
+- Map it through in `addDog` and `updateDog`
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**3. `src/types/index.ts`**
+- Add `vaccination_certified: boolean | null` to the `Dog` interface
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+**4. `src/components/profile/HelpSupport.tsx`**
+- Add a new accordion item with a Scale/Shield icon: "Release of Liability"
+- Content: legal disclaimer text about users being responsible for verifying health and temperament of dogs they interact with
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+**5. Badge display — new component `src/components/profile/VaccinationBadge.tsx`**
+- Small inline component: if `vaccination_certified === true`, render a green ShieldCheck icon with tooltip "Owner Certified Vaccinated"
+- If false/null, render nothing (or a subtle gray shield if desired)
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+**6. Show badge in dog cards**
+- Search for where dog profiles/cards are rendered (Pack tab, playdate cards, etc.) and add the `VaccinationBadge` next to the dog name
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+### Files
+| File | Change |
+|------|--------|
+| `src/hooks/useDogs.tsx` | Add `vaccination_certified` to interface and CRUD |
+| `src/types/index.ts` | Add field to `Dog` type |
+| `src/components/profile/PackMemberForm.tsx` | Add certification toggle |
+| `src/components/profile/HelpSupport.tsx` | Add liability disclaimer accordion |
+| `src/components/profile/VaccinationBadge.tsx` | New badge component |
+| Dog card/profile views | Show badge inline |
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
