@@ -214,6 +214,7 @@ export default function Pack() {
               updated_at: null,
               weight_lbs: null,
               health_notes: null,
+              vaccination_certified: (d as any).vaccination_certified ?? null,
               distance_meters: d.distance_meters,
               owner: {
                 id: d.owner_id,
