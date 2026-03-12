@@ -502,6 +502,22 @@ export default function Me() {
           </Card>
         )}
 
+        {/* Help & Support */}
+        <Card 
+          className="p-4 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+          onClick={() => setShowHelp(true)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <HelpCircle className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-bold">Help & Support</h3>
+              <p className="text-sm text-muted-foreground">Pack Alerts, Paws Alerts & more</p>
+            </div>
+          </div>
+        </Card>
+
         {/* Install Prompt */}
         {!installDismissed && (
           <Card className="p-4 relative">
