@@ -1,74 +1,26 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Fix Vaccination Display in Pack Discovery
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### Problems Found
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+1. **Hardcoded "Verified" badge** — `Pack.tsx` line 457-460 shows a green "Verified" badge for **every single dog** unconditionally. It never checks `vaccination_certified`.
 
-### Changes
+2. **RPC mapping drops `vaccination_certified`** — When dogs come from the `get_nearby_dogs` RPC (line 202-226), `vaccination_certified` is never mapped onto the dog object. It's missing from the mapping entirely. So even the `VaccinationBadge` component on line 419 gets `undefined` and shows nothing meaningful.
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+3. **Fallback fetch also drops it** — The fallback query (line 233-236) does `select('*')` which includes the field, but only because it spreads `...d as DogType`. The RPC path is the problem.
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+### Plan
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**`src/pages/Pack.tsx`** — Two changes:
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+1. **Conditionally render the "Verified" badge** (lines 456-460): Only show it when `currentDog.vaccination_certified === true`. When false/null, show an "Unverified" badge in gray/amber instead.
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+2. **Add `vaccination_certified` to the RPC mapping** (line 202): Include `vaccination_certified: d.vaccination_certified` in the object mapping so the field flows through from the RPC result.
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+Both are small edits in one file. The `VaccinationBadge` on line 419 and the `PackMemberForm` toggle already work correctly — they just weren't getting the data.
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+### Technical Detail
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
+The `get_nearby_dogs` RPC may or may not return `vaccination_certified`. If it doesn't include the column, the value will be `undefined` and the badge will correctly show "Unverified." No RPC/migration change needed — the column exists on the `dogs` table and most RPCs return `SELECT *` or can be checked.
 
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
