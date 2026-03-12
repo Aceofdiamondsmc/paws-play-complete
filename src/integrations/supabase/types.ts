@@ -900,20 +900,6 @@ export type Database = {
             referencedRelation: "public_posts"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "post_access_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "view_post_comment_counts"
-            referencedColumns: ["post_id"]
-          },
-          {
-            foreignKeyName: "post_access_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "view_post_like_counts"
-            referencedColumns: ["post_id"]
-          },
         ]
       }
       post_comments: {
@@ -962,20 +948,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_posts"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "view_post_comment_counts"
-            referencedColumns: ["post_id"]
-          },
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "view_post_like_counts"
-            referencedColumns: ["post_id"]
           },
         ]
       }
@@ -1064,20 +1036,6 @@ export type Database = {
             referencedRelation: "public_posts"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "post_images_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "view_post_comment_counts"
-            referencedColumns: ["post_id"]
-          },
-          {
-            foreignKeyName: "post_images_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "view_post_like_counts"
-            referencedColumns: ["post_id"]
-          },
         ]
       }
       post_likes: {
@@ -1120,20 +1078,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_posts"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "view_post_comment_counts"
-            referencedColumns: ["post_id"]
-          },
-          {
-            foreignKeyName: "post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "view_post_like_counts"
-            referencedColumns: ["post_id"]
           },
         ]
       }
@@ -1754,8 +1698,16 @@ export type Database = {
       }
       park_counts: {
         Row: {
-          city_id: string | null
-          total_parks: number | null
+          park_id: number | null
+          visitor_count: number | null
+        }
+        Insert: {
+          park_id?: number | null
+          visitor_count?: never
+        }
+        Update: {
+          park_id?: number | null
+          visitor_count?: never
         }
         Relationships: []
       }
@@ -1908,14 +1860,58 @@ export type Database = {
           comment_count: number | null
           post_id: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "public_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       view_post_like_counts: {
         Row: {
           like_count: number | null
           post_id: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "public_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

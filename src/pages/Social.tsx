@@ -308,8 +308,8 @@ export default function Social() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
-      {/* Floating Action Button - Bottom Right */}
-      <div className="fixed bottom-24 right-4 z-[100] flex flex-col items-center gap-2">
+      {/* Floating Action Button - Bottom Right (hidden when comments drawer is open) */}
+      {!commentsPostId && <div className="fixed bottom-24 right-4 z-[100] flex flex-col items-center gap-2">
         {/* Sign in tooltip for non-logged in users */}
         {!user && (
           <button
@@ -342,7 +342,7 @@ export default function Social() {
             strokeWidth={2}
           />
         </Button>
-      </div>
+      </div>}
       {/* Header with warm cream/orange gradient */}
       <div className="sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20">
         <div className="px-4 pt-4 pb-2">
