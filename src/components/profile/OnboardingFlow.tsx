@@ -6,6 +6,7 @@ import { PackMemberForm } from './PackMemberForm';
 import { OnboardingProfileSetup } from './OnboardingProfileSetup';
 import { OnboardingAddDogStep } from './OnboardingAddDogStep';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
