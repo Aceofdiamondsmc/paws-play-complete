@@ -2076,6 +2076,10 @@ export type Database = {
           username: string
         }[]
       }
+      approve_park_suggestion: {
+        Args: { suggestion_id: string }
+        Returns: undefined
+      }
       block_user_and_decline_requests: {
         Args: { p_blocked: string; p_blocker: string }
         Returns: undefined
