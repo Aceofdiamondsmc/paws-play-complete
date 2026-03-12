@@ -1,74 +1,46 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Fix: Snapshot Avatar and Dog Name at Post Creation Time
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### Problem
+When a user updates their profile avatar, **all** posts sharing that `author_id` change their displayed avatar — because the `public_posts` view falls back to the live profile `avatar_url` when no per-post `author_avatar_url` is set. Similarly, the `pup_name` field can get cleared during edits, causing "Meet a Friend" instead of "Meet Banky".
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+### Root Cause
+`createPost` in `usePosts.tsx` does not snapshot the user's current avatar or selected dog name into the post record. The `public_posts` view then pulls live profile data as a fallback.
 
-### Changes
+### Solution
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+**1. `src/hooks/usePosts.tsx` — Auto-snapshot avatar + dog name on post creation**
+- In `createPost`, if no explicit `authorAvatarUrl` is provided, automatically fetch the user's current `avatar_url` from their profile and store it in `author_avatar_url` on the post row.
+- Accept a `dogId` parameter and look up the dog's name to populate `pup_name` on the post. This ensures the dog name persists even if the dog record changes later.
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+**2. `src/components/social/CreatePostForm.tsx` — Pass selected dog info**
+- When a user selects a dog for their post, pass the `dogId` through to `createPost` so the dog name gets snapshotted into `pup_name`.
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**3. `src/components/social/EditPostModal.tsx` — Preserve `pup_name` during edits**
+- The current edit modal only updates `content` — this is already safe. No change needed here.
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+**4. `src/components/social/AdminEditPostModal.tsx` — No change needed**
+- Already handles `pup_name` and `author_avatar_url` explicitly.
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+### Technical Details
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+In `usePosts.tsx` `createPost`:
+```ts
+// If no custom avatar provided, snapshot the user's current profile avatar
+if (!authorAvatarUrl) {
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('avatar_url, display_name')
+    .eq('id', user.id)
+    .single();
+  authorAvatarUrl = prof?.avatar_url || undefined;
+  if (!authorDisplayName) authorDisplayName = prof?.display_name || undefined;
+}
+```
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+This ensures every new post has its own `author_avatar_url` frozen at creation time, so future profile changes never cascade to old posts.
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
+### For existing affected posts
+The already-affected mock posts need their `author_avatar_url` set back to the correct images via the Admin Edit tool (one-time manual fix per post), or a one-time SQL update targeting posts where `author_avatar_url IS NULL AND author_id = '<harry_id>'`.
 
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
