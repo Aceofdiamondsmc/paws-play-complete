@@ -13,7 +13,7 @@ export function LostDogFAB() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-28 left-4 z-[99] flex items-center justify-center transition-all animate-pulse-fade hover:animate-none hover:scale-110" flex items-center justify-center transition-all animate-pulse-fade hover:animate-none hover:scale-110"
+        className="fixed bottom-28 left-4 z-[99] flex items-center justify-center transition-all animate-pulse-fade hover:animate-none hover:scale-110"
         aria-label="Report Lost Dog"
         style={{ width: '64px', height: '64px', background: 'none', border: 'none', padding: 0 }}
       >
