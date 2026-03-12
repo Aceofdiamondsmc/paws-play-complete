@@ -14,7 +14,7 @@ interface OnboardingFlowProps {
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { completeOnboarding } = useProfile();
   
   const [step, setStep] = useState<1 | 2>(1);
