@@ -16,12 +16,12 @@ export function LostDogFAB() {
         className="fixed bottom-28 left-4 z-[99] flex items-center justify-center bg-destructive text-destructive-foreground shadow-xl hover:bg-destructive/90 transition-all animate-pulse-fade hover:animate-none"
         aria-label="Report Lost Dog"
         style={{
-          width: '56px',
-          height: '62px',
-          clipPath: 'path("M10 20 C10 20 4 18 4 28 C4 42 10 50 28 50 C46 50 52 42 52 28 C52 18 46 20 46 20 C46 20 46 8 40 4 C36 2 32 6 30 10 L26 10 C24 6 20 2 16 4 C10 8 10 20 10 20 Z")',
+          width: '60px',
+          height: '64px',
+          clipPath: 'path("M30 58 C46 58 54 48 54 36 C54 24 46 16 40 16 C38 16 36 17 35 18 C34 14 32 10 30 10 C28 10 26 14 25 18 C24 17 22 16 20 16 C14 16 6 24 6 36 C6 48 14 58 30 58 Z M16 16 C16 16 10 14 6 18 C1 23 0 30 2 34 C3 28 8 22 16 20 C14 18 14 16 16 16 Z M44 16 C44 16 50 14 54 18 C59 23 60 30 58 34 C57 28 52 22 44 20 C46 18 46 16 44 16 Z")',
         }}
       >
-        <span className="text-[11px] font-extrabold mt-2">SOS</span>
+        <span className="text-[11px] font-extrabold mt-3">SOS</span>
       </button>
 
       <LostDogAlertModal open={open} onOpenChange={setOpen} />
