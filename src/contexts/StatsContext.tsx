@@ -19,19 +19,18 @@ export function StatsProvider({ children }: { children: ReactNode }) {
     
     setLoading(true);
     try {
-      // Lightweight query - just gets a single number from the view
-      const { data, error } = await supabase
-        .from('park_counts')
-        .select('total_parks')
-        .maybeSingle();
+      // Lightweight count query
+      const { count, error } = await supabase
+        .from('parks')
+        .select('*', { count: 'exact', head: true });
 
       if (error) {
         console.error('Failed to fetch park count:', error);
         return;
       }
 
-      if (data?.total_parks != null) {
-        setParkCount(Number(data.total_parks));
+      if (count != null) {
+        setParkCount(count);
         setHasFetched(true);
       }
     } catch (error) {
