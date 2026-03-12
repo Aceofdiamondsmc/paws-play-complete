@@ -12,6 +12,7 @@ interface DogData {
   weight_lbs?: number;
   health_notes?: string;
   play_style?: string[];
+  vaccination_certified?: boolean;
 }
 
 export function useDogs() {
