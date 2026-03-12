@@ -2,7 +2,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Search, CreditCard, Mail } from 'lucide-react';
+import { AlertTriangle, Search, CreditCard, Mail, Scale } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface HelpSupportProps {
