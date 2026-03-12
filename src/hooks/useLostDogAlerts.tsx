@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { playReunitedSound } from '@/lib/alert-sounds';
+
 export interface LostDogAlert {
   id: string;
   user_id: string;
@@ -13,6 +14,7 @@ export interface LostDogAlert {
   last_seen_lng: number | null;
   contact_phone: string | null;
   post_id: string | null;
+  reward: string | null;
   created_at: string;
   resolved_at: string | null;
   dog?: { name: string; avatar_url: string | null; breed: string | null };
@@ -31,7 +33,6 @@ export function useLostDogAlerts() {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      // Fetch dog info for each alert
       const dogIds = [...new Set(data.map(a => a.dog_id))];
       const { data: dogs } = await supabase
         .from('dogs')
@@ -59,19 +60,19 @@ export function useLostDogAlerts() {
     last_seen_lat?: number;
     last_seen_lng?: number;
     contact_phone: string;
+    reward?: string;
   }) => {
     if (!user) return { error: new Error('Not authenticated') };
 
     try {
-      // Get dog info for the post
       const { data: dog } = await supabase
         .from('dogs')
         .select('name, avatar_url, breed')
         .eq('id', data.dog_id)
         .single();
 
-      // Create the Social post
-      const postContent = `🚨 PAWS ALERT: Missing Member! 🚨\n\n${dog?.name || 'A dog'} (${dog?.breed || 'Unknown breed'}) is missing!\n\n📍 Last seen: ${data.last_seen_location}\n📝 ${data.description}\n📞 Contact: ${data.contact_phone}\n\nOur pack needs your eyes on the street. Please share! 🐾`;
+      const rewardText = data.reward ? `\n💰 Reward: ${data.reward}` : '';
+      const postContent = `🚨 PAWS ALERT: Missing Member! 🚨\n\n${dog?.name || 'A dog'} (${dog?.breed || 'Unknown breed'}) is missing!\n\n📍 Last seen: ${data.last_seen_location}\n📝 ${data.description}\n📞 Contact: ${data.contact_phone}${rewardText}\n\nOur pack needs your eyes on the street. Please share! 🐾`;
 
       const { data: post, error: postError } = await supabase
         .from('posts')
@@ -86,7 +87,6 @@ export function useLostDogAlerts() {
 
       if (postError) throw postError;
 
-      // Create the alert record
       const { error: alertError } = await supabase
         .from('lost_dog_alerts')
         .insert({
@@ -97,12 +97,12 @@ export function useLostDogAlerts() {
           last_seen_lat: data.last_seen_lat || null,
           last_seen_lng: data.last_seen_lng || null,
           contact_phone: data.contact_phone,
+          reward: data.reward || null,
           post_id: post?.id || null,
         });
 
       if (alertError) throw alertError;
 
-      // Try to send push notification via edge function
       try {
         await supabase.functions.invoke('lost-dog-alert', {
           body: {
@@ -125,7 +125,6 @@ export function useLostDogAlerts() {
   const resolveAlert = async (alertId: string) => {
     if (!user) return { error: new Error('Not authenticated') };
 
-    // Get alert info for the reunited notification
     const alert = activeAlerts.find(a => a.id === alertId);
 
     const { error } = await supabase
@@ -137,7 +136,6 @@ export function useLostDogAlerts() {
     if (!error) {
       playReunitedSound();
 
-      // Send reunited push notification
       try {
         await supabase.functions.invoke('lost-dog-alert', {
           body: {
@@ -153,5 +151,6 @@ export function useLostDogAlerts() {
     }
     return { error };
   };
+
   return { activeAlerts, loading, createAlert, resolveAlert, refresh: fetchActiveAlerts };
 }

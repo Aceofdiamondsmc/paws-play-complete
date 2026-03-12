@@ -61,32 +61,80 @@ function PackAlertBanners({ alerts, userId, onResolve }: { alerts: any[]; userId
     setResolvingId(null);
   };
 
+  const handleShareAlert = async (alert: any) => {
+    const dogName = alert.dog?.name || 'A dog';
+    const rewardText = alert.reward ? 'Reward offered for safe return. ' : '';
+    const shareUrl = `${window.location.origin}/social`;
+    const shareData = {
+      title: '🚨 PAWS ALERT',
+      text: `🚨 PAWS ALERT: ${dogName} is missing! ${rewardText}Help the pack find them.`,
+      url: shareUrl,
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') {
+          toast.error('Failed to share');
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${shareData.text} View details here: ${shareUrl}`);
+        toast.success('Alert link copied!');
+      } catch {
+        toast.error('Failed to copy link');
+      }
+    }
+  };
+
   return (
     <div className="space-y-2">
       {alerts.map((alert: any) => (
-        <div key={alert.id} className="flex items-center gap-3 p-3 rounded-xl border-2 border-destructive/30 bg-destructive/5 animate-pulse">
-          <div className="w-10 h-10 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground font-bold text-lg shrink-0">
-            🚨
+        <div key={alert.id} className="p-3 rounded-xl border-2 border-destructive/30 bg-destructive/5 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground font-bold text-lg shrink-0">
+              🚨
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-destructive text-sm">🚨 PAWS ALERT: {alert.dog?.name || 'Unknown'} is missing!</p>
+              <p className="text-xs text-muted-foreground truncate">
+                Last seen: {alert.last_seen_location || 'Unknown'}
+                {alert.contact_phone && ` · Call: ${alert.contact_phone}`}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-destructive text-sm">🚨 PAWS ALERT: {alert.dog?.name || 'Unknown'} is missing!</p>
-            <p className="text-xs text-muted-foreground truncate">
-              Last seen: {alert.last_seen_location || 'Unknown'}
-              {alert.contact_phone && ` · Call: ${alert.contact_phone}`}
-            </p>
-          </div>
-          {userId && alert.user_id === userId && (
+          <div className="flex items-center gap-2 mt-2 ml-[52px]">
+            {alert.reward && (
+              <Badge variant="outline" className="border-primary text-primary bg-primary/5 font-semibold text-xs">
+                <Gift className="w-3 h-3 mr-1" />
+                Reward Offered
+              </Badge>
+            )}
+            <div className="flex-1" />
             <Button
               size="sm"
               variant="ghost"
-              disabled={resolvingId === alert.id}
-              className="shrink-0 bg-green-500/15 hover:bg-green-500/25 text-green-700 dark:text-green-400 font-semibold text-xs"
-              onClick={(e) => { e.stopPropagation(); handleResolve(alert.id); }}
+              className="shrink-0 text-xs h-7 px-2"
+              onClick={(e) => { e.stopPropagation(); handleShareAlert(alert); }}
             >
-              <Check className="h-3.5 w-3.5 mr-1" />
-              {resolvingId === alert.id ? 'Saving…' : 'Found'}
+              <Share2 className="h-3.5 w-3.5 mr-1" />
+              Share
             </Button>
-          )}
+            {userId && alert.user_id === userId && (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={resolvingId === alert.id}
+                className="shrink-0 bg-green-500/15 hover:bg-green-500/25 text-green-700 dark:text-green-400 font-semibold text-xs h-7 px-2"
+                onClick={(e) => { e.stopPropagation(); handleResolve(alert.id); }}
+              >
+                <Check className="h-3.5 w-3.5 mr-1" />
+                {resolvingId === alert.id ? 'Saving…' : 'Found'}
+              </Button>
+            )}
+          </div>
         </div>
       ))}
     </div>
