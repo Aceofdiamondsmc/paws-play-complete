@@ -188,7 +188,7 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function Social() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, dogs: userDogs } = useAuth();
   const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts();
   const { activeAlerts, resolveAlert } = useLostDogAlerts();
   const { allParks } = useParks();
