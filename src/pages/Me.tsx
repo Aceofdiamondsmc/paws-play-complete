@@ -23,6 +23,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { FriendsList } from '@/components/profile/FriendsList';
 import { MySuggestionsList } from '@/components/parks/MySuggestionsList';
 import { useParkSuggestions } from '@/hooks/useParkSuggestions';
+import { HelpSupport } from '@/components/profile/HelpSupport';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
