@@ -126,6 +126,43 @@ function formatDistanceMiles(meters: number | null | undefined): string {
   return `${Math.round(miles)} mi`;
 }
 
+// Compute dynamic match badges based on compatibility with user's dogs
+function computeMatchBadges(dog: DogWithOwner, userDogs: DogType[]) {
+  const badges: { label: string; icon: React.ElementType; className: string }[] = [];
+
+  if (userDogs.length === 0) return badges;
+
+  // Energy Match — same energy_level as any of your dogs
+  if (dog.energy_level && userDogs.some(d => d.energy_level === dog.energy_level)) {
+    badges.push({ label: 'Energy Match', icon: Zap, className: 'bg-[#f97316]/15 text-[#fb923c] border-[#f97316]/40' });
+  }
+
+  // Size Match — same size as any of your dogs
+  if (dog.size && userDogs.some(d => d.size === dog.size)) {
+    badges.push({ label: 'Size Match', icon: Ruler, className: 'bg-[#3b82f6]/15 text-[#60a5fa] border-[#3b82f6]/40' });
+  }
+
+  // Play Pal — shares at least one play_style with any of your dogs
+  if (dog.play_style && dog.play_style.length > 0) {
+    const userStyles = new Set(userDogs.flatMap(d => d.play_style || []));
+    if (dog.play_style.some(s => userStyles.has(s))) {
+      badges.push({ label: 'Play Pal', icon: Heart, className: 'bg-[#ec4899]/15 text-[#f472b6] border-[#ec4899]/40' });
+    }
+  }
+
+  // Nearby — distance < 8km (~5 miles)
+  if (dog.distance_meters != null && dog.distance_meters < 8000) {
+    badges.push({ label: 'Nearby', icon: MapPin, className: 'bg-[#4ade80]/15 text-[#4ade80] border-[#4ade80]/40' });
+  }
+
+  // Social Butterfly — dog has 3+ play styles
+  if (dog.play_style && dog.play_style.length >= 3) {
+    badges.push({ label: 'Social Butterfly', icon: Star, className: 'bg-[#a855f7]/15 text-[#c084fc] border-[#a855f7]/40' });
+  }
+
+  return badges;
+}
+
 export default function Pack() {
   const packNavigate = useNavigate();
   const { user, dogs: userDogs } = useAuth();
