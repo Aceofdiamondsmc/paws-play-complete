@@ -62,6 +62,7 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
   const handleEditClick = (commentId: string, body: string) => {
     setEditingCommentId(commentId);
     setEditText(body);
+    setTimeout(() => document.getElementById('comment-input')?.focus(), 50);
   };
 
   const handleCancelEdit = () => {
