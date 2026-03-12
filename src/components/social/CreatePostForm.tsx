@@ -283,6 +283,24 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin, dogs }: Cre
         </div>
       )}
 
+      {/* Dog Selector */}
+      {dogs && dogs.length > 0 && (
+        <div className="mb-3 pb-3 border-b border-border">
+          <Select value={selectedDogId} onValueChange={setSelectedDogId}>
+            <SelectTrigger className="w-full bg-card border-primary/30 rounded-xl h-10">
+              <SelectValue placeholder="Tag a pup (optional)... 🐶" />
+            </SelectTrigger>
+            <SelectContent>
+              {dogs.map((dog) => (
+                <SelectItem key={dog.id} value={dog.id}>
+                  {dog.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Post Content */}
       <Textarea
         placeholder={isReview ? "Share your experience at this park... What did your pup think? 🐾" : "Share something with the pack... 🐾"}
