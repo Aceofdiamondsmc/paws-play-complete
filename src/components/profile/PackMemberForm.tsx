@@ -23,6 +23,7 @@ import {
 import { useDogs } from '@/hooks/useDogs';
 import { toast } from 'sonner';
 import { BreedCombobox } from './BreedCombobox';
+import { Switch } from '@/components/ui/switch';
 
 // Play style options stored directly (no separate table)
 const PLAY_STYLE_OPTIONS = [
