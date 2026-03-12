@@ -167,7 +167,8 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         age_years: ageYears ? parseInt(ageYears) : undefined,
         weight_lbs: weightLbs ? parseFloat(weightLbs) : undefined,
         health_notes: healthInfo.trim(),
-        play_style: selectedPlayStyles
+        play_style: selectedPlayStyles,
+        vaccination_certified: vaccinationCertified
       };
 
       if (editingDog) {
