@@ -177,6 +177,7 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin, dogs }: Cre
     setRating(0);
     setAdminDisplayName('');
     setAdminAvatarUrl('');
+    setSelectedDogId('');
     removeMedia();
   };
 
