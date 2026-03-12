@@ -76,6 +76,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   const [selectedPlayStyles, setSelectedPlayStyles] = useState<string[]>(
     editingDog?.play_style || []
   );
+  const [vaccinationCertified, setVaccinationCertified] = useState(editingDog?.vaccination_certified ?? false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
