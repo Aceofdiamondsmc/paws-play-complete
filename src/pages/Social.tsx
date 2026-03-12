@@ -381,7 +381,7 @@ export default function Social() {
 
         {/* Create Post Form - only show if user is logged in */}
         {user && (
-          <CreatePostForm onPost={handlePost} isPosting={isPosting} isAdmin={isAdmin} />
+          <CreatePostForm onPost={handlePost} isPosting={isPosting} isAdmin={isAdmin} dogs={userDogs} />
         )}
 
         {/* Posts Feed */}
