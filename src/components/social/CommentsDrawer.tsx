@@ -62,6 +62,7 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
   const handleEditClick = (commentId: string, body: string) => {
     setEditingCommentId(commentId);
     setEditText(body);
+    setTimeout(() => document.getElementById('comment-input')?.focus(), 50);
   };
 
   const handleCancelEdit = () => {
@@ -127,73 +128,39 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    {editingCommentId === comment.id ? (
-                      <div className="flex items-center gap-1.5">
-                        <Input
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          disabled={saving}
-                          className="flex-1 rounded-full text-sm h-9 border-primary/20 focus:border-primary"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit();
-                            if (e.key === 'Escape') handleCancelEdit();
-                          }}
-                        />
-                        <Button
-                          size="icon"
-                          className="rounded-full w-8 h-8 shrink-0"
-                          onClick={handleSaveEdit}
-                          disabled={saving || !editText.trim()}
-                        >
-                          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="rounded-full w-8 h-8 shrink-0"
-                          onClick={handleCancelEdit}
-                          disabled={saving}
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      // Display Mode
-                      <>
-                        <div className="bg-muted/50 rounded-2xl px-4 py-2.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold text-foreground text-sm">
-                              {comment.author?.display_name || 'Anonymous'}
-                            </span>
-                            {user && user.id === comment.author_id && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                                onClick={() => handleEditClick(comment.id, comment.body)}
-                              >
-                                <Pencil className="w-3 h-3 mr-1" />
-                                Edit
-                              </Button>
-                            )}
-                          </div>
-                          <p className="text-foreground text-sm mt-0.5 whitespace-pre-wrap">
-                            {comment.body}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-2 mt-1">
-                          <span className="text-xs text-muted-foreground">
-                            {comment.created_at 
-                              ? formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })
-                              : 'Just now'}
+                    <>
+                      <div className="bg-muted/50 rounded-2xl px-4 py-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-foreground text-sm">
+                            {comment.author?.display_name || 'Anonymous'}
                           </span>
-                          {isEdited(comment.created_at, (comment as any).updated_at) && (
-                            <span className="text-xs text-muted-foreground/70 italic">(edited)</span>
+                          {user && user.id === comment.author_id && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                              onClick={() => handleEditClick(comment.id, comment.body)}
+                            >
+                              <Pencil className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
                           )}
                         </div>
-                      </>
-                    )}
+                        <p className="text-foreground text-sm mt-0.5 whitespace-pre-wrap">
+                          {comment.body}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-2 mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {comment.created_at 
+                            ? formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })
+                            : 'Just now'}
+                        </span>
+                        {isEdited(comment.created_at, (comment as any).updated_at) && (
+                          <span className="text-xs text-muted-foreground/70 italic">(edited)</span>
+                        )}
+                      </div>
+                    </>
                   </div>
                 </div>
               ))}
@@ -204,28 +171,48 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
         {/* Sticky Comment Input */}
         <div className="p-4 border-t border-border bg-background shrink-0">
           {user ? (
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <Input
-                placeholder="Write a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                disabled={submitting}
-                className="flex-1 rounded-full border-primary/20 focus:border-primary"
-              />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={submitting || !newComment.trim()}
-                className="rounded-full bg-primary hover:bg-primary/90 shrink-0"
-              >
-                {submitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </Button>
-            </form>
+            <div className="space-y-1">
+              {editingCommentId && (
+                <div className="flex items-center gap-1 px-2 text-xs text-muted-foreground">
+                  <Pencil className="w-3 h-3" />
+                  <span>Editing</span>
+                  <span>·</span>
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              <form onSubmit={editingCommentId ? (e) => { e.preventDefault(); handleSaveEdit(); } : handleSubmit} className="flex gap-2">
+                <Input
+                  id="comment-input"
+                  placeholder={editingCommentId ? "Edit your comment..." : "Write a comment..."}
+                  value={editingCommentId ? editText : newComment}
+                  onChange={(e) => editingCommentId ? setEditText(e.target.value) : setNewComment(e.target.value)}
+                  onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                  onKeyDown={(e) => { if (e.key === 'Escape' && editingCommentId) handleCancelEdit(); }}
+                  disabled={submitting || saving}
+                  className="flex-1 rounded-full border-primary/20 focus:border-primary"
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={editingCommentId ? (saving || !editText.trim()) : (submitting || !newComment.trim())}
+                  className="rounded-full bg-primary hover:bg-primary/90 shrink-0"
+                >
+                  {(submitting || saving) ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : editingCommentId ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
+              </form>
+            </div>
           ) : (
             <p className="text-center text-muted-foreground text-sm py-2">
               Log in to add a comment
