@@ -166,7 +166,8 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin, dogs }: Cre
       isReview ? rating : undefined,
       uploadedVideoUrl,
       adminDisplayName.trim() || undefined,
-      adminAvatarUrl.trim() || undefined
+      adminAvatarUrl.trim() || undefined,
+      selectedDogId || undefined
     );
     
     // Reset form
