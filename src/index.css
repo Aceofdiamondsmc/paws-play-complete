@@ -295,6 +295,15 @@
   animation: restock-celebrate 0.5s ease-out, glow-success 1s ease-out;
 }
 
+@keyframes pulse-fade {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
+.animate-pulse-fade {
+  animation: pulse-fade 3s ease-in-out infinite;
+}
+
 @keyframes shimmer-sweep {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
