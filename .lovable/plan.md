@@ -1,74 +1,76 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Plan: Welcome Email, Help & Support Page
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
-
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
-
-### Changes
-
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
-
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
-
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
-
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
-
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
-
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
-
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
-
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
+Three deliverables: (1) a welcome email edge function triggered on signup, (2) a Help & Support section on the Me/Profile page, and (3) wiring it all together.
 
 ---
 
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
+### 1. Welcome Email Edge Function
 
-### What was implemented:
+**New file: `supabase/functions/welcome-email/index.ts`**
 
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
+- Triggered via a Supabase database webhook on `INSERT` into `profiles` (when `onboarding_completed` flips to `true`, or simply on profile creation).
+- Alternative: call it from the client after onboarding completes (simpler, no webhook setup needed). The `OnboardingFlow` component's `onComplete` callback is the ideal trigger point — invoke the function there.
+- The function:
+  1. Receives `{ user_id }` in the request body
+  2. Uses service role client to fetch `profiles` (display_name) and `dogs` (first dog's name) for that user
+  3. Builds the HTML email from the template provided (warm coral brand colors, SOS button explanation, profile link)
+  4. Sends via Supabase's built-in `supabase.auth.admin.sendRawEmail()` — **however**, since this project uses an external Supabase project without Lovable Cloud email, we need an email provider.
 
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
+**Email delivery approach:** Since this is a transactional email (not auth), we need either:
+- A Resend API key (simplest — one secret, one HTTP call)
+- Or use the existing OneSignal integration to send an email notification instead
 
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
+I recommend **Resend** for clean HTML email delivery. This requires adding a `RESEND_API_KEY` secret.
 
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
+**`supabase/config.toml`** — add `[functions.welcome-email]` with `verify_jwt = false` (validated in-code).
 
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
+**Client trigger in `src/components/profile/OnboardingFlow.tsx`** — after onboarding completes, fire-and-forget call to `supabase.functions.invoke('welcome-email', { body: { user_id } })`.
+
+---
+
+### 2. Help & Support Section on Profile Page
+
+**New file: `src/components/profile/HelpSupport.tsx`**
+
+A sheet/dialog component using the existing `Accordion` component with three sections:
+
+1. **"How to Send a Pack Alert"** — explains SOS button, broadcast radius, printable flyer with QR code, tip about keeping photos updated
+2. **"What is a Paws Alert?"** — explains community search notifications, how to contact owners securely
+3. **"Managing Your Subscription"** — brief explanation + a "Manage Subscription" button that calls `useSubscription().manageSubscription()` to open Stripe portal
+
+**Bottom section:** "Contact Support" button using `<a href="mailto:info@pawsplayrepeat.app">` styled as a full-width outlined button.
+
+**Integration in `src/pages/Me.tsx`:**
+- Add a "Help & Support" card (with `HelpCircle` icon) between the Admin Dashboard link and the Install Prompt card
+- Clicking it opens the `HelpSupport` sheet
+- Import the new component and add state management
+
+---
+
+### 3. Email Template Content
+
+The HTML email will match the provided template exactly:
+- Subject: `Welcome to the Pack! 🐾 (And how we keep your dog safe)`
+- Personalized with `[User Name]` and `[Dog Name]` from the database
+- Profile link: `https://pawsplayrepeat.lovable.app/me`
+- Styled with the app's warm coral primary color (`hsl(24, 85%, 60%)`) for buttons/accents, white body background
+- Responsive single-column layout
+
+---
+
+### Technical Details
+
+| Item | File | Action |
+|------|------|--------|
+| Edge function | `supabase/functions/welcome-email/index.ts` | Create |
+| Config | `supabase/config.toml` | Add function entry |
+| Onboarding trigger | `src/components/profile/OnboardingFlow.tsx` | Add invoke call |
+| Help component | `src/components/profile/HelpSupport.tsx` | Create |
+| Profile page | `src/pages/Me.tsx` | Add Help & Support card + sheet |
+
+### Prerequisite
+
+A `RESEND_API_KEY` secret is needed for email delivery. I will ask you to add it before proceeding with the edge function.
+
