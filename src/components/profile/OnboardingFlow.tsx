@@ -42,6 +42,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       
       toast.success('Welcome to the pack! 🐕');
       onComplete();
+      
+      // Fire-and-forget welcome email
+      supabase.functions.invoke('welcome-email', {
+        body: { user_id: user?.id },
+      }).catch((err) => console.warn('Welcome email failed (non-blocking):', err));
+      
       navigate('/social');
     } catch (error) {
       toast.error('Failed to complete setup');

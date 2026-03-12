@@ -585,6 +585,8 @@ export default function Me() {
         profile={profile}
       />
 
+      <HelpSupport open={showHelp} onOpenChange={setShowHelp} />
+
       <Sheet open={showSuggestions} onOpenChange={setShowSuggestions}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
           <SheetHeader className="pb-2">
