@@ -188,7 +188,7 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function Social() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, dogs: userDogs } = useAuth();
   const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts();
   const { activeAlerts, resolveAlert } = useLostDogAlerts();
   const { allParks } = useParks();
@@ -245,10 +245,11 @@ export default function Social() {
     rating?: number,
     videoUrl?: string,
     authorDisplayName?: string,
-    authorAvatarUrl?: string
+    authorAvatarUrl?: string,
+    dogId?: string
   ) => {
     setIsPosting(true);
-    await createPost(content, imageUrl, 'public', videoUrl, authorDisplayName, authorAvatarUrl);
+    await createPost(content, imageUrl, 'public', videoUrl, authorDisplayName, authorAvatarUrl, dogId);
     setIsPosting(false);
   };
 
@@ -380,7 +381,7 @@ export default function Social() {
 
         {/* Create Post Form - only show if user is logged in */}
         {user && (
-          <CreatePostForm onPost={handlePost} isPosting={isPosting} isAdmin={isAdmin} />
+          <CreatePostForm onPost={handlePost} isPosting={isPosting} isAdmin={isAdmin} dogs={userDogs} />
         )}
 
         {/* Posts Feed */}

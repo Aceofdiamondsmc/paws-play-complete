@@ -21,9 +21,10 @@ import { toast } from '@/hooks/use-toast';
 import { ensureJpeg } from '@/lib/heic-convert';
 
 interface CreatePostFormProps {
-  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string, authorDisplayName?: string, authorAvatarUrl?: string) => Promise<void>;
+  onPost: (content: string, imageUrl?: string, isReview?: boolean, parkId?: string, rating?: number, videoUrl?: string, authorDisplayName?: string, authorAvatarUrl?: string, dogId?: string) => Promise<void>;
   isPosting: boolean;
   isAdmin?: boolean;
+  dogs?: { id: string; name: string }[];
 }
 
 // Interactive star rating input
@@ -61,7 +62,7 @@ function StarRatingInput({
   );
 }
 
-export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePostFormProps) {
+export default function CreatePostForm({ onPost, isPosting, isAdmin, dogs }: CreatePostFormProps) {
   const { allParks } = useParks();
   const { uploadImage, uploading } = useImageUpload();
   const [content, setContent] = useState('');
@@ -76,6 +77,7 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
   const [processing, setProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [selectedDogId, setSelectedDogId] = useState<string>('');
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawFile = e.target.files?.[0];
@@ -164,7 +166,8 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
       isReview ? rating : undefined,
       uploadedVideoUrl,
       adminDisplayName.trim() || undefined,
-      adminAvatarUrl.trim() || undefined
+      adminAvatarUrl.trim() || undefined,
+      selectedDogId || undefined
     );
     
     // Reset form
@@ -174,6 +177,7 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
     setRating(0);
     setAdminDisplayName('');
     setAdminAvatarUrl('');
+    setSelectedDogId('');
     removeMedia();
   };
 
@@ -276,6 +280,24 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePos
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Dog Selector */}
+      {dogs && dogs.length > 0 && (
+        <div className="mb-3 pb-3 border-b border-border">
+          <Select value={selectedDogId} onValueChange={setSelectedDogId}>
+            <SelectTrigger className="w-full bg-card border-primary/30 rounded-xl h-10">
+              <SelectValue placeholder="Tag a pup (optional)... 🐶" />
+            </SelectTrigger>
+            <SelectContent>
+              {dogs.map((dog) => (
+                <SelectItem key={dog.id} value={dog.id}>
+                  {dog.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 

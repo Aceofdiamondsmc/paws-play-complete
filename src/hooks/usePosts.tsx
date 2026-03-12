@@ -230,8 +230,30 @@ export function usePosts() {
     };
   }, []); // Empty deps - subscription stays stable
 
-  const createPost = async (content: string, imageUrl?: string, visibility: 'public' | 'private' = 'public', videoUrl?: string, authorDisplayName?: string, authorAvatarUrl?: string) => {
+  const createPost = async (content: string, imageUrl?: string, visibility: 'public' | 'private' = 'public', videoUrl?: string, authorDisplayName?: string, authorAvatarUrl?: string, dogId?: string) => {
     if (!user) return { error: new Error('Not authenticated') };
+
+    // Snapshot the user's current profile data so future profile changes don't affect this post
+    if (!authorAvatarUrl || !authorDisplayName) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('avatar_url, display_name')
+        .eq('id', user.id)
+        .single();
+      if (!authorAvatarUrl) authorAvatarUrl = prof?.avatar_url || undefined;
+      if (!authorDisplayName) authorDisplayName = prof?.display_name || undefined;
+    }
+
+    // Snapshot dog name so it persists even if the dog record changes later
+    let pupName: string | null = null;
+    if (dogId) {
+      const { data: dog } = await supabase
+        .from('dogs')
+        .select('name')
+        .eq('id', dogId)
+        .single();
+      pupName = dog?.name || null;
+    }
 
     const { error } = await supabase.from('posts').insert({
       author_id: user.id,
@@ -241,6 +263,8 @@ export function usePosts() {
       visibility,
       author_display_name: authorDisplayName || null,
       author_avatar_url: authorAvatarUrl || null,
+      dog_id: dogId || null,
+      pup_name: pupName,
     } as any);
 
     if (!error) {
