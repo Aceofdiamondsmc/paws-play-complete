@@ -18,6 +18,7 @@ interface Comment {
   post_id: string;
   author_id: string;
   body: string;
+  image_url: string | null;
   created_at: string | null;
   updated_at: string | null;
   author?: Partial<Profile>;
