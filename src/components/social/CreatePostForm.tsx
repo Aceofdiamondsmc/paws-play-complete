@@ -62,7 +62,7 @@ function StarRatingInput({
   );
 }
 
-export default function CreatePostForm({ onPost, isPosting, isAdmin }: CreatePostFormProps) {
+export default function CreatePostForm({ onPost, isPosting, isAdmin, dogs }: CreatePostFormProps) {
   const { allParks } = useParks();
   const { uploadImage, uploading } = useImageUpload();
   const [content, setContent] = useState('');
