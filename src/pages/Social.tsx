@@ -245,10 +245,11 @@ export default function Social() {
     rating?: number,
     videoUrl?: string,
     authorDisplayName?: string,
-    authorAvatarUrl?: string
+    authorAvatarUrl?: string,
+    dogId?: string
   ) => {
     setIsPosting(true);
-    await createPost(content, imageUrl, 'public', videoUrl, authorDisplayName, authorAvatarUrl);
+    await createPost(content, imageUrl, 'public', videoUrl, authorDisplayName, authorAvatarUrl, dogId);
     setIsPosting(false);
   };
 
