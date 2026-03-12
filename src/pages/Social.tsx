@@ -206,6 +206,15 @@ export default function Social() {
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   
   const { startConversation } = useMessages();
+  const { friends } = useFriendships();
+  
+  // Build set of accepted friend IDs for filtering
+  const friendIds = React.useMemo(() => {
+    const ids = new Set<string>();
+    friends.forEach(f => ids.add(f.friend.id));
+    if (user?.id) ids.add(user.id);
+    return ids;
+  }, [friends, user?.id]);
 
   const handleMessageAuthor = async (authorId: string) => {
     if (!user) {
