@@ -225,6 +225,7 @@ export type Database = {
           play_style: string[] | null
           size: string | null
           updated_at: string | null
+          vaccination_certified: boolean | null
           weight_lbs: number | null
         }
         Insert: {
@@ -246,6 +247,7 @@ export type Database = {
           play_style?: string[] | null
           size?: string | null
           updated_at?: string | null
+          vaccination_certified?: boolean | null
           weight_lbs?: number | null
         }
         Update: {
@@ -267,6 +269,7 @@ export type Database = {
           play_style?: string[] | null
           size?: string | null
           updated_at?: string | null
+          vaccination_certified?: boolean | null
           weight_lbs?: number | null
         }
         Relationships: [
@@ -897,6 +900,20 @@ export type Database = {
             referencedRelation: "public_posts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "post_access_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "view_post_comment_counts"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "post_access_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "view_post_like_counts"
+            referencedColumns: ["post_id"]
+          },
         ]
       }
       post_comments: {
@@ -945,6 +962,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_posts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "view_post_comment_counts"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "view_post_like_counts"
+            referencedColumns: ["post_id"]
           },
         ]
       }
@@ -1033,6 +1064,20 @@ export type Database = {
             referencedRelation: "public_posts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "post_images_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "view_post_comment_counts"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "post_images_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "view_post_like_counts"
+            referencedColumns: ["post_id"]
+          },
         ]
       }
       post_likes: {
@@ -1075,6 +1120,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_posts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "view_post_comment_counts"
+            referencedColumns: ["post_id"]
+          },
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "view_post_like_counts"
+            referencedColumns: ["post_id"]
           },
         ]
       }
@@ -1695,6 +1754,7 @@ export type Database = {
       }
       park_counts: {
         Row: {
+          city_id: string | null
           total_parks: number | null
         }
         Relationships: []
@@ -1848,58 +1908,14 @@ export type Database = {
           comment_count: number | null
           post_id: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "public_posts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       view_post_like_counts: {
         Row: {
           like_count: number | null
           post_id: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "public_posts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
@@ -2324,10 +2340,21 @@ export type Database = {
           user_ratings_total: number
         }[]
       }
+      get_post_like_counts: {
+        Args: never
+        Returns: {
+          like_count: number
+          post_id: string
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
-      has_active_subscription: { Args: never; Returns: boolean }
+      has_active_subscription:
+        | { Args: never; Returns: boolean }
+        | { Args: { p_user_id: string }; Returns: boolean }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
-      is_admin: { Args: never; Returns: boolean }
+      is_admin:
+        | { Args: never; Returns: boolean }
+        | { Args: { uid: string }; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
       mark_all_notifications_as_read: { Args: never; Returns: undefined }
       populate_geometry_columns:
