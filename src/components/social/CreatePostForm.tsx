@@ -77,6 +77,7 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin, dogs }: Cre
   const [processing, setProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [selectedDogId, setSelectedDogId] = useState<string>('');
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawFile = e.target.files?.[0];
