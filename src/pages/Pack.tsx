@@ -12,6 +12,7 @@ import { useFriendships } from '@/hooks/useFriendships';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { useMessages } from '@/hooks/useMessages';
 import { RequestPlaydateModal } from '@/components/playdate/RequestPlaydateModal';
+import { UserProfilePopover } from '@/components/pack/UserProfilePopover';
 import { toast } from 'sonner';
 import { UserPlus, UserCheck, Clock as ClockIcon } from 'lucide-react';
 
