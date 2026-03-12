@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp, TreePine } from 'lucide-react';
+import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp, TreePine, HelpCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { FriendsList } from '@/components/profile/FriendsList';
 import { MySuggestionsList } from '@/components/parks/MySuggestionsList';
 import { useParkSuggestions } from '@/hooks/useParkSuggestions';
+import { HelpSupport } from '@/components/profile/HelpSupport';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
@@ -57,6 +58,7 @@ export default function Me() {
   const [vaccinationDog, setVaccinationDog] = useState<{ id: string; name: string } | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   // Deep-link: auto-open chat from ?chat= query param
   useEffect(() => {
@@ -500,6 +502,22 @@ export default function Me() {
           </Card>
         )}
 
+        {/* Help & Support */}
+        <Card 
+          className="p-4 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+          onClick={() => setShowHelp(true)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <HelpCircle className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-bold">Help & Support</h3>
+              <p className="text-sm text-muted-foreground">Pack Alerts, Paws Alerts & more</p>
+            </div>
+          </div>
+        </Card>
+
         {/* Install Prompt */}
         {!installDismissed && (
           <Card className="p-4 relative">
@@ -566,6 +584,8 @@ export default function Me() {
         onClose={() => setShowEditProfile(false)}
         profile={profile}
       />
+
+      <HelpSupport open={showHelp} onOpenChange={setShowHelp} />
 
       <Sheet open={showSuggestions} onOpenChange={setShowSuggestions}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">

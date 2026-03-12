@@ -6,6 +6,7 @@ import { PackMemberForm } from './PackMemberForm';
 import { OnboardingProfileSetup } from './OnboardingProfileSetup';
 import { OnboardingAddDogStep } from './OnboardingAddDogStep';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -13,7 +14,7 @@ interface OnboardingFlowProps {
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { completeOnboarding } = useProfile();
   
   const [step, setStep] = useState<1 | 2>(1);
@@ -41,6 +42,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       
       toast.success('Welcome to the pack! 🐕');
       onComplete();
+      
+      // Fire-and-forget welcome email
+      supabase.functions.invoke('welcome-email', {
+        body: { user_id: user?.id },
+      }).catch((err) => console.warn('Welcome email failed (non-blocking):', err));
+      
       navigate('/social');
     } catch (error) {
       toast.error('Failed to complete setup');
