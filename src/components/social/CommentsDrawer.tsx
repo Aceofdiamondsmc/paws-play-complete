@@ -127,73 +127,39 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    {editingCommentId === comment.id ? (
-                      <div className="flex items-center gap-1.5">
-                        <Input
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          disabled={saving}
-                          className="flex-1 rounded-full text-sm h-9 border-primary/20 focus:border-primary"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit();
-                            if (e.key === 'Escape') handleCancelEdit();
-                          }}
-                        />
-                        <Button
-                          size="icon"
-                          className="rounded-full w-8 h-8 shrink-0"
-                          onClick={handleSaveEdit}
-                          disabled={saving || !editText.trim()}
-                        >
-                          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="rounded-full w-8 h-8 shrink-0"
-                          onClick={handleCancelEdit}
-                          disabled={saving}
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      // Display Mode
-                      <>
-                        <div className="bg-muted/50 rounded-2xl px-4 py-2.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold text-foreground text-sm">
-                              {comment.author?.display_name || 'Anonymous'}
-                            </span>
-                            {user && user.id === comment.author_id && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                                onClick={() => handleEditClick(comment.id, comment.body)}
-                              >
-                                <Pencil className="w-3 h-3 mr-1" />
-                                Edit
-                              </Button>
-                            )}
-                          </div>
-                          <p className="text-foreground text-sm mt-0.5 whitespace-pre-wrap">
-                            {comment.body}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-2 mt-1">
-                          <span className="text-xs text-muted-foreground">
-                            {comment.created_at 
-                              ? formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })
-                              : 'Just now'}
+                    <>
+                      <div className="bg-muted/50 rounded-2xl px-4 py-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-foreground text-sm">
+                            {comment.author?.display_name || 'Anonymous'}
                           </span>
-                          {isEdited(comment.created_at, (comment as any).updated_at) && (
-                            <span className="text-xs text-muted-foreground/70 italic">(edited)</span>
+                          {user && user.id === comment.author_id && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                              onClick={() => handleEditClick(comment.id, comment.body)}
+                            >
+                              <Pencil className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
                           )}
                         </div>
-                      </>
-                    )}
+                        <p className="text-foreground text-sm mt-0.5 whitespace-pre-wrap">
+                          {comment.body}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-2 mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {comment.created_at 
+                            ? formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })
+                            : 'Just now'}
+                        </span>
+                        {isEdited(comment.created_at, (comment as any).updated_at) && (
+                          <span className="text-xs text-muted-foreground/70 italic">(edited)</span>
+                        )}
+                      </div>
+                    </>
                   </div>
                 </div>
               ))}
