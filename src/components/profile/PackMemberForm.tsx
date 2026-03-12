@@ -96,6 +96,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
     setHealthInfo(editingDog?.health_notes || '');
     setAvatarUrl(editingDog?.avatar_url || '');
     setSelectedPlayStyles(editingDog?.play_style || []);
+    setVaccinationCertified(editingDog?.vaccination_certified ?? false);
     // Reset validation state
     setErrors({});
     setTouched({});
