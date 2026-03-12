@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Paws Play Repeat <welcome@pawsplayrepeat.app>",
+        from: "Paws Play Repeat <welcome@system.pawsplayrepeat.app>",
         to: [user.email],
         subject: "Welcome to the Pack! 🐾 (And how we keep your dog safe)",
         html: htmlBody,
