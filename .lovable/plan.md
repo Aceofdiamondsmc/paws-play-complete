@@ -1,74 +1,69 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Vet Verified (Level 2) Badge Flow
 
 ### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+Add a 3-tier verification system where uploaded vaccination documents are reviewed by admins, upgrading dogs from "Owner Certified" (amber) to "Vet Verified" (green).
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+### Tier Display
 
-### Changes
+```text
+┌─────────────────────────────────────────────────┐
+│  Gray   │ ShieldOff   │ Unverified              │
+│  Amber  │ ShieldCheck │ Owner Certified (Level 1)│
+│  Green  │ ShieldCheck │ Vet Verified (Level 2)   │
+└─────────────────────────────────────────────────┘
+```
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+### Database Changes
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+1. **Add `vet_verified` column to `dogs` table** — boolean, default `false`. This is the Level 2 flag set by admin after reviewing docs.
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+2. **Update `get_nearby_dogs` RPC** — include `d.vet_verified` in return type and SELECT.
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+3. **Update vaccination record status flow** — when a user uploads a doc, set status to `pending_review` instead of `verified`. Admins approve → `vet_verified`. Admins reject → `rejected`.
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+### Frontend Changes
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+**`src/hooks/useVaccinations.tsx`**
+- Change `addRecord` to set status to `pending_review` when a document is attached (otherwise `verified` for self-report).
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+**`src/components/profile/VaccinationForm.tsx`**
+- Show review status badges on each record: "Pending Review", "Vet Verified", "Rejected".
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
+**`src/pages/Pack.tsx`**
+- Add `vet_verified` to `DogWithOwner` interface.
+- Update badge logic: `vet_verified` → green "Vet Verified", `vaccination_certified` → amber "Owner Certified", else → gray "Unverified".
 
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+**`src/components/profile/VaccinationBadge.tsx`**
+- Accept `vetVerified` prop. Show green badge for vet verified, amber for owner certified.
 
-### Tier Order (lowest to highest)
+**`src/types/index.ts`**
+- Add `vet_verified: boolean | null` to `Dog` interface.
 
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
+**New: `src/pages/admin/AdminVaccinations.tsx`**
+- Admin page listing all `vaccination_records` with `pending_review` status.
+- Shows dog name, owner, vaccination type, expiry date, document link (opens in new tab).
+- Approve button → sets record status to `vet_verified` + sets `dogs.vet_verified = true`.
+- Reject button → sets record status to `rejected`.
 
----
+**`src/components/admin/AdminLayout.tsx`**
+- Add "Vaccinations" nav item linking to `/admin/vaccinations`.
 
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
+**`src/App.tsx`**
+- Add route for `/admin/vaccinations`.
 
-### What was implemented:
+### Files Changed
 
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
+| File | Change |
+|------|--------|
+| SQL migration | Add `vet_verified` to dogs, update `get_nearby_dogs` RPC |
+| `src/types/index.ts` | Add `vet_verified` to Dog |
+| `src/hooks/useVaccinations.tsx` | Status = `pending_review` when doc attached |
+| `src/components/profile/VaccinationForm.tsx` | Show review status per record |
+| `src/components/profile/VaccinationBadge.tsx` | Support vet_verified prop |
+| `src/pages/Pack.tsx` | 3-tier badge display |
+| `src/pages/admin/AdminVaccinations.tsx` | New admin review page |
+| `src/components/admin/AdminLayout.tsx` | Add nav item |
+| `src/App.tsx` | Add admin route |
 
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
