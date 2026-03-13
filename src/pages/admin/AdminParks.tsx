@@ -93,6 +93,8 @@ export default function AdminParks() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
   const [activeTab, setActiveTab] = useState('parks');
+  const [suggestionCoords, setSuggestionCoords] = useState<Record<string, { lat: string; lng: string }>>({});
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeTab === 'suggestions') {
