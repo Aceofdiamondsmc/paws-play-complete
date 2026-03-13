@@ -300,6 +300,7 @@ export function useNearbyParks(): UseNearbyParksReturn {
 
   return {
     parks: displayedParks,
+    allParks,
     loading,
     locationLoading,
     locationError,

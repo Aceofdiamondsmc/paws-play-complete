@@ -147,7 +147,7 @@ export default function Parks() {
       {/* Content */}
       {viewMode === 'map' ? (
         <div className="flex-1 relative">
-          <ParksMap parks={mapHook.parks} loading={mapHook.loading} />
+          <ParksMap parks={allParks} loading={loading} />
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
