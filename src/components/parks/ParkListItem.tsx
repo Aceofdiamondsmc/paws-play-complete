@@ -98,6 +98,11 @@ export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite, 
 
         {/* Quick feature badges */}
         <div className="flex gap-1 mt-1.5 flex-wrap">
+          {isUserPark && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-primary/20 text-primary border-primary/30">
+              🐾 You Added
+            </Badge>
+          )}
           {isLocalFavorite && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-green-500/20 text-green-700 border-green-500/30">
               ⭐ Local Favorite
