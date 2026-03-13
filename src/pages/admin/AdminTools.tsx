@@ -130,6 +130,19 @@ export default function AdminTools() {
     }
   };
 
+  const handleGeocodeBackfill = async () => {
+    setGeocoding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('geocode-parks');
+      if (error) throw error;
+      toast.success(`Geocode complete: ${JSON.stringify(data)}`);
+    } catch (err: any) {
+      toast.error(`Geocode failed: ${err.message}`);
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
   const permissionColor = permissionStatus === 'granted' ? 'bg-green-500/15 text-green-700' : permissionStatus === 'denied' ? 'bg-red-500/15 text-red-700' : 'bg-yellow-500/15 text-yellow-700';
 
   return (
