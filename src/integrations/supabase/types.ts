@@ -226,6 +226,7 @@ export type Database = {
           size: string | null
           updated_at: string | null
           vaccination_certified: boolean | null
+          vet_verified: boolean | null
           weight_lbs: number | null
         }
         Insert: {
@@ -248,6 +249,7 @@ export type Database = {
           size?: string | null
           updated_at?: string | null
           vaccination_certified?: boolean | null
+          vet_verified?: boolean | null
           weight_lbs?: number | null
         }
         Update: {
@@ -270,6 +272,7 @@ export type Database = {
           size?: string | null
           updated_at?: string | null
           vaccination_certified?: boolean | null
+          vet_verified?: boolean | null
           weight_lbs?: number | null
         }
         Relationships: [
@@ -2244,6 +2247,7 @@ export type Database = {
           play_style: string[]
           size: string
           vaccination_certified: boolean
+          vet_verified: boolean
         }[]
       }
       get_nearby_parks: {

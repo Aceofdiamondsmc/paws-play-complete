@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Trees, Settings, ArrowLeft, Shield, Users, Store, MessageSquare, Wrench } from 'lucide-react';
+import { Trees, Settings, ArrowLeft, Shield, Users, Store, MessageSquare, Wrench, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import pawsplayLogo from '@/assets/pawsplay-logo.png';
@@ -9,6 +9,7 @@ const adminNavItems = [
   { path: '/admin/services', icon: Store, label: 'Services' },
   { path: '/admin/social', icon: MessageSquare, label: 'Social' },
   { path: '/admin/users', icon: Users, label: 'Users' },
+  { path: '/admin/vaccinations', icon: ShieldCheck, label: 'Vaccinations' },
   { path: '/admin/tools', icon: Wrench, label: 'Tools' },
   { path: '/admin/settings', icon: Settings, label: 'Settings' },
 ];

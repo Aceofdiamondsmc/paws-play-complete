@@ -30,6 +30,7 @@ import AdminSocial from "./pages/admin/AdminSocial";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTools from "./pages/admin/AdminTools";
+import AdminVaccinations from "./pages/admin/AdminVaccinations";
 
 const ExploreIdRedirect = () => {
   const { id } = useParams();
@@ -79,6 +80,7 @@ const App = () => (
                 <Route path="social" element={<AdminSocial />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="tools" element={<AdminTools />} />
+                <Route path="vaccinations" element={<AdminVaccinations />} />
                 <Route path="settings" element={<AdminSettings />} />
               </Route>
               {/* Legacy redirects */}

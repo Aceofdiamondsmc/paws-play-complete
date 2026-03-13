@@ -75,6 +75,7 @@ export function useVaccinations(dogId?: string) {
         documentUrl = publicUrl;
       }
 
+      const hasDocument = !!documentUrl;
       const { error } = await supabase
         .from('vaccination_records')
         .insert({
@@ -82,8 +83,8 @@ export function useVaccinations(dogId?: string) {
           vaccination_type: vaccinationType,
           expiry_date: expiryDate,
           document_url: documentUrl,
-          status: 'verified',
-          verified_date: new Date().toISOString()
+          status: hasDocument ? 'pending_review' : 'verified',
+          verified_date: hasDocument ? null : new Date().toISOString()
         });
 
       if (error) throw error;

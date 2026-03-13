@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload, Plus, Trash2, FileText, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, Upload, Plus, Trash2, FileText, ShieldCheck, AlertCircle, Clock, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -127,49 +127,74 @@ export function VaccinationForm({ open, onClose, dogId, dogName }: VaccinationFo
             </div>
           ) : (
             <div className="space-y-2">
-              {records.map(record => (
-                <div 
-                  key={record.id} 
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
-                    isExpired(record.expiry_date) 
-                      ? 'bg-red-50 border-red-200' 
-                      : 'bg-green-50 border-green-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {isExpired(record.expiry_date) ? (
-                      <AlertCircle className="w-5 h-5 text-red-500" />
-                    ) : (
-                      <ShieldCheck className="w-5 h-5 text-green-500" />
-                    )}
-                    <div>
-                      <p className="font-medium text-sm">{record.vaccination_type}</p>
-                      <p className={`text-xs ${isExpired(record.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>
-                        {isExpired(record.expiry_date) ? 'Expired: ' : 'Expires: '}
-                        {format(new Date(record.expiry_date), 'MMM d, yyyy')}
-                      </p>
+              {records.map(record => {
+                const statusColors = record.status === 'vet_verified'
+                  ? 'bg-emerald-50 border-emerald-200'
+                  : record.status === 'pending_review'
+                  ? 'bg-amber-50 border-amber-200'
+                  : record.status === 'rejected'
+                  ? 'bg-red-50 border-red-200'
+                  : isExpired(record.expiry_date)
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-green-50 border-green-200';
+
+                const statusIcon = record.status === 'vet_verified'
+                  ? <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                  : record.status === 'pending_review'
+                  ? <Clock className="w-5 h-5 text-amber-500" />
+                  : record.status === 'rejected'
+                  ? <XCircle className="w-5 h-5 text-red-500" />
+                  : isExpired(record.expiry_date)
+                  ? <AlertCircle className="w-5 h-5 text-red-500" />
+                  : <ShieldCheck className="w-5 h-5 text-green-500" />;
+
+                const statusLabel = record.status === 'vet_verified'
+                  ? 'Vet Verified'
+                  : record.status === 'pending_review'
+                  ? 'Pending Review'
+                  : record.status === 'rejected'
+                  ? 'Rejected'
+                  : null;
+
+                return (
+                  <div 
+                    key={record.id} 
+                    className={`flex items-center justify-between p-3 rounded-lg border ${statusColors}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {statusIcon}
+                      <div>
+                        <p className="font-medium text-sm">{record.vaccination_type}</p>
+                        <p className={`text-xs ${isExpired(record.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          {isExpired(record.expiry_date) ? 'Expired: ' : 'Expires: '}
+                          {format(new Date(record.expiry_date), 'MMM d, yyyy')}
+                        </p>
+                        {statusLabel && (
+                          <span className="text-xs font-medium mt-0.5 block opacity-75">{statusLabel}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {record.document_url && (
+                        <a 
+                          href={record.document_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="p-1.5 hover:bg-white/50 rounded-full transition-colors"
+                        >
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                        </a>
+                      )}
+                      <button
+                        onClick={() => handleDelete(record.id)}
+                        className="p-1.5 hover:bg-white/50 rounded-full transition-colors text-red-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {record.document_url && (
-                      <a 
-                        href={record.document_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="p-1.5 hover:bg-white/50 rounded-full transition-colors"
-                      >
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                      </a>
-                    )}
-                    <button
-                      onClick={() => handleDelete(record.id)}
-                      className="p-1.5 hover:bg-white/50 rounded-full transition-colors text-red-500"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
