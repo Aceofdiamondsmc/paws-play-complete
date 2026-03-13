@@ -24,6 +24,10 @@ export function UserProfilePopover({ userId, children, onMessage }: UserProfileP
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
+  useEffect(() => {
+    setProfile(null);
+  }, [userId]);
+
   const fetchProfile = async () => {
     if (profile) return;
     setLoading(true);
