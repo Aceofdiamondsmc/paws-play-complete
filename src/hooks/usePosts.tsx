@@ -97,8 +97,11 @@ export function usePosts() {
 
       const enrichedPosts = (postsData || []).map((p: any) => {
         const dogName = p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : null) || null;
+        // Backfill dog_id from pup_name when missing
+        const resolvedDogId = p.dog_id || (dogName ? dogNameToIdMap.get(dogName) : null) || null;
         return {
           ...p,
+          dog_id: resolvedDogId,
           author: {
             display_name: p.author_display_name,
             avatar_url: p.author_avatar_url,
