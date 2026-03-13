@@ -3,23 +3,28 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 
 interface VaccinationBadgeProps {
   certified: boolean | null | undefined;
+  vetVerified?: boolean | null | undefined;
   size?: number;
 }
 
-export function VaccinationBadge({ certified, size = 16 }: VaccinationBadgeProps) {
-  if (!certified) return null;
+export function VaccinationBadge({ certified, vetVerified, size = 16 }: VaccinationBadgeProps) {
+  if (!certified && !vetVerified) return null;
+
+  const isVetVerified = !!vetVerified;
+  const label = isVetVerified ? 'Vet Verified' : 'Owner Certified';
+  const colorClass = isVetVerified ? 'text-emerald-500' : 'text-amber-500';
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <ShieldCheck
-            className="inline-block text-emerald-500 shrink-0"
+            className={`inline-block ${colorClass} shrink-0`}
             size={size}
           />
         </TooltipTrigger>
         <TooltipContent>
-          <p>Owner Certified</p>
+          <p>{label}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
