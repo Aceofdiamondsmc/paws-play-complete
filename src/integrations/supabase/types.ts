@@ -612,6 +612,7 @@ export type Database = {
           state: string | null
           status: string
           user_id: string
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
@@ -635,6 +636,7 @@ export type Database = {
           state?: string | null
           status?: string
           user_id: string
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
@@ -658,6 +660,7 @@ export type Database = {
           state?: string | null
           status?: string
           user_id?: string
+          zip_code?: string | null
         }
         Relationships: []
       }
@@ -690,6 +693,7 @@ export type Database = {
           state: string | null
           updated_at: string | null
           user_rating_total: number | null
+          zip_code: string | null
         }
         Insert: {
           added_by?: string | null
@@ -719,6 +723,7 @@ export type Database = {
           state?: string | null
           updated_at?: string | null
           user_rating_total?: number | null
+          zip_code?: string | null
         }
         Update: {
           added_by?: string | null
@@ -748,6 +753,7 @@ export type Database = {
           state?: string | null
           updated_at?: string | null
           user_rating_total?: number | null
+          zip_code?: string | null
         }
         Relationships: []
       }
