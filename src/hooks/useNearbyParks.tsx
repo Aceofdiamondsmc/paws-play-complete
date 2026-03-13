@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateDistance, hasValidCoords, getValidCoords } from '@/lib/navigation-utils';
+import { useAuth } from '@/hooks/useAuth';
 import type { Park, ParkFilter } from '@/types';
 
 const US_STATE_ABBREV: Record<string, string> = {
