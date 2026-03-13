@@ -19,7 +19,7 @@ export function VaccinationBadge({ certified, size = 16 }: VaccinationBadgeProps
           />
         </TooltipTrigger>
         <TooltipContent>
-          <p>Owner Certified Vaccinated</p>
+          <p>Owner Certified</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
