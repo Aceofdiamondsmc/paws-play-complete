@@ -1,74 +1,40 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Two Fixes: Park Visibility in List + Park Preview Panel
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### Issue 1: Approved Park Not Showing in List
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+**Root cause**: The `approve_park_suggestion` RPC does not set `added_by` on the inserted park, and the 3-tier discovery logic in `useNearbyParks` may push the park to Tier 3 (hidden behind "Show More") if its city/state don't match the user's detected location exactly.
 
-### Changes
+**Fix**:
+- **SQL migration**: Update `approve_park_suggestion` to set `added_by = _suggestion.user_id` so we can identify user-submitted parks.
+- **`useNearbyParks`**: Import `useAuth`, and in the tier-categorization loop, promote parks where `added_by` matches the current user's ID to Tier 2 (always visible, never hidden behind "Show More"). These get a "Your Park" treatment.
+- **`ParkListItem`**: Show a small "You Added" badge when the park's `added_by` matches the logged-in user.
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+### Issue 2: Park Preview Panel on Tap
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+**Design**: Tapping anywhere on a park list item (except the "Go" button) opens a slide-up preview sheet showing detailed park info. Closes with an X. The "Go" button stays separate and navigates directly.
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**Implementation**:
+- **`ParkListItem`**: Wrap the item in a clickable area (with `e.stopPropagation` on the Go button). On click, set a `selectedPark` state.
+- **New `ParkPreviewSheet` component**: A bottom sheet (using the existing Drawer/Sheet component) that shows:
+  - Park image (large)
+  - Name, address, city/state
+  - Rating with star count
+  - Distance if available
+  - All feature badges (fenced, water, etc.)
+  - AI-generated description (reusing the `generate-park-description` edge function, same as `ParkInfoPanel`)
+  - A "Navigate" button at the bottom
+  - X close button in the corner
+- **`Parks.tsx`**: Add `selectedPark` state, pass `onSelect` to `ParkListItem`, render `ParkPreviewSheet` when a park is selected.
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+### Files Changed
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+| File | Change |
+|------|--------|
+| SQL migration | Update `approve_park_suggestion` to set `added_by` |
+| `src/hooks/useNearbyParks.tsx` | Import useAuth, promote user's own parks to Tier 2 |
+| `src/components/parks/ParkListItem.tsx` | Add onClick handler + "You Added" badge, stop propagation on Go |
+| `src/components/parks/ParkPreviewSheet.tsx` | New — bottom sheet with park details + AI summary |
+| `src/pages/Parks.tsx` | Add selectedPark state, wire up preview sheet |
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
-
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
-
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
