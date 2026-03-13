@@ -538,41 +538,43 @@ export function CareScheduleSection() {
         ) : history.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No activity logged yet</p>
         ) : (
-          <div className="space-y-2">
-            {history.map((entry) => (
-              <div key={entry.id} className="flex items-center gap-3 p-2 rounded-lg">
-                {getCategoryIcon(entry.category)}
-                <div className="flex-1">
-                  <span className="text-sm">
-                    {entry.category === 'walk' && 'Walked'}
-                    {entry.category === 'medication' && (entry.task_details || entry.notes || 'Medication')}
-                    {entry.category === 'feeding' && (entry.task_details || entry.notes || 'Fed')}
-                    {entry.category === 'grooming' && (entry.task_details || entry.notes || 'Groomed')}
-                    {entry.category === 'training' && (entry.task_details || entry.notes || 'Trained')}
-                    {entry.category === 'restock' && (entry.task_details || entry.notes || 'Food Restocked')}
+          <ScrollArea className="max-h-[300px]">
+            <div className="space-y-2">
+              {history.map((entry) => (
+                <div key={entry.id} className="flex items-center gap-3 p-2 rounded-lg">
+                  {getCategoryIcon(entry.category)}
+                  <div className="flex-1">
+                    <span className="text-sm">
+                      {entry.category === 'walk' && 'Walked'}
+                      {entry.category === 'medication' && (entry.task_details || entry.notes || 'Medication')}
+                      {entry.category === 'feeding' && (entry.task_details || entry.notes || 'Fed')}
+                      {entry.category === 'grooming' && (entry.task_details || entry.notes || 'Groomed')}
+                      {entry.category === 'training' && (entry.task_details || entry.notes || 'Trained')}
+                      {entry.category === 'restock' && (entry.task_details || entry.notes || 'Food Restocked')}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(entry.completed_at), { addSuffix: true })}
                   </span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={async () => {
+                      const { error } = await deleteEntry(entry.id);
+                      if (error) {
+                        toast.error('Failed to delete log');
+                      } else {
+                        toast.success('Log deleted');
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(entry.completed_at), { addSuffix: true })}
-                </span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                  onClick={async () => {
-                    const { error } = await deleteEntry(entry.id);
-                    if (error) {
-                      toast.error('Failed to delete log');
-                    } else {
-                      toast.success('Log deleted');
-                    }
-                  }}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </ScrollArea>
         )}
       </div>
     </Card>
