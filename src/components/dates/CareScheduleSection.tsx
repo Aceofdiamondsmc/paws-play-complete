@@ -538,7 +538,7 @@ export function CareScheduleSection() {
         ) : history.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No activity logged yet</p>
         ) : (
-          <ScrollArea className="max-h-[300px]">
+          <div className="max-h-[300px] overflow-y-auto pr-2">
             <div className="space-y-2">
               {history.map((entry) => (
                 <div key={entry.id} className="flex items-center gap-3 p-2 rounded-lg">
