@@ -82,7 +82,7 @@ export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) 
             <Input id="suggest-address" value={form.address} onChange={e => update('address', e.target.value)} placeholder="Street address" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="suggest-city">City</Label>
               <Input id="suggest-city" value={form.city} onChange={e => update('city', e.target.value)} placeholder="City" />
@@ -90,6 +90,10 @@ export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) 
             <div className="grid gap-2">
               <Label htmlFor="suggest-state">State</Label>
               <Input id="suggest-state" value={form.state} onChange={e => update('state', e.target.value)} placeholder="State" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="suggest-zip">ZIP Code</Label>
+              <Input id="suggest-zip" value={form.zip_code} onChange={e => update('zip_code', e.target.value)} placeholder="ZIP" maxLength={10} />
             </div>
           </div>
 
