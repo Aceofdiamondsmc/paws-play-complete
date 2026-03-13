@@ -54,31 +54,33 @@ export function usePosts() {
       // Fetch dog names for posts that have a dog_id
       const dogIds = (postsData || []).map((p: any) => p.dog_id).filter(Boolean);
       const dogByIdMap = new Map<string, string>();
-      const dogNameToIdMap = new Map<string, string>();
+      // Owner-scoped map: "ownerId:dogName" → dogId (handles duplicate names across owners)
+      const dogOwnerNameMap = new Map<string, string>();
       if (dogIds.length > 0) {
         const { data: dogs } = await supabase
           .from('dogs')
-          .select('id, name')
+          .select('id, name, owner_id')
           .in('id', dogIds);
         dogs?.forEach((d: any) => {
           dogByIdMap.set(d.id, d.name);
-          dogNameToIdMap.set(d.name, d.id);
+          dogOwnerNameMap.set(`${d.owner_id}:${d.name}`, d.id);
         });
       }
 
-      // For posts missing dog_id but having pup_name, try to resolve dog_id by name
+      // For posts missing dog_id but having pup_name, resolve dog_id by owner+name
       const pupNamesWithoutDogId = (postsData || [])
-        .filter((p: any) => !p.dog_id && p.pup_name && !dogNameToIdMap.has(p.pup_name))
+        .filter((p: any) => !p.dog_id && p.pup_name)
         .map((p: any) => p.pup_name);
       const uniquePupNames = [...new Set(pupNamesWithoutDogId)] as string[];
       if (uniquePupNames.length > 0) {
         const { data: dogsByName } = await supabase
           .from('dogs')
-          .select('id, name')
+          .select('id, name, owner_id')
           .in('name', uniquePupNames);
         dogsByName?.forEach((d: any) => {
-          if (!dogNameToIdMap.has(d.name)) {
-            dogNameToIdMap.set(d.name, d.id);
+          const key = `${d.owner_id}:${d.name}`;
+          if (!dogOwnerNameMap.has(key)) {
+            dogOwnerNameMap.set(key, d.id);
           }
         });
       }
@@ -98,7 +100,7 @@ export function usePosts() {
       const enrichedPosts = (postsData || []).map((p: any) => {
         const dogName = p.pup_name || (p.dog_id ? dogByIdMap.get(p.dog_id) : null) || null;
         // Backfill dog_id from pup_name when missing
-        const resolvedDogId = p.dog_id || (dogName ? dogNameToIdMap.get(dogName) : null) || null;
+        const resolvedDogId = p.dog_id || (dogName && p.author_id ? dogOwnerNameMap.get(`${p.author_id}:${dogName}`) : null) || null;
         return {
           ...p,
           dog_id: resolvedDogId,
