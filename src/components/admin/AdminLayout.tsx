@@ -9,6 +9,7 @@ const adminNavItems = [
   { path: '/admin/services', icon: Store, label: 'Services' },
   { path: '/admin/social', icon: MessageSquare, label: 'Social' },
   { path: '/admin/users', icon: Users, label: 'Users' },
+  { path: '/admin/vaccinations', icon: ShieldCheck, label: 'Vaccinations' },
   { path: '/admin/tools', icon: Wrench, label: 'Tools' },
   { path: '/admin/settings', icon: Settings, label: 'Settings' },
 ];

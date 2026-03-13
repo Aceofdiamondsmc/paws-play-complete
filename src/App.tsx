@@ -80,6 +80,7 @@ const App = () => (
                 <Route path="social" element={<AdminSocial />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="tools" element={<AdminTools />} />
+                <Route path="vaccinations" element={<AdminVaccinations />} />
                 <Route path="settings" element={<AdminSettings />} />
               </Route>
               {/* Legacy redirects */}
