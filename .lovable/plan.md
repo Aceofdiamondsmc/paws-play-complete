@@ -1,74 +1,40 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Delete Duplicate Parks
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### Findings
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+13 duplicate park pairs found — all Washington state parks. Each pair has identical name, city, state, coordinates, and ratings. Neither copy in any pair has an `added_by` value, so we keep the lower-ID entry (the original) and delete the higher-ID duplicate.
 
-### Changes
+### Duplicates to Delete (higher IDs)
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+| Keep Id | Delete Id | Park Name |
+|---------|-----------|-----------|
+| 141 | 176 | Marymoor Park (Doggy Disneyland) |
+| 142 | 177 | Magnuson Park Off-Leash Area |
+| 143 | 178 | Grandview Off-Leash Area |
+| 144 | 179 | Fort Steilacoom Dog Park |
+| 145 | 180 | Westcrest Park Off-Leash Area |
+| 146 | 181 | Robinswood Off-Leash Area |
+| 147 | 182 | Wapato Off-Leash Dog Park |
+| 148 | 183 | Luther Burbank Dog Park |
+| 149 | 184 | Edith Moulton Off-Leash Area |
+| 150 | 185 | Genesee Off-Leash Area |
+| 151 | 186 | Point Defiance Off-Leash Area |
+| 152 | 187 | Beaver Lake Dog Park |
+| 155 | 190 | French Lake Dog Park |
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+### Fix
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+Single SQL migration to delete the 13 duplicate rows by their specific IDs.
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+```sql
+DELETE FROM parks WHERE "Id" IN (176,177,178,179,180,181,182,183,184,185,186,187,190);
+```
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+No frontend changes needed.
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+| File | Change |
+|------|--------|
+| SQL migration | Delete 13 duplicate park rows by Id |
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
-
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
