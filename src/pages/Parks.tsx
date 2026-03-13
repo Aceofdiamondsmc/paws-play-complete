@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useParks } from '@/hooks/useParks';
 import { useNearbyParks } from '@/hooks/useNearbyParks';
 import { ParksMap } from '@/components/parks/ParksMap';
 import { ParkListItem } from '@/components/parks/ParkListItem';
