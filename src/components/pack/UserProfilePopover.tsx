@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,10 @@ export function UserProfilePopover({ userId, children, onMessage }: UserProfileP
   const [profile, setProfile] = useState<MiniProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setProfile(null);
+  }, [userId]);
 
   const fetchProfile = async () => {
     if (profile) return;
