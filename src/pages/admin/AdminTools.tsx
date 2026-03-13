@@ -252,7 +252,26 @@ export default function AdminTools() {
         </CardContent>
       </Card>
 
-      {/* Section 3: Install Prompt Preview */}
+      {/* Section 3: Geocode Backfill */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MapPin className="h-5 w-5" />
+            Park Geocoding
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Run the geocode-parks edge function to backfill latitude/longitude for all parks missing coordinates.
+          </p>
+          <Button onClick={handleGeocodeBackfill} disabled={geocoding}>
+            {geocoding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MapPin className="h-4 w-4 mr-2" />}
+            Geocode Missing Parks
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Section 4: Install Prompt Preview */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
