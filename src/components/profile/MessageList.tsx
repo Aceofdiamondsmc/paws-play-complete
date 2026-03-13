@@ -89,8 +89,11 @@ export function MessageList({ onSelectConversation }: MessageListProps) {
           ))}
           
           {conversations.length > 5 && (
-            <button className="w-full text-center text-sm text-primary font-medium py-2 hover:underline">
-              View all {conversations.length} conversations
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="w-full text-center text-sm text-primary font-medium py-2 hover:underline"
+            >
+              {showAll ? 'Show less' : `View all ${conversations.length} conversations`}
             </button>
           )}
         </div>
