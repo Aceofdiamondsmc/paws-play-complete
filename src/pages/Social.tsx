@@ -411,19 +411,30 @@ export default function Social() {
               )}
             >
               <div className="flex gap-3">
-                {/* Avatar - Clickable */}
-                <button
-                  onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
-                  className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full transition-transform hover:scale-105"
-                  aria-label={`View ${post.author?.display_name || 'user'}'s profile`}
-                >
-                  <Avatar className="w-14 h-14 bg-primary border-2 border-primary/30">
-                    <AvatarImage src={post.author?.avatar_url || undefined} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
-                      {post.author?.display_name?.[0]?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
+                {/* Avatar - Clickable only for real user posts */}
+                {post.author_display_name ? (
+                  <div className="shrink-0">
+                    <Avatar className="w-14 h-14 bg-primary border-2 border-primary/30">
+                      <AvatarImage src={post.author?.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+                        {post.author?.display_name?.[0]?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
+                    className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full transition-transform hover:scale-105"
+                    aria-label={`View ${post.author?.display_name || 'user'}'s profile`}
+                  >
+                    <Avatar className="w-14 h-14 bg-primary border-2 border-primary/30">
+                      <AvatarImage src={post.author?.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+                        {post.author?.display_name?.[0]?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                )}
                 
                 <div className="flex-1 min-w-0">
                   {/* Header row */}
