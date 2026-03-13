@@ -64,6 +64,7 @@ interface UseNearbyParksReturn {
 }
 
 export function useNearbyParks(): UseNearbyParksReturn {
+  const { user } = useAuth();
   const [allParks, setAllParks] = useState<Park[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationLoading, setLocationLoading] = useState(true);
