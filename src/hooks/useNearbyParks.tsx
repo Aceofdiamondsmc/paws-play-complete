@@ -240,6 +240,11 @@ export function useNearbyParks(): UseNearbyParksReturn {
         }
       }
 
+      // Promote user's own parks to Tier 2 (always visible)
+      if (tier === 3 && user && park.added_by === user.id) {
+        tier = 2;
+      }
+
       // City/state matching for parks not in tier 1
       if (tier === 3 && (userCity || userState)) {
         const cityMatch = userCity && park.city?.toLowerCase() === userCity.toLowerCase();
