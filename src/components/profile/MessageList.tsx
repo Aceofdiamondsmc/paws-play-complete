@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MessageCircle, ChevronRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
@@ -12,6 +12,7 @@ interface MessageListProps {
 
 export function MessageList({ onSelectConversation }: MessageListProps) {
   const { conversations, loading, totalUnread } = useMessages();
+  const [showAll, setShowAll] = useState(false);
 
   if (loading) {
     return (
@@ -49,7 +50,7 @@ export function MessageList({ onSelectConversation }: MessageListProps) {
         </div>
       ) : (
         <div className="space-y-2">
-          {conversations.slice(0, 5).map(convo => (
+          {(showAll ? conversations : conversations.slice(0, 5)).map(convo => (
             <button
               key={convo.id}
               onClick={() => onSelectConversation(convo.id)}
@@ -88,8 +89,11 @@ export function MessageList({ onSelectConversation }: MessageListProps) {
           ))}
           
           {conversations.length > 5 && (
-            <button className="w-full text-center text-sm text-primary font-medium py-2 hover:underline">
-              View all {conversations.length} conversations
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="w-full text-center text-sm text-primary font-medium py-2 hover:underline"
+            >
+              {showAll ? 'Show less' : `View all ${conversations.length} conversations`}
             </button>
           )}
         </div>
