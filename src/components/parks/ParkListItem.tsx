@@ -10,9 +10,11 @@ import type { Park } from '@/types';
 interface ParkListItemProps {
   park: Park;
   isLocalFavorite?: boolean;
+  isUserPark?: boolean;
+  onSelect?: (park: Park) => void;
 }
 
-export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite }: ParkListItemProps) {
+export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite, isUserPark, onSelect }: ParkListItemProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
