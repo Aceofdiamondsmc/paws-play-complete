@@ -272,7 +272,7 @@ export function useNearbyParks(): UseNearbyParksReturn {
       tier2Parks: t2.map(({ park, distance }) => ({ ...park, distance })),
       tier3Parks: t3.map(({ park, distance }) => ({ ...park, distance })),
     };
-  }, [allParks, activeFilters, userLocation, userCity, userState, dataReady]);
+  }, [allParks, activeFilters, userLocation, userCity, userState, dataReady, user]);
 
   // Tiers 1 and 2 always fully shown; displayLimit only applies to tier 3
   const displayedParks = useMemo(() => {

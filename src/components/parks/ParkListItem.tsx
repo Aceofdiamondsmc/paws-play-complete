@@ -157,7 +157,7 @@ export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite, 
       {hasNavigationTarget && (
         <Button
           size="sm"
-          onClick={handleNavigate}
+          onClick={(e) => { e.stopPropagation(); handleNavigate(); }}
           className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-4"
         >
           <Navigation className="w-4 h-4 mr-1" />
