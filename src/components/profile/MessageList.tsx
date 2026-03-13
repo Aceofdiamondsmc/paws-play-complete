@@ -50,7 +50,7 @@ export function MessageList({ onSelectConversation }: MessageListProps) {
         </div>
       ) : (
         <div className="space-y-2">
-          {conversations.slice(0, 5).map(convo => (
+          {(showAll ? conversations : conversations.slice(0, 5)).map(convo => (
             <button
               key={convo.id}
               onClick={() => onSelectConversation(convo.id)}
