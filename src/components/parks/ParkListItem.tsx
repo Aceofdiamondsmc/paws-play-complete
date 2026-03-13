@@ -10,9 +10,11 @@ import type { Park } from '@/types';
 interface ParkListItemProps {
   park: Park;
   isLocalFavorite?: boolean;
+  isUserPark?: boolean;
+  onSelect?: (park: Park) => void;
 }
 
-export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite }: ParkListItemProps) {
+export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite, isUserPark, onSelect }: ParkListItemProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -32,7 +34,12 @@ export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite }
   const hasNavigationTarget = coords || park.name || park.address;
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-colors">
+    <div
+      className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-colors cursor-pointer active:scale-[0.98]"
+      onClick={() => onSelect?.(park)}
+      role="button"
+      tabIndex={0}
+    >
       {/* Image */}
       {!imageError ? (
         <div className="relative w-16 h-16 shrink-0">
@@ -91,6 +98,11 @@ export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite }
 
         {/* Quick feature badges */}
         <div className="flex gap-1 mt-1.5 flex-wrap">
+          {isUserPark && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-primary/20 text-primary border-primary/30">
+              🐾 You Added
+            </Badge>
+          )}
           {isLocalFavorite && (
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-green-500/20 text-green-700 border-green-500/30">
               ⭐ Local Favorite
@@ -145,7 +157,7 @@ export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite }
       {hasNavigationTarget && (
         <Button
           size="sm"
-          onClick={handleNavigate}
+          onClick={(e) => { e.stopPropagation(); handleNavigate(); }}
           className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-4"
         >
           <Navigation className="w-4 h-4 mr-1" />

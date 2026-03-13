@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateDistance, hasValidCoords, getValidCoords } from '@/lib/navigation-utils';
+import { useAuth } from '@/hooks/useAuth';
 import type { Park, ParkFilter } from '@/types';
 
 const US_STATE_ABBREV: Record<string, string> = {
@@ -63,6 +64,7 @@ interface UseNearbyParksReturn {
 }
 
 export function useNearbyParks(): UseNearbyParksReturn {
+  const { user } = useAuth();
   const [allParks, setAllParks] = useState<Park[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationLoading, setLocationLoading] = useState(true);
@@ -238,6 +240,11 @@ export function useNearbyParks(): UseNearbyParksReturn {
         }
       }
 
+      // Promote user's own parks to Tier 2 (always visible)
+      if (tier === 3 && user && park.added_by === user.id) {
+        tier = 2;
+      }
+
       // City/state matching for parks not in tier 1
       if (tier === 3 && (userCity || userState)) {
         const cityMatch = userCity && park.city?.toLowerCase() === userCity.toLowerCase();
@@ -270,7 +277,7 @@ export function useNearbyParks(): UseNearbyParksReturn {
       tier2Parks: t2.map(({ park, distance }) => ({ ...park, distance })),
       tier3Parks: t3.map(({ park, distance }) => ({ ...park, distance })),
     };
-  }, [allParks, activeFilters, userLocation, userCity, userState, dataReady]);
+  }, [allParks, activeFilters, userLocation, userCity, userState, dataReady, user]);
 
   // Tiers 1 and 2 always fully shown; displayLimit only applies to tier 3
   const displayedParks = useMemo(() => {

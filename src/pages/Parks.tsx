@@ -8,8 +8,10 @@ import { Separator } from '@/components/ui/separator';
 import { useNearbyParks } from '@/hooks/useNearbyParks';
 import { ParksMap } from '@/components/parks/ParksMap';
 import { ParkListItem } from '@/components/parks/ParkListItem';
+import { ParkPreviewSheet } from '@/components/parks/ParkPreviewSheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import type { Park } from '@/types';
 const filterOptions = [
   { id: 'fenced', label: 'Fully Fenced', icon: 'Fence', color: 'bg-amber-100 text-amber-600', activeColor: 'bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.5)]' },
   { id: 'water', label: 'Water Station', icon: 'Droplets', color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]' },
@@ -44,6 +46,7 @@ function ListItemSkeleton() {
 export default function Parks() {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
   const [suggestOpen, setSuggestOpen] = useState(false);
+  const [selectedPark, setSelectedPark] = useState<Park | null>(null);
   const { user } = useAuth();
   
   const {
@@ -228,7 +231,12 @@ export default function Parks() {
                         </div>
                       </div>
                     )}
-                    <ParkListItem park={park} isLocalFavorite={isLocalFavorite} />
+                    <ParkListItem
+                      park={park}
+                      isLocalFavorite={isLocalFavorite}
+                      isUserPark={!!user && park.added_by === user.id}
+                      onSelect={setSelectedPark}
+                    />
                   </div>
                 );
               })}
@@ -275,6 +283,7 @@ export default function Parks() {
       )}
 
       <SuggestParkModal open={suggestOpen} onOpenChange={setSuggestOpen} />
+      <ParkPreviewSheet park={selectedPark} onClose={() => setSelectedPark(null)} />
     </div>
   );
 }
