@@ -283,6 +283,7 @@ export default function Parks() {
       )}
 
       <SuggestParkModal open={suggestOpen} onOpenChange={setSuggestOpen} />
+      <ParkPreviewSheet park={selectedPark} onClose={() => setSelectedPark(null)} />
     </div>
   );
 }
