@@ -46,10 +46,9 @@ export default function Parks() {
   const [suggestOpen, setSuggestOpen] = useState(false);
   const { user } = useAuth();
   
-  const mapHook = useParks();
-  
   const {
     parks,
+    allParks,
     loading,
     locationLoading,
     locationError,
