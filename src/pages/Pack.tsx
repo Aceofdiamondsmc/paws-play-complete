@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint, ShieldBan, ShieldCheck, MessageSquare, MoreHorizontal, UserMinus } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Zap, Star, Heart, Shield, CheckCircle, Ruler, Dog as DogIcon, MapPin, PawPrint, ShieldBan, ShieldCheck, ShieldOff, MessageSquare, MoreHorizontal, UserMinus } from 'lucide-react';
 import { VaccinationBadge } from '@/components/profile/VaccinationBadge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -500,6 +500,7 @@ export default function Pack() {
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-muted text-muted-foreground font-semibold text-sm border border-border">
+                <ShieldOff className="w-4 h-4" />
                 Unverified
               </span>
             )}

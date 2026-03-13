@@ -1,34 +1,74 @@
 
 
-## Two Changes: Fix Vaccination Badge on Pack Tab + Add ShieldOff Icon to Unverified
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-### 1. Database Migration — Add `vaccination_certified` to `get_nearby_dogs` RPC
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-The `get_nearby_dogs` function currently does not return `vaccination_certified`, so the Pack tab always gets `null`. We need to recreate the function with `d.vaccination_certified boolean` added to both the `RETURNS TABLE` definition and the `SELECT` list.
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-```sql
-CREATE OR REPLACE FUNCTION public.get_nearby_dogs(user_lat double precision, user_lng double precision, limit_count integer DEFAULT 50)
- RETURNS TABLE(id uuid, owner_id uuid, name text, breed text, size text, energy_level text, bio text, avatar_url text, age_years integer, play_style text[], created_at timestamp with time zone, owner_display_name text, owner_avatar_url text, owner_city text, owner_state text, distance_meters double precision, vaccination_certified boolean)
- ...
-  SELECT 
-    d.id, d.owner_id, d.name, d.breed, d.size, d.energy_level, 
-    d.bio, d.avatar_url, d.age_years, d.play_style, d.created_at, 
-    p.display_name, p.avatar_url, p.city, p.state,
-    ...,
-    d.vaccination_certified
-  FROM dogs d ...
-```
+### Changes
 
-### 2. Frontend — Add `ShieldOff` icon to Unverified badge
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-**`src/pages/Pack.tsx`** (line 3): Add `ShieldOff` to the lucide import.
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-**`src/pages/Pack.tsx`** (line 502-504): Add `<ShieldOff className="w-4 h-4" />` inside the Unverified badge span.
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-### Files Changed
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-| Location | Change |
-|----------|--------|
-| SQL migration | Recreate `get_nearby_dogs` with `vaccination_certified` in return type and SELECT |
-| `src/pages/Pack.tsx` | Import `ShieldOff`, add icon to Unverified badge |
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+
+**4. Database migration** -- Update the `subscription_tier` column constraint
+
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
+
+---
+
+## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
+
+### What was implemented:
+
+1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
+
+2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
+
+3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
+
+### Database tables created:
+- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
+- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
+- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
+
+### Files created/modified:
+- `src/hooks/useLostDogAlerts.tsx` (new)
+- `src/hooks/useGroupPlaydates.tsx` (new)
+- `src/components/lost-dog/LostDogFAB.tsx` (new)
+- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
+- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
+- `src/components/playdate/GroupPlaydateCard.tsx` (new)
+- `supabase/functions/lost-dog-alert/index.ts` (new)
+- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
+- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
+- `src/pages/Explore.tsx` (edited — header rename)
+- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
+- `src/pages/Social.tsx` (edited — lost dog alert banners)
+- `supabase/config.toml` (edited — added lost-dog-alert function)
