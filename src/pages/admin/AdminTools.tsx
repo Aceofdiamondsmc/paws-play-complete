@@ -26,6 +26,9 @@ const NOTIFICATION_TEMPLATES: Record<string, { title: string; body: string }> = 
 };
 
 export default function AdminTools() {
+  // -- Geocode Backfill --
+  const [geocoding, setGeocoding] = useState(false);
+
   // -- Notification Diagnostics --
   const [permissionStatus, setPermissionStatus] = useState<string>('unknown');
   const [oneSignalLoaded, setOneSignalLoaded] = useState(false);
