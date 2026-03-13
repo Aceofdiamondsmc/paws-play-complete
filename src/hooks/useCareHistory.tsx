@@ -71,7 +71,7 @@ export function useCareHistory(bagSize: BagSize = 'standard') {
         .select('*')
         .eq('user_id', user.id)
         .order('completed_at', { ascending: false })
-        .limit(5),
+        .limit(50),
       supabase
         .from('care_history')
         .select('*')
