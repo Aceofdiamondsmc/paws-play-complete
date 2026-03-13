@@ -32,6 +32,7 @@ export interface ParkSuggestionInput {
   address?: string;
   city?: string;
   state?: string;
+  zip_code?: string;
   description?: string;
   latitude?: number | null;
   longitude?: number | null;
