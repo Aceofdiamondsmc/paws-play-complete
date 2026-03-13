@@ -20,6 +20,7 @@ const initialForm: ParkSuggestionInput = {
   address: '',
   city: '',
   state: '',
+  zip_code: '',
   description: '',
   is_fully_fenced: false,
   has_water_station: false,
