@@ -248,12 +248,38 @@ export default function AdminParks() {
   }
 
   const handleApproveSuggestion = async (id: string) => {
-    const { error } = await approveSuggestion(id);
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Approved!', description: 'Park added to the directory.' });
+    setApprovingId(id);
+    try {
+      // If admin provided coords, update the suggestion first
+      const coords = suggestionCoords[id];
+      if (coords?.lat && coords?.lng) {
+        const lat = parseFloat(coords.lat);
+        const lng = parseFloat(coords.lng);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          await supabase
+            .from('park_suggestions')
+            .update({ latitude: lat, longitude: lng })
+            .eq('id', id);
+        }
+      }
+
+      const { error } = await approveSuggestion(id);
+      if (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        return;
+      }
+
+      // Auto-geocode parks missing coordinates
+      try {
+        await supabase.functions.invoke('geocode-parks');
+      } catch (e) {
+        console.warn('Auto-geocode failed (non-critical):', e);
+      }
+
+      toast({ title: 'Approved!', description: 'Park added and geocoding triggered.' });
       refresh();
+    } finally {
+      setApprovingId(null);
     }
   };
 
