@@ -2243,6 +2243,7 @@ export type Database = {
           owner_state: string
           play_style: string[]
           size: string
+          vaccination_certified: boolean
         }[]
       }
       get_nearby_parks: {
