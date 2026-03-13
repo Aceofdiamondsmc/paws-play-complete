@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bell, Send, Smartphone, Search, Share, X, Loader2 } from 'lucide-react';
+import { Bell, Send, Smartphone, Search, Share, X, Loader2, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isIOS, isAndroid, isStandalone } from '@/lib/navigation-utils';
@@ -26,6 +26,9 @@ const NOTIFICATION_TEMPLATES: Record<string, { title: string; body: string }> = 
 };
 
 export default function AdminTools() {
+  // -- Geocode Backfill --
+  const [geocoding, setGeocoding] = useState(false);
+
   // -- Notification Diagnostics --
   const [permissionStatus, setPermissionStatus] = useState<string>('unknown');
   const [oneSignalLoaded, setOneSignalLoaded] = useState(false);
@@ -124,6 +127,19 @@ export default function AdminTools() {
       toast.error('Request failed');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleGeocodeBackfill = async () => {
+    setGeocoding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('geocode-parks');
+      if (error) throw error;
+      toast.success(`Geocode complete: ${JSON.stringify(data)}`);
+    } catch (err: any) {
+      toast.error(`Geocode failed: ${err.message}`);
+    } finally {
+      setGeocoding(false);
     }
   };
 
@@ -236,7 +252,26 @@ export default function AdminTools() {
         </CardContent>
       </Card>
 
-      {/* Section 3: Install Prompt Preview */}
+      {/* Section 3: Geocode Backfill */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MapPin className="h-5 w-5" />
+            Park Geocoding
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Run the geocode-parks edge function to backfill latitude/longitude for all parks missing coordinates.
+          </p>
+          <Button onClick={handleGeocodeBackfill} disabled={geocoding}>
+            {geocoding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MapPin className="h-4 w-4 mr-2" />}
+            Geocode Missing Parks
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Section 4: Install Prompt Preview */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">

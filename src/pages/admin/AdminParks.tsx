@@ -93,6 +93,8 @@ export default function AdminParks() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
   const [activeTab, setActiveTab] = useState('parks');
+  const [suggestionCoords, setSuggestionCoords] = useState<Record<string, { lat: string; lng: string }>>({});
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeTab === 'suggestions') {
@@ -246,12 +248,38 @@ export default function AdminParks() {
   }
 
   const handleApproveSuggestion = async (id: string) => {
-    const { error } = await approveSuggestion(id);
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Approved!', description: 'Park added to the directory.' });
+    setApprovingId(id);
+    try {
+      // If admin provided coords, update the suggestion first
+      const coords = suggestionCoords[id];
+      if (coords?.lat && coords?.lng) {
+        const lat = parseFloat(coords.lat);
+        const lng = parseFloat(coords.lng);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          await supabase
+            .from('park_suggestions')
+            .update({ latitude: lat, longitude: lng })
+            .eq('id', id);
+        }
+      }
+
+      const { error } = await approveSuggestion(id);
+      if (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        return;
+      }
+
+      // Auto-geocode parks missing coordinates
+      try {
+        await supabase.functions.invoke('geocode-parks');
+      } catch (e) {
+        console.warn('Auto-geocode failed (non-critical):', e);
+      }
+
+      toast({ title: 'Approved!', description: 'Park added and geocoding triggered.' });
       refresh();
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -387,7 +415,9 @@ export default function AdminParks() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {suggestions.map((s) => (
+              {suggestions.map((s) => {
+                const coords = suggestionCoords[s.id] || { lat: s.latitude?.toString() || '', lng: s.longitude?.toString() || '' };
+                return (
                 <Card key={s.id}>
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start justify-between">
@@ -409,9 +439,39 @@ export default function AdminParks() {
                       {s.has_parking && <Badge variant="secondary">Parking</Badge>}
                       {s.has_grass_surface && <Badge variant="secondary">Grass</Badge>}
                     </div>
+
+                    {/* Admin lat/lng inputs */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="grid gap-1">
+                        <Label className="text-xs text-muted-foreground">Latitude</Label>
+                        <Input
+                          type="number"
+                          step="any"
+                          placeholder="e.g. 36.1699"
+                          value={coords.lat}
+                          onChange={e => setSuggestionCoords(prev => ({ ...prev, [s.id]: { ...coords, lat: e.target.value } }))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label className="text-xs text-muted-foreground">Longitude</Label>
+                        <Input
+                          type="number"
+                          step="any"
+                          placeholder="e.g. -115.1398"
+                          value={coords.lng}
+                          onChange={e => setSuggestionCoords(prev => ({ ...prev, [s.id]: { ...coords, lng: e.target.value } }))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {coords.lat && coords.lng ? '📍 Coordinates set — will be saved on approve' : '⚠️ No coordinates — auto-geocode will run after approval'}
+                    </p>
+
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" onClick={() => handleApproveSuggestion(s.id)} className="gap-1">
-                        <Check className="h-4 w-4" /> Approve
+                      <Button size="sm" onClick={() => handleApproveSuggestion(s.id)} disabled={approvingId === s.id} className="gap-1">
+                        {approvingId === s.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Approve
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => setRejectingId(s.id)} className="gap-1 text-destructive hover:text-destructive">
                         <XCircle className="h-4 w-4" /> Reject
@@ -419,7 +479,8 @@ export default function AdminParks() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </TabsContent>
