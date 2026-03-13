@@ -42,6 +42,7 @@ interface UserLocation {
 
 interface UseNearbyParksReturn {
   parks: Park[];
+  allParks: Park[];
   loading: boolean;
   locationLoading: boolean;
   locationError: string | null;
@@ -300,6 +301,7 @@ export function useNearbyParks(): UseNearbyParksReturn {
 
   return {
     parks: displayedParks,
+    allParks,
     loading,
     locationLoading,
     locationError,

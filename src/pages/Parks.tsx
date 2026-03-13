@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useParks } from '@/hooks/useParks';
 import { useNearbyParks } from '@/hooks/useNearbyParks';
 import { ParksMap } from '@/components/parks/ParksMap';
 import { ParkListItem } from '@/components/parks/ParkListItem';
@@ -47,10 +46,9 @@ export default function Parks() {
   const [suggestOpen, setSuggestOpen] = useState(false);
   const { user } = useAuth();
   
-  const mapHook = useParks();
-  
   const {
     parks,
+    allParks,
     loading,
     locationLoading,
     locationError,
@@ -149,7 +147,7 @@ export default function Parks() {
       {/* Content */}
       {viewMode === 'map' ? (
         <div className="flex-1 relative">
-          <ParksMap parks={mapHook.parks} loading={mapHook.loading} />
+          <ParksMap parks={allParks} loading={loading} />
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
