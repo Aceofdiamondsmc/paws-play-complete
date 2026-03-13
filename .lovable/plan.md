@@ -1,31 +1,74 @@
 
 
-## Fix Mock Post Navigation and Missing Avatars
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-### Problems Found
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-1. **All mock posts navigate to Harry's Pack profile** -- Every mock post shares the same `author_id` (`b7f3a702...` = Harry's real account). Since `dog_id` is null on all mock posts, clicking any mock post's avatar/name navigates to `/pack?user=b7f3a702` (Harry).
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-2. **Harry and Samantha posts lost their avatar snapshots** -- Two posts (`578adb4e` for Harry, `d945311c` for Samantha) have `author_avatar_url = NULL`. When edited, the snapshot was cleared. The `public_posts` view then falls back to Harry's real profile avatar, making Samantha show Harry's photo.
+### Changes
 
-### Fix
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-| Change | Detail |
-|--------|--------|
-| **SQL migration** | Set `author_avatar_url` to ui-avatars URLs for the 2 posts with null avatars (Harry and Samantha) |
-| **Social.tsx** | When a post has `author_display_name` set (admin/mock post, shown with the shield icon), disable navigation on avatar and name clicks -- these aren't real user profiles to navigate to |
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-### SQL
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-```sql
-UPDATE posts SET author_avatar_url = 'https://ui-avatars.com/api/?name=Harry&background=random&size=200&bold=true'
-WHERE id = '578adb4e-fc2c-4b24-aff9-57fcf91e73e4';
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-UPDATE posts SET author_avatar_url = 'https://ui-avatars.com/api/?name=Samantha&background=random&size=200&bold=true'
-WHERE id = 'd945311c-882e-433c-b6c0-067ba521c208';
-```
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
-### Code (Social.tsx)
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
 
-For both the avatar button (line ~415) and name button (line ~432), wrap in a condition: if `post.author_display_name` is set, render as a non-clickable element instead of a navigation button. This prevents all admin/mock posts from linking to Harry's profile while keeping real user posts navigable.
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
 
+**4. Database migration** -- Update the `subscription_tier` column constraint
+
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
+
+---
+
+## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
+
+### What was implemented:
+
+1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
+
+2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
+
+3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
+
+### Database tables created:
+- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
+- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
+- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
+
+### Files created/modified:
+- `src/hooks/useLostDogAlerts.tsx` (new)
+- `src/hooks/useGroupPlaydates.tsx` (new)
+- `src/components/lost-dog/LostDogFAB.tsx` (new)
+- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
+- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
+- `src/components/playdate/GroupPlaydateCard.tsx` (new)
+- `supabase/functions/lost-dog-alert/index.ts` (new)
+- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
+- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
+- `src/pages/Explore.tsx` (edited — header rename)
+- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
+- `src/pages/Social.tsx` (edited — lost dog alert banners)
+- `supabase/config.toml` (edited — added lost-dog-alert function)

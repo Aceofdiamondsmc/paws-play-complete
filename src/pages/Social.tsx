@@ -411,31 +411,48 @@ export default function Social() {
               )}
             >
               <div className="flex gap-3">
-                {/* Avatar - Clickable */}
-                <button
-                  onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
-                  className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full transition-transform hover:scale-105"
-                  aria-label={`View ${post.author?.display_name || 'user'}'s profile`}
-                >
-                  <Avatar className="w-14 h-14 bg-primary border-2 border-primary/30">
-                    <AvatarImage src={post.author?.avatar_url || undefined} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
-                      {post.author?.display_name?.[0]?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
+                {/* Avatar - Clickable only for real user posts */}
+                {post.author_display_name ? (
+                  <div className="shrink-0">
+                    <Avatar className="w-14 h-14 bg-primary border-2 border-primary/30">
+                      <AvatarImage src={post.author?.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+                        {post.author?.display_name?.[0]?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
+                    className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full transition-transform hover:scale-105"
+                    aria-label={`View ${post.author?.display_name || 'user'}'s profile`}
+                  >
+                    <Avatar className="w-14 h-14 bg-primary border-2 border-primary/30">
+                      <AvatarImage src={post.author?.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+                        {post.author?.display_name?.[0]?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                )}
                 
                 <div className="flex-1 min-w-0">
                   {/* Header row */}
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <button
-                        onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
-                        className="font-bold text-foreground text-base hover:underline focus:outline-none focus:underline text-left flex items-center gap-1.5"
-                      >
-                        {post.author_display_name || post.author?.display_name || post.author?.username || 'Anonymous'}
-                        {post.author_display_name && <ShieldCheck className="w-4 h-4 text-primary" />}
-                      </button>
+                      {post.author_display_name ? (
+                        <span className="font-bold text-foreground text-base text-left flex items-center gap-1.5">
+                          {post.author_display_name}
+                          <ShieldCheck className="w-4 h-4 text-primary" />
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => navigate(post.dog_id ? `/pack?dog=${post.dog_id}` : `/pack?user=${post.author_id}`)}
+                          className="font-bold text-foreground text-base hover:underline focus:outline-none focus:underline text-left flex items-center gap-1.5"
+                        >
+                          {post.author?.display_name || post.author?.username || 'Anonymous'}
+                        </button>
+                      )}
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>
                           {post.timeAgo || (post.created_at && formatDistanceToNow(new Date(post.created_at), { addSuffix: true }))}
