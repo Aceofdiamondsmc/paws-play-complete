@@ -497,7 +497,7 @@ export default function Pack() {
         <div className="p-6 pt-8 space-y-5">
           {/* Verified Badge + Distance */}
           <div className="flex flex-wrap gap-2">
-            {(currentDog as any).vet_verified ? (
+            {currentDog.vet_verified ? (
               <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500/20 text-emerald-500 font-semibold text-sm border border-emerald-500/30">
                 <ShieldCheck className="w-4 h-4" />
                 Vet Verified
