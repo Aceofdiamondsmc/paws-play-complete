@@ -30,6 +30,7 @@ import AdminSocial from "./pages/admin/AdminSocial";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTools from "./pages/admin/AdminTools";
+import AdminVaccinations from "./pages/admin/AdminVaccinations";
 
 const ExploreIdRedirect = () => {
   const { id } = useParams();
