@@ -12,6 +12,7 @@ interface MessageListProps {
 
 export function MessageList({ onSelectConversation }: MessageListProps) {
   const { conversations, loading, totalUnread } = useMessages();
+  const [showAll, setShowAll] = useState(false);
 
   if (loading) {
     return (
