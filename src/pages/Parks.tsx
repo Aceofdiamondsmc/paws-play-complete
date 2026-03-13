@@ -231,7 +231,12 @@ export default function Parks() {
                         </div>
                       </div>
                     )}
-                    <ParkListItem park={park} isLocalFavorite={isLocalFavorite} />
+                    <ParkListItem
+                      park={park}
+                      isLocalFavorite={isLocalFavorite}
+                      isUserPark={!!user && park.added_by === user.id}
+                      onSelect={setSelectedPark}
+                    />
                   </div>
                 );
               })}
