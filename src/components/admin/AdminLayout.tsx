@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Trees, Settings, ArrowLeft, Shield, Users, Store, MessageSquare, Wrench } from 'lucide-react';
+import { Trees, Settings, ArrowLeft, Shield, Users, Store, MessageSquare, Wrench, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import pawsplayLogo from '@/assets/pawsplay-logo.png';
