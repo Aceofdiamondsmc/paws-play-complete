@@ -574,7 +574,7 @@ export function CareScheduleSection() {
                 </div>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         )}
       </div>
     </Card>
