@@ -39,6 +39,7 @@ const testDogs: DogWithOwner[] = [
     health_notes: null,
     play_style: ['Fetch', 'Swimming'],
     vaccination_certified: null,
+    vet_verified: null,
     owner: {
       id: 'test-owner-1',
       display_name: 'Sarah Johnson',
