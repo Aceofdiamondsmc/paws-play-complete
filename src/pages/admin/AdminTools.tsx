@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bell, Send, Smartphone, Search, Share, X, Loader2 } from 'lucide-react';
+import { Bell, Send, Smartphone, Search, Share, X, Loader2, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isIOS, isAndroid, isStandalone } from '@/lib/navigation-utils';
