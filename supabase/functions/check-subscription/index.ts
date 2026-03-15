@@ -62,7 +62,7 @@ serve(async (req) => {
     });
 
     const activeSub = subscriptions.data.find(
-      (s) => s.status === "active" || s.status === "trialing"
+      (s: any) => s.status === "active" || s.status === "trialing"
     );
 
     if (!activeSub) {
