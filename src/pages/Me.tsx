@@ -121,6 +121,18 @@ export default function Me() {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await signInWithApple();
+      if (error) {
+        toast.error(error.message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleEditDog = (dog: typeof dogs[0]) => {
     setEditingDog(dog);
     setShowPackMemberForm(true);
