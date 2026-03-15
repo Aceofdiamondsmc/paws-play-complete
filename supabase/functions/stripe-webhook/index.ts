@@ -45,7 +45,7 @@ async function upsertSubscription(
 
   const { error } = await supabase
     .from("subscriptions")
-    .upsert(row, { onConflict: "stripe_subscription_id" });
+    .upsert(row as any, { onConflict: "stripe_subscription_id" });
 
   if (error) {
     logStep("Failed to upsert subscriptions row", { error: error.message });
