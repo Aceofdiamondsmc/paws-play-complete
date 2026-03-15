@@ -14,7 +14,7 @@ const logStep = (step: string, details?: unknown) => {
 
 // Helper to upsert into the subscriptions table
 async function upsertSubscription(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   subscription: Stripe.Subscription,
   userId: string | null,
   tier?: string | null,
