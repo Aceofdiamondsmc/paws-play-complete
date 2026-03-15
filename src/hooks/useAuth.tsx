@@ -161,6 +161,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  const signInWithApple = async () => {
+    const redirectUrl = `${window.location.origin}/me`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: redirectUrl
+      }
+    });
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
