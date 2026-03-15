@@ -37,7 +37,7 @@ const DOG_AVATARS = [
 ];
 
 export default function Me() {
-  const { user, profile, dogs, signIn, signUp, signInWithGoogle, signOut, loading, refreshProfile } = useAuth();
+  const { user, profile, dogs, signIn, signUp, signInWithGoogle, signInWithApple, signOut, loading, refreshProfile } = useAuth();
   const { isAdmin } = useAdmin();
   const { mySuggestions, mySuggestionsLoading } = useParkSuggestions();
   const { friends, pendingRequests } = useFriendships();
