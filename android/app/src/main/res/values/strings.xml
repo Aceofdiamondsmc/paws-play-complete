@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Paws Play Repeat</string>
+    <string name="title_activity_main">Paws Play Repeat</string>
+    <string name="package_name">com.pawsplayrepeat.app</string>
+    <string name="custom_url_scheme">com.pawsplayrepeat.app</string>
+</resources>
