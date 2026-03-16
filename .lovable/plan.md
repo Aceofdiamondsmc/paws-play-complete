@@ -1,74 +1,42 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
-
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
-
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+## Plan: Switch iOS Back to SPM and Configure Appflow for SPM Builds
 
 ### Changes
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+**1. Delete `ios/App/Podfile`**
+Remove the CocoaPods Podfile since we're switching back to SPM.
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+**2. Recreate `ios/App/CapApp-SPM/` directory**
+Restore the SPM package structure that Capacitor 8 uses natively:
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+- `ios/App/CapApp-SPM/Package.swift` — Swift package manifest referencing Capacitor from `node_modules`
+- `ios/App/CapApp-SPM/Sources/CapApp-SPM/CapApp-SPM.swift` — Minimal placeholder source file
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+**3. Update `ios/App/App.xcodeproj/project.pbxproj`**
+Add SPM package references back to the Xcode project:
+- Add `XCLocalSwiftPackageReference` pointing to `CapApp-SPM`
+- Add `XCSwiftPackageProductDependency` for `Capacitor` and `CapacitorCordova`
+- Add `packageReferences` and `packageProductDependencies` to the target
+- Remove `COCOAPODS` from `OTHER_SWIFT_FLAGS` in Debug config
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+**4. Create `appflow.config.json` in project root**
+```json
+{
+  "ios": {
+    "enabled": true,
+    "buildType": "debug",
+    "environment": {
+      "ENABLE_SPM_SUPPORT": "true"
+    }
+  }
+}
+```
+This tells Appflow to use SPM instead of CocoaPods when building.
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+**5. Update `ios/.gitignore`**
+Add back `App/Pods` to the ignore list (no longer needed), and ensure `CapApp-SPM` is not ignored.
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+### No Manual Steps Required
+All files will be committed directly through Lovable. No local `pod install` or `npx cap sync` needed — SPM resolves dependencies at Xcode build time.
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
