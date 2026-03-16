@@ -1,28 +1,74 @@
 
 
-## Add Legal & Support Links Below Help & Support
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-### What
-Add three external link buttons (Privacy Policy, Terms of Service, Contact Support) below the Help & Support card on the Me tab. These open the hosted HTML pages in a new browser tab — required for Apple App Store compliance.
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
 ### Changes
 
-**`src/pages/Me.tsx`** (lines ~543-544, after the Help & Support card)
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-Insert a small section with three list-style buttons linking to:
-- `https://pawsplayrepeat.app/privacy.html` — Privacy Policy
-- `https://pawsplayrepeat.app/tos.html` — Terms of Service  
-- `https://pawsplayrepeat.app/support.html` — Contact Support
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-Each rendered as an `<a>` with `target="_blank" rel="noopener noreferrer"`, styled as a subtle card/list with icons (Shield, Scale, Mail) matching the existing design language. Grouped in a single Card with a "Legal & Support" header or presented as individual tappable rows — consistent with the rest of the profile page.
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-```text
-┌─────────────────────────────────┐
-│ 🔒 Privacy Policy            → │
-│ 📄 Terms of Service          → │
-│ ✉️  Contact Support           → │
-└─────────────────────────────────┘
-```
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-Uses `ExternalLink` or chevron icon to indicate external navigation. No new components or state needed — just anchor tags styled as list items.
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+
+**4. Database migration** -- Update the `subscription_tier` column constraint
+
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+
+### Tier Order (lowest to highest)
+
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
+
+---
+
+## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
+
+### What was implemented:
+
+1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
+
+2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
+
+3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
+
+### Database tables created:
+- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
+- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
+- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
+
+### Files created/modified:
+- `src/hooks/useLostDogAlerts.tsx` (new)
+- `src/hooks/useGroupPlaydates.tsx` (new)
+- `src/components/lost-dog/LostDogFAB.tsx` (new)
+- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
+- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
+- `src/components/playdate/GroupPlaydateCard.tsx` (new)
+- `supabase/functions/lost-dog-alert/index.ts` (new)
+- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
+- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
+- `src/pages/Explore.tsx` (edited — header rename)
+- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
+- `src/pages/Social.tsx` (edited — lost dog alert banners)
+- `supabase/config.toml` (edited — added lost-dog-alert function)
