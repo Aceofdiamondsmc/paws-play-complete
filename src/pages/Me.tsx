@@ -589,7 +589,37 @@ export default function Me() {
             <span className="flex-1 text-sm font-medium">Contact Support</span>
             <ExternalLink className="w-4 h-4 text-muted-foreground" />
           </a>
+          <Separator />
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-destructive/10 transition-colors w-full text-left"
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+            <span className="flex-1 text-sm font-medium text-destructive">Delete Account</span>
+          </button>
         </Card>
+
+        {/* Delete Account Confirmation */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Your Account?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete your account, profile, dogs, posts, and all associated data. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete My Account'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Install Prompt */}
         {!installDismissed && (
