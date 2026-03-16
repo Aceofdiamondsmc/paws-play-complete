@@ -122,7 +122,7 @@ export default function Me() {
     }
   };
 
-
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error('Please fill in all fields');
