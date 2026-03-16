@@ -676,63 +676,6 @@ export default function Me() {
     </div>
   );
 }
-  const handleDeleteAccount = async () => {
-    setIsDeleting(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('You must be logged in to delete your account.');
-        return;
-      }
-
-      const response = await supabase.functions.invoke('delete-account', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to delete account');
-      }
-
-      await signOut();
-      navigate('/');
-      toast.success('Your account has been permanently deleted.');
-    } catch (err: any) {
-      console.error('Delete account error:', err);
-      toast.error(err.message || 'Failed to delete account. Please try again.');
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    setIsDeleting(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('You must be logged in to delete your account.');
-        return;
-      }
-
-      const response = await supabase.functions.invoke('delete-account', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to delete account');
-      }
-
-      await signOut();
-      navigate('/');
-      toast.success('Your account has been permanently deleted.');
-    } catch (err: any) {
-      console.error('Delete account error:', err);
-      toast.error(err.message || 'Failed to delete account. Please try again.');
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
-    }
-  };
 
 
 // Pack Member Card Component
