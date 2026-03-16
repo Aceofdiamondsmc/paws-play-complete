@@ -34,8 +34,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B1C2D3E41234567800AABBCC /* Capacitor in Frameworks */,
-				B1C2D3E51234567800AABBCC /* CapacitorCordova in Frameworks */,
 				B1C2D3E61234567800AABBCC /* CapApp-SPM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
