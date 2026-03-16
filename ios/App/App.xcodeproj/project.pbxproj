@@ -89,8 +89,6 @@
 			);
 			name = App;
 			packageProductDependencies = (
-				A1B2C3D41234567800AABBCC /* Capacitor */,
-				A1B2C3D51234567800AABBCC /* CapacitorCordova */,
 				A1B2C3D61234567800AABBCC /* CapApp-SPM */,
 			);
 			productName = App;
