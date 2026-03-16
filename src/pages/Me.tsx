@@ -542,6 +542,42 @@ export default function Me() {
           </div>
         </Card>
 
+        {/* Legal & Support */}
+        <Card className="p-0 overflow-hidden">
+          <a
+            href="https://pawsplayrepeat.app/privacy.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+          >
+            <Shield className="w-4 h-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium">Privacy Policy</span>
+            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+          </a>
+          <Separator />
+          <a
+            href="https://pawsplayrepeat.app/tos.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+          >
+            <Scale className="w-4 h-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium">Terms of Service</span>
+            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+          </a>
+          <Separator />
+          <a
+            href="https://pawsplayrepeat.app/support.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+          >
+            <Mail className="w-4 h-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium">Contact Support</span>
+            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+          </a>
+        </Card>
+
         {/* Install Prompt */}
         {!installDismissed && (
           <Card className="p-4 relative">
