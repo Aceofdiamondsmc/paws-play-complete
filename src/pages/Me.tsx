@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp, TreePine, HelpCircle } from 'lucide-react';
+import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp, TreePine, HelpCircle, Scale, ExternalLink, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -27,6 +27,17 @@ import { HelpSupport } from '@/components/profile/HelpSupport';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Pet-themed placeholder images
 const DOG_AVATARS = [
@@ -37,7 +48,7 @@ const DOG_AVATARS = [
 ];
 
 export default function Me() {
-  const { user, profile, dogs, signIn, signUp, signInWithGoogle, signOut, loading, refreshProfile } = useAuth();
+  const { user, profile, dogs, signIn, signUp, signInWithGoogle, signInWithApple, signOut, loading, refreshProfile } = useAuth();
   const { isAdmin } = useAdmin();
   const { mySuggestions, mySuggestionsLoading } = useParkSuggestions();
   const { friends, pendingRequests } = useFriendships();
@@ -59,6 +70,8 @@ export default function Me() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   // Deep-link: auto-open chat from ?chat= query param
   useEffect(() => {
@@ -81,6 +94,32 @@ export default function Me() {
   const dismissInstall = () => {
     localStorage.setItem('ios-install-dismissed-at', String(Date.now()));
     setInstallDismissed(true);
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('You must be logged in to delete your account.');
+        return;
+      }
+      const response = await supabase.functions.invoke('delete-account', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to delete account');
+      }
+      await signOut();
+      navigate('/');
+      toast.success('Your account has been permanently deleted.');
+    } catch (err: any) {
+      console.error('Delete account error:', err);
+      toast.error(err.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,6 +152,18 @@ export default function Me() {
     setIsSubmitting(true);
     try {
       const { error } = await signInWithGoogle();
+      if (error) {
+        toast.error(error.message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await signInWithApple();
       if (error) {
         toast.error(error.message);
       }
@@ -273,6 +324,18 @@ export default function Me() {
                 />
               </svg>
               <span className="text-[hsl(165,35%,40%)] font-medium">Continue with Google</span>
+            </Button>
+
+            {/* Apple Sign In Button */}
+            <Button
+              className="w-full rounded-xl h-12 gap-3 bg-black hover:bg-black/90 text-white font-medium mt-3"
+              onClick={handleAppleSignIn}
+              disabled={isSubmitting}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white">
+                <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+              </svg>
+              <span>Sign in with Apple</span>
             </Button>
 
             {/* Sign up / Sign in toggle */}
@@ -517,6 +580,72 @@ export default function Me() {
             </div>
           </div>
         </Card>
+
+        {/* Legal & Support */}
+        <Card className="p-0 overflow-hidden">
+          <a
+            href="https://pawsplayrepeat.app/privacy.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+          >
+            <Shield className="w-4 h-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium">Privacy Policy</span>
+            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+          </a>
+          <Separator />
+          <a
+            href="https://pawsplayrepeat.app/tos.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+          >
+            <Scale className="w-4 h-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium">Terms of Service</span>
+            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+          </a>
+          <Separator />
+          <a
+            href="https://pawsplayrepeat.app/support.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+          >
+            <Mail className="w-4 h-4 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium">Contact Support</span>
+            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+          </a>
+          <Separator />
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-destructive/10 transition-colors w-full text-left"
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+            <span className="flex-1 text-sm font-medium text-destructive">Delete Account</span>
+          </button>
+        </Card>
+
+        {/* Delete Account Confirmation */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Your Account?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete your account, profile, dogs, posts, and all associated data. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete My Account'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Install Prompt */}
         {!installDismissed && (

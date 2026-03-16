@@ -14,7 +14,7 @@ const logStep = (step: string, details?: unknown) => {
 
 // Helper to upsert into the subscriptions table
 async function upsertSubscription(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   subscription: Stripe.Subscription,
   userId: string | null,
   tier?: string | null,
@@ -45,7 +45,7 @@ async function upsertSubscription(
 
   const { error } = await supabase
     .from("subscriptions")
-    .upsert(row, { onConflict: "stripe_subscription_id" });
+    .upsert(row as any, { onConflict: "stripe_subscription_id" });
 
   if (error) {
     logStep("Failed to upsert subscriptions row", { error: error.message });

@@ -143,6 +143,12 @@ export default function Landing() {
               <h3 className="font-semibold mb-2">3. Contact Us</h3>
               <p className="text-muted-foreground">If you have questions, contact us at: <strong>info@pawsplayrepeat.app</strong></p>
             </div>
+
+            <div className="mt-6 pt-4 border-t text-center text-xs text-muted-foreground space-x-2">
+              <button onClick={() => { setShowPrivacy(false); setShowTos(true); }} className="hover:text-foreground transition-colors underline">Terms of Service</button>
+              <span>|</span>
+              <button onClick={() => { setShowPrivacy(false); setShowSupport(true); }} className="hover:text-foreground transition-colors underline">Support</button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -154,19 +160,37 @@ export default function Landing() {
             <DialogTitle>Terms of Service</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground"><strong>Last Updated:</strong> March 16, 2026</p>
+            
             <div>
-              <h3 className="font-semibold mb-2">1. Acceptance</h3>
-              <p className="text-muted-foreground">By using Paws Play Repeat, you agree to these terms.</p>
+              <h3 className="font-semibold mb-2">1. Acceptance of Terms</h3>
+              <p className="text-muted-foreground">By accessing or using Paws Play Repeat ("the App"), you agree to be bound by these Terms of Service. If you do not agree, please do not use the App.</p>
             </div>
             
             <div>
-              <h3 className="font-semibold mb-2">2. Safety Disclaimer</h3>
-              <p className="text-muted-foreground">Paws Play Repeat provides information about dog-friendly locations. We are not responsible for the maintenance of these locations or any incidents that occur while visiting them. You are responsible for your own safety and your pet's behavior.</p>
+              <h3 className="font-semibold mb-2">2. User Conduct & Content</h3>
+              <p className="text-muted-foreground">You are responsible for all content you post and interactions within the App. You agree not to post harmful, abusive, or misleading content. We reserve the right to remove content or suspend accounts that violate these terms.</p>
             </div>
             
             <div>
-              <h3 className="font-semibold mb-2">3. Contact</h3>
-              <p className="text-muted-foreground">Questions? Reach out to: <strong>info@pawsplayrepeat.app</strong></p>
+              <h3 className="font-semibold mb-2">3. Safety Disclaimer</h3>
+              <p className="text-muted-foreground">Paws Play Repeat provides information about dog-friendly locations and facilitates connections between dog owners. We are not responsible for the maintenance of these locations or any incidents that occur while visiting them. You are responsible for your own safety and your pet's behavior at all times.</p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-2">4. Account Termination</h3>
+              <p className="text-muted-foreground">You may delete your account at any time from within the App. We reserve the right to suspend or terminate accounts that violate these terms. Upon deletion, your profile, dogs, posts, and associated data will be permanently removed.</p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-2">5. Contact Us</h3>
+              <p className="text-muted-foreground">Questions about these terms? Reach out to: <strong>info@pawsplayrepeat.app</strong></p>
+            </div>
+
+            <div className="mt-6 pt-4 border-t text-center text-xs text-muted-foreground space-x-2">
+              <button onClick={() => { setShowTos(false); setShowPrivacy(true); }} className="hover:text-foreground transition-colors underline">Privacy Policy</button>
+              <span>|</span>
+              <button onClick={() => { setShowTos(false); setShowSupport(true); }} className="hover:text-foreground transition-colors underline">Support</button>
             </div>
           </div>
         </DialogContent>
@@ -192,7 +216,14 @@ export default function Landing() {
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
                 <li><strong>Location not showing?</strong> Ensure you have granted location permissions in your phone settings.</li>
                 <li><strong>Missing a park?</strong> Send us the details and we'll add it to the map!</li>
+                <li><strong>Account Questions?</strong> If you need help with your profile or wish to request data deletion, please email us from your registered account email.</li>
               </ul>
+            </div>
+
+            <div className="mt-6 pt-4 border-t text-center text-xs text-muted-foreground space-x-2">
+              <button onClick={() => { setShowSupport(false); setShowPrivacy(true); }} className="hover:text-foreground transition-colors underline">Privacy Policy</button>
+              <span>|</span>
+              <button onClick={() => { setShowSupport(false); setShowTos(true); }} className="hover:text-foreground transition-colors underline">Terms of Service</button>
             </div>
           </div>
         </DialogContent>

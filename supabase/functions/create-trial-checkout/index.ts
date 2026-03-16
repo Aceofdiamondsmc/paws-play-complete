@@ -57,7 +57,7 @@ serve(async (req) => {
         limit: 10,
       });
       const hasActiveSub = existingSubs.data.some(
-        (s) => s.status === "active" || s.status === "trialing"
+        (s: any) => s.status === "active" || s.status === "trialing"
       );
       if (hasActiveSub) {
         throw new Error("You already have an active subscription");
