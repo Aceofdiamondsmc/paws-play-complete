@@ -1,8 +1,1 @@
-{
-  "ios": {
-    "enabled": true,
-    "environmentVariables": {
-      "ENABLE_SPM_SUPPORT": "true"
-    }
-  }
-}
+{"ios":{"enabled":true,"environmentVariables":{"ENABLE_SPM_SUPPORT":"true"}}}
