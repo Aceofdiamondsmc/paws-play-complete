@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp, TreePine, HelpCircle, Scale, ExternalLink } from 'lucide-react';
+import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp, TreePine, HelpCircle, Scale, ExternalLink, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -27,6 +27,17 @@ import { HelpSupport } from '@/components/profile/HelpSupport';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Pet-themed placeholder images
 const DOG_AVATARS = [
@@ -59,6 +70,8 @@ export default function Me() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   // Deep-link: auto-open chat from ?chat= query param
   useEffect(() => {
@@ -81,6 +94,32 @@ export default function Me() {
   const dismissInstall = () => {
     localStorage.setItem('ios-install-dismissed-at', String(Date.now()));
     setInstallDismissed(true);
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('You must be logged in to delete your account.');
+        return;
+      }
+      const response = await supabase.functions.invoke('delete-account', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to delete account');
+      }
+      await signOut();
+      navigate('/');
+      toast.success('Your account has been permanently deleted.');
+    } catch (err: any) {
+      console.error('Delete account error:', err);
+      toast.error(err.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -576,7 +615,37 @@ export default function Me() {
             <span className="flex-1 text-sm font-medium">Contact Support</span>
             <ExternalLink className="w-4 h-4 text-muted-foreground" />
           </a>
+          <Separator />
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-destructive/10 transition-colors w-full text-left"
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+            <span className="flex-1 text-sm font-medium text-destructive">Delete Account</span>
+          </button>
         </Card>
+
+        {/* Delete Account Confirmation */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Your Account?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete your account, profile, dogs, posts, and all associated data. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete My Account'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Install Prompt */}
         {!installDismissed && (
