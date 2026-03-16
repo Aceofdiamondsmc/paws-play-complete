@@ -360,16 +360,6 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A1B2C3D41234567800AABBCC /* Capacitor */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A1B2C3D31234567800AABBCC /* XCLocalSwiftPackageReference "CapApp-SPM" */;
-			productName = Capacitor;
-		};
-		A1B2C3D51234567800AABBCC /* CapacitorCordova */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A1B2C3D31234567800AABBCC /* XCLocalSwiftPackageReference "CapApp-SPM" */;
-			productName = CapacitorCordova;
-		};
 		A1B2C3D61234567800AABBCC /* CapApp-SPM */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = A1B2C3D31234567800AABBCC /* XCLocalSwiftPackageReference "CapApp-SPM" */;
