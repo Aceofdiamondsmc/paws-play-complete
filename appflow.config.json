@@ -1,8 +1,7 @@
 {
   "ios": {
     "enabled": true,
-    "buildType": "debug",
-    "environment": {
+    "environmentVariables": {
       "ENABLE_SPM_SUPPORT": "true"
     }
   }
