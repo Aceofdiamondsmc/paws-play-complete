@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Image as ImageIcon, Video, X, Loader2, Send } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -36,8 +36,21 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  const handleCameraClick = () => {
-    cameraInputRef.current?.click();
+  const handleCameraClick = async () => {
+    try {
+      if (navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach(track => track.stop());
+      }
+      cameraInputRef.current?.click();
+    } catch {
+      toast({
+        title: "Camera access denied",
+        description: "Please enable camera access in your browser/device settings. Opening photo library instead.",
+        variant: "destructive",
+      });
+      galleryInputRef.current?.click();
+    }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,7 +199,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <input ref={cameraInputRef} type="file" accept="image/*,.heic,.heif" capture="environment" onChange={handleFileSelect} className="hidden" />
               <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={handleCameraClick}>
                 <Camera className="w-8 h-8 text-primary" />
@@ -196,12 +209,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
               <input ref={galleryInputRef} type="file" accept="image/*,video/*,.heic,.heif" onChange={handleFileSelect} className="hidden" />
               <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={() => galleryInputRef.current?.click()}>
                 <ImageIcon className="w-8 h-8 text-primary" />
-                <span className="text-sm font-medium text-foreground">Gallery</span>
-              </Button>
-
-              <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={() => galleryInputRef.current?.click()}>
-                <Video className="w-8 h-8 text-primary" />
-                <span className="text-sm font-medium text-foreground">Video</span>
+                <span className="text-sm font-medium text-foreground">Photo / Video</span>
               </Button>
             </div>
           )}
