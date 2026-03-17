@@ -77,6 +77,9 @@ export default function Me() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTos, setShowTos] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   // Deep-link: auto-open chat from ?chat= query param
