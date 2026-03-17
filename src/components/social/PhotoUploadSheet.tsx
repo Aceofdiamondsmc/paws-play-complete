@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Image as ImageIcon, X, Loader2, Send } from 'lucide-react';
+import { Camera, FolderOpen, X, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
