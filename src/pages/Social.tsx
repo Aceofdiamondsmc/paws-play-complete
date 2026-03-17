@@ -386,6 +386,27 @@ export default function Social() {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Birthday Banner */}
+        {user && userDogs && (() => {
+          const today = new Date();
+          const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          const birthdayDogs = userDogs.filter((d: any) => {
+            if (!d.date_of_birth) return false;
+            const dob = d.date_of_birth as string;
+            return dob.slice(5) === todayMD;
+          });
+          if (birthdayDogs.length === 0) return null;
+          return (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 border-2 border-primary/30 text-center space-y-1">
+              {birthdayDogs.map((dog: any) => (
+                <p key={dog.id} className="text-lg font-bold text-primary">
+                  🎂 Happy Birthday, {dog.name}! 🎉🐾
+                </p>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* Pack Alerts Banner */}
         {activeAlerts.length > 0 && (
           <PackAlertBanners alerts={activeAlerts} userId={user?.id} onResolve={resolveAlert} />
