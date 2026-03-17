@@ -66,6 +66,8 @@ const testDogs: DogWithOwner[] = [
     play_style: ['Cuddling', 'Tug-of-war'],
     vaccination_certified: null,
     vet_verified: null,
+    date_of_birth: null,
+    vet_verified: null,
     owner: {
       id: 'test-owner-2',
       display_name: 'Mike Chen',
