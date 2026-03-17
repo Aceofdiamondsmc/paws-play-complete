@@ -106,7 +106,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
     setAvatarUrl(editingDog?.avatar_url || '');
     setSelectedPlayStyles(editingDog?.play_style || []);
     setVaccinationCertified(editingDog?.vaccination_certified ?? false);
-    // Reset validation state
+    setDateOfBirth(editingDog?.date_of_birth ? new Date(editingDog.date_of_birth + 'T00:00:00') : undefined);
     setErrors({});
     setTouched({});
   }, [editingDog]);
