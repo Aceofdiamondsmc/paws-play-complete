@@ -6,12 +6,15 @@ import { AuthContext } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isIOS, isStandalone } from '@/lib/navigation-utils';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 declare global {
   interface Window {
     OneSignalDeferred?: Array<(OneSignal: any) => Promise<void>>;
   }
 }
+
+const isNativePlatform = () => !!(window as any).Capacitor?.isNativePlatform?.();
 
 export function NotificationPrompt() {
   const context = useContext(AuthContext);
@@ -21,21 +24,23 @@ export function NotificationPrompt() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Only show prompt for logged-in users who haven't set up notifications yet
     if (user && profile && !profile.onesignal_player_id) {
+      // Native app — always show standard prompt
+      if (isNativePlatform()) {
+        const timer = setTimeout(() => setPromptType('standard'), 3000);
+        return () => clearTimeout(timer);
+      }
+
       const dismissed = localStorage.getItem('ios-install-prompt-dismissed');
       const dismissedAt = dismissed ? parseInt(dismissed, 10) : 0;
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
 
-      // On iOS, web push requires installing the PWA (standalone mode)
       if (isIOS() && !isStandalone()) {
-        // Don't show if dismissed within 7 days
         if (Date.now() - dismissedAt > sevenDays) {
           const timer = setTimeout(() => setPromptType('ios-install'), 3000);
           return () => clearTimeout(timer);
         }
       } else {
-        // Non-iOS or already standalone - show standard prompt
         const timer = setTimeout(() => setPromptType('standard'), 3000);
         return () => clearTimeout(timer);
       }
@@ -46,35 +51,66 @@ export function NotificationPrompt() {
     if (!user) return;
 
     setLoading(true);
-    
-    // Timeout fallback to prevent permanent "Enabling..." state
+
     const timeoutId = setTimeout(() => {
       setLoading(false);
       toast.error('Request timed out. Please try again.');
     }, 15000);
-    
+
     try {
-      // Request notification permission via OneSignal
-      if (window.OneSignalDeferred) {
-      window.OneSignalDeferred.push(async (OneSignal: any) => {
+      if (isNativePlatform()) {
+        // Native Capacitor path
+        const permResult = await PushNotifications.requestPermissions();
+        if (permResult.receive === 'granted') {
+          await PushNotifications.register();
+          await PushNotifications.addListener('registration', async (token) => {
+            const { error } = await supabase
+              .from('profiles')
+              .update({
+                onesignal_player_id: token.value,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', user.id);
+
+            clearTimeout(timeoutId);
+            setLoading(false);
+
+            if (error) {
+              console.error('Error saving push token:', error);
+              toast.error('Failed to save notification settings');
+            } else {
+              toast.success('Notifications enabled! 🔔');
+              setPromptType(null);
+            }
+          });
+          await PushNotifications.addListener('registrationError', (err) => {
+            console.error('Push registration error:', err);
+            clearTimeout(timeoutId);
+            setLoading(false);
+            toast.error('Could not enable notifications');
+          });
+        } else {
+          clearTimeout(timeoutId);
+          setLoading(false);
+          toast.info('Notifications declined');
+          setPromptType(null);
+        }
+      } else if (window.OneSignalDeferred) {
+        // Web OneSignal path
+        window.OneSignalDeferred.push(async (OneSignal: any) => {
           try {
-            // Request permission
             await OneSignal.Notifications.requestPermission();
-            
-            // CRITICAL: Login with Supabase user ID so Edge Functions can target by UUID
             await OneSignal.login(user.id);
             console.log('OneSignal login called with Supabase user ID:', user.id);
-            
-            // Get the Player ID (Subscription ID in v16+)
+
             const playerId = await OneSignal.User.PushSubscription.id;
-            
+
             if (playerId) {
-              // Save to Supabase profile
               const { error } = await supabase
                 .from('profiles')
-                .update({ 
+                .update({
                   onesignal_player_id: playerId,
-                  updated_at: new Date().toISOString()
+                  updated_at: new Date().toISOString(),
                 })
                 .eq('id', user.id);
 
@@ -188,8 +224,8 @@ export function NotificationPrompt() {
                 Got it
               </Button>
             </div>
-            <button 
-              onClick={handleDismissIOSPrompt} 
+            <button
+              onClick={handleDismissIOSPrompt}
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-4 h-4" />

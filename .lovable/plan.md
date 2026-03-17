@@ -1,69 +1,74 @@
 
 
-## Problem
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-The "Enable Notifications" button in `NotificationPrompt.tsx` only uses the **OneSignal Web SDK** (`window.OneSignalDeferred`). In a native TestFlight build, `window.OneSignalDeferred` is `undefined`, so the code falls into the `else` branch and shows "Notification service unavailable." The native app needs to use `@capacitor/push-notifications` instead.
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-The iOS entitlements, `capacitor.config.ts`, and `AppDelegate.swift` are already correctly configured. The only missing piece is the **code path** in `NotificationPrompt.tsx`.
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-## Plan
+### Changes
 
-### Update `src/components/notifications/NotificationPrompt.tsx`
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-Add a native code path in `handleEnableNotifications`:
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-1. Detect native platform: `const isNative = !!(window as any).Capacitor?.isNativePlatform?.()`
-2. If native, import and use `@capacitor/push-notifications`:
-   - Call `PushNotifications.requestPermissions()`
-   - If granted, call `PushNotifications.register()`
-   - Listen for `registration` event to get the device token
-   - Save the token to the user's profile (`onesignal_player_id` column) and dismiss the prompt
-3. If not native, keep the existing OneSignal web flow unchanged
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-```typescript
-import { PushNotifications } from '@capacitor/push-notifications';
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-// Inside handleEnableNotifications:
-const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
-if (isNative) {
-  const permResult = await PushNotifications.requestPermissions();
-  if (permResult.receive === 'granted') {
-    await PushNotifications.register();
-    PushNotifications.addListener('registration', async (token) => {
-      // Save token.value to profile
-      await supabase.from('profiles')
-        .update({ onesignal_player_id: token.value, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
-      toast.success('Notifications enabled! 🔔');
-      setPromptType(null);
-    });
-  } else {
-    toast.info('Notifications declined');
-    setPromptType(null);
-  }
-} else {
-  // existing OneSignal web flow
-}
-```
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
 
-### Also update visibility logic
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
 
-The `useEffect` that controls prompt visibility currently checks `profile.onesignal_player_id` and iOS standalone mode. On native, it should always show the standard prompt (not the iOS-install prompt). Add the native check:
+**4. Database migration** -- Update the `subscription_tier` column constraint
 
-```typescript
-if (isNative) {
-  // Native app — show standard prompt directly
-  const timer = setTimeout(() => setPromptType('standard'), 3000);
-  return () => clearTimeout(timer);
-}
-```
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
 
-### Summary
+### Tier Order (lowest to highest)
 
-| File | Change |
-|------|--------|
-| `src/components/notifications/NotificationPrompt.tsx` | Add native Capacitor push path alongside existing OneSignal web path |
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 
-No changes needed to `capacitor.config.ts`, `App.entitlements`, or `AppDelegate.swift` — all already configured correctly.
+---
 
+## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
+
+### What was implemented:
+
+1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
+
+2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
+
+3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
+
+### Database tables created:
+- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
+- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
+- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
+
+### Files created/modified:
+- `src/hooks/useLostDogAlerts.tsx` (new)
+- `src/hooks/useGroupPlaydates.tsx` (new)
+- `src/components/lost-dog/LostDogFAB.tsx` (new)
+- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
+- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
+- `src/components/playdate/GroupPlaydateCard.tsx` (new)
+- `supabase/functions/lost-dog-alert/index.ts` (new)
+- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
+- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
+- `src/pages/Explore.tsx` (edited — header rename)
+- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
+- `src/pages/Social.tsx` (edited — lost dog alert banners)
+- `supabase/config.toml` (edited — added lost-dog-alert function)
