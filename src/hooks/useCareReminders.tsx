@@ -14,6 +14,7 @@ export interface CareReminder {
   created_at: string;
   snoozed_until: string | null;
   user_timezone: string | null;
+  reminder_date: string | null;
 }
 
 export function useCareReminders() {
