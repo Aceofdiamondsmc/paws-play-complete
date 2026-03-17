@@ -116,7 +116,6 @@ const testDogs: DogWithOwner[] = [
     vaccination_certified: null,
     vet_verified: null,
     date_of_birth: null,
-    vet_verified: null,
     owner: {
       id: 'test-owner-4',
       display_name: 'James Wilson',
