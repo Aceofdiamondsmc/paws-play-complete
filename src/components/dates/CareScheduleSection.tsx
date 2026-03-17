@@ -42,6 +42,10 @@ function getCategoryIcon(category: string) {
       return <GraduationCap className="w-4 h-4 text-primary" />;
     case 'restock':
       return <ShoppingBag className="w-4 h-4 text-primary" />;
+    case 'vet_visit':
+      return <Stethoscope className="w-4 h-4 text-primary" />;
+    case 'birthday':
+      return <Cake className="w-4 h-4 text-primary" />;
     default:
       return <PawPrint className="w-4 h-4 text-primary" />;
   }
