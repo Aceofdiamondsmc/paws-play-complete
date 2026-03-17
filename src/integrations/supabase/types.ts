@@ -121,6 +121,7 @@ export type Database = {
           is_enabled: boolean | null
           is_recurring: boolean | null
           recurrence_pattern: string
+          reminder_date: string | null
           reminder_time: string
           snoozed_until: string | null
           task_details: string | null
@@ -135,6 +136,7 @@ export type Database = {
           is_enabled?: boolean | null
           is_recurring?: boolean | null
           recurrence_pattern?: string
+          reminder_date?: string | null
           reminder_time: string
           snoozed_until?: string | null
           task_details?: string | null
@@ -149,6 +151,7 @@ export type Database = {
           is_enabled?: boolean | null
           is_recurring?: boolean | null
           recurrence_pattern?: string
+          reminder_date?: string | null
           reminder_time?: string
           snoozed_until?: string | null
           task_details?: string | null
@@ -212,6 +215,7 @@ export type Database = {
           bio: string | null
           breed: string | null
           created_at: string | null
+          date_of_birth: string | null
           energy_level: string | null
           health_notes: string | null
           id: string
@@ -235,6 +239,7 @@ export type Database = {
           bio?: string | null
           breed?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
           energy_level?: string | null
           health_notes?: string | null
           id?: string
@@ -258,6 +263,7 @@ export type Database = {
           bio?: string | null
           breed?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
           energy_level?: string | null
           health_notes?: string | null
           id?: string
