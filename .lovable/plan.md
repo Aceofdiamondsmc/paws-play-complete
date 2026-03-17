@@ -1,74 +1,32 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Problem
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+Native iOS users (via Capacitor/Appflow) get a raw APNs device token stored in `onesignal_player_id`. But all Edge Functions (like-notification, comment-notification, message-notification, friend-request-notification) send push via OneSignal using `include_external_user_ids`, which only works if the device was registered with OneSignal and linked to that external user ID. Native users never call `OneSignal.login()`, so OneSignal has no record of them — push notifications silently fail.
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+## Solution
 
-### Changes
+Register the native APNs token with OneSignal server-side so the existing Edge Functions work without any changes.
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+### 1. Create Edge Function `register-push-token`
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+A new Edge Function that:
+- Authenticates the caller via JWT
+- Accepts `{ token: string, device_type: "ios" | "android" }`
+- Calls the OneSignal REST API to create/update a device player with:
+  - `identifier`: the APNs token
+  - `device_type`: 0 (iOS) or 1 (Android)
+  - `external_user_id`: the authenticated Supabase user ID
+  - `app_id`: the OneSignal App ID
+- Returns success/failure
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+This links the raw APNs token to the user's Supabase ID inside OneSignal, making `include_external_user_ids` work for native users.
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+### 2. Update `NotificationPrompt.tsx`
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+In the native Capacitor registration path (line 66), after receiving the token:
+- Call `supabase.functions.invoke('register-push-token', { body: { token: token.value, device_type: 'ios' } })`
+- Keep the existing profile update (storing token in `onesignal_player_id`) as a fallback reference
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+No changes needed to any existing notification Edge Functions — they will continue using `include_external_user_ids` which will now resolve to the registered native device.
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
-
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
