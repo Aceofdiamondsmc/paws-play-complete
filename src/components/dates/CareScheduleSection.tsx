@@ -438,7 +438,38 @@ export function CareScheduleSection() {
           </Select>
         </div>
 
-        {/* Recurrence Toggle */}
+        {/* Date Picker for date-specific categories */}
+        {isDateCategory && (
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal rounded-full",
+                    !reminderDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {reminderDate ? format(reminderDate, 'PPP') : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={reminderDate}
+                  onSelect={setReminderDate}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
+        {/* Recurrence Toggle - hidden for date-specific categories */}
+        {!isDateCategory && (
         <div className="space-y-2">
           <Label>Repeat</Label>
           <ToggleGroup type="single" value={recurrence} onValueChange={(val) => val && setRecurrence(val)} className="justify-start">
@@ -446,6 +477,7 @@ export function CareScheduleSection() {
             <ToggleGroupItem value="weekly" className="rounded-full">Weekly</ToggleGroupItem>
           </ToggleGroup>
         </div>
+        )}
 
         {/* Conditional Task Details Input */}
         {(category === 'medication' || category === 'feeding' || category === 'grooming' || category === 'training' || category === 'restock') && (
