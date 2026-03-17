@@ -39,7 +39,8 @@ export function useDogs() {
         weight_lbs: data.weight_lbs || null,
         health_notes: data.health_notes || null,
         play_style: Array.isArray(data.play_style) ? data.play_style : [],
-        vaccination_certified: data.vaccination_certified ?? false
+        vaccination_certified: data.vaccination_certified ?? false,
+        date_of_birth: data.date_of_birth || null,
       };
 
       const { data: dog, error } = await supabase
