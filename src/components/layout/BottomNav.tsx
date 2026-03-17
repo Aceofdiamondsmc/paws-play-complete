@@ -63,7 +63,7 @@ export function BottomNav() {
                   )} 
                 />
                 {showBadge && (
-                  <span className="absolute -top-1.5 -right-1.5 z-20 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-destructive rounded-full shadow-sm">
+                  <span className="absolute -top-3 -right-1.5 z-20 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-destructive rounded-full shadow-sm">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
