@@ -154,7 +154,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    const redirectUrl = `${window.location.origin}/me`;
+    const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+    const redirectUrl = isNative
+      ? 'com.pawsplayrepeat.app://callback'
+      : `${window.location.origin}/me`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
