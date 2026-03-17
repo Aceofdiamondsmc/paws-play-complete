@@ -108,13 +108,18 @@ export function CareScheduleSection() {
   };
 
   const handleSaveReminder = async () => {
+    if (isDateCategory && !reminderDate) {
+      toast.error('Please select a date');
+      return;
+    }
     setSaving(true);
     const { error } = await addReminder({
       reminder_time: `${selectedTime}:00`,
-      is_recurring: recurrence !== 'none',
-      recurrence_pattern: recurrence,
+      is_recurring: isDateCategory ? false : recurrence !== 'none',
+      recurrence_pattern: isDateCategory ? 'once' : recurrence,
       category,
       task_details: taskDetails || undefined,
+      reminder_date: reminderDate ? format(reminderDate, 'yyyy-MM-dd') : undefined,
     });
 
     if (error) {
@@ -122,6 +127,7 @@ export function CareScheduleSection() {
     } else {
       toast.success('Reminder saved!');
       setTaskDetails('');
+      setReminderDate(undefined);
     }
     setSaving(false);
   };
