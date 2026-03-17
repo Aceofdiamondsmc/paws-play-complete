@@ -1,74 +1,67 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Plan: Add iOS Permission Keys and Capacitor Native Plugins
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
-
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+### Problem
+The TestFlight build doesn't prompt for permissions because `Info.plist` is missing the required `NS*UsageDescription` keys. Additionally, no Capacitor native plugins (`@capacitor/geolocation`, `@capacitor/camera`, `@capacitor/push-notifications`) are installed.
 
 ### Changes
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+#### 1. Update `ios/App/App/Info.plist`
+Add the following keys before the closing `</dict>`:
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+| Key | Value |
+|-----|-------|
+| `NSLocationWhenInUseUsageDescription` | Paws Play Repeat uses your location to show nearby dog parks and pet services. |
+| `NSCameraUsageDescription` | Paws Play Repeat needs camera access so you can take and share photos of your pets. |
+| `NSPhotoLibraryUsageDescription` | Paws Play Repeat needs access to your photo library so you can share pet photos. |
+| `NSPhotoLibraryAddUsageDescription` | Paws Play Repeat would like to save photos to your library. |
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+#### 2. Update `ios/App/App/AppDelegate.swift`
+Import `UserNotifications` and register for remote notifications in `didFinishLaunchingWithOptions`:
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+```swift
+import UserNotifications
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+// In didFinishLaunchingWithOptions:
+UNUserNotificationCenter.current().delegate = self
+application.registerForRemoteNotifications()
+```
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+Add the `UNUserNotificationCenterDelegate` conformance and the required push token forwarding methods so Capacitor's push plugin receives tokens and notifications.
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+#### 3. Install Capacitor native plugins (package.json)
+Add dependencies:
+- `@capacitor/geolocation`
+- `@capacitor/camera`
+- `@capacitor/push-notifications`
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
+#### 4. Update `capacitor.config.ts`
+Add plugin configuration for PushNotifications (presentationOptions for foreground alerts):
 
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+```typescript
+plugins: {
+  PushNotifications: {
+    presentationOptions: ["badge", "sound", "alert"],
+  },
+}
+```
 
-### Tier Order (lowest to highest)
+#### 5. Update `ios/App/App.xcodeproj/project.pbxproj`
+Add the Push Notifications entitlement to the build settings. Specifically, add `CODE_SIGN_ENTITLEMENTS` pointing to an `App.entitlements` file, and create that entitlements file with the `aps-environment` key.
 
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
+#### 6. Create `ios/App/App/App.entitlements`
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "...">
+<plist version="1.0">
+<dict>
+    <key>aps-environment</key>
+    <string>development</string>
+</dict>
+</plist>
+```
 
----
+### Manual Step After Push
+Run `npx cap sync ios` after pulling these changes to ensure the native plugins are properly linked in the SPM package.
 
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
