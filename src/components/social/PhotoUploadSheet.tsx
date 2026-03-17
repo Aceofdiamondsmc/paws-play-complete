@@ -36,21 +36,8 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  const handleCameraClick = async () => {
-    try {
-      if (navigator.mediaDevices?.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(track => track.stop());
-      }
-      cameraInputRef.current?.click();
-    } catch {
-      toast({
-        title: "Camera access denied",
-        description: "Please enable camera access in your browser/device settings. Opening photo library instead.",
-        variant: "destructive",
-      });
-      galleryInputRef.current?.click();
-    }
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click();
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
