@@ -205,6 +205,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
   };
 
   return (
+    <>
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[90vh]">
         <DrawerHeader className="border-b border-border pb-4">
