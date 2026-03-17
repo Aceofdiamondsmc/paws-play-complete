@@ -199,6 +199,19 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         }
         
         toast.success('Pack member added!');
+
+        // Auto-create birthday reminder if DOB was set
+        if (dateOfBirth) {
+          const dobStr = format(dateOfBirth, 'yyyy-MM-dd');
+          await addReminder({
+            reminder_time: '09:00:00',
+            is_recurring: false,
+            recurrence_pattern: 'yearly',
+            category: 'birthday',
+            task_details: `${name.trim()}'s Birthday`,
+            reminder_date: dobStr,
+          });
+        }
       }
 
       onSuccess?.();
