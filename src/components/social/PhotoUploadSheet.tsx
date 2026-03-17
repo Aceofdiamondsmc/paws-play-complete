@@ -11,11 +11,24 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ensureJpeg } from '@/lib/heic-convert';
+
+const CAMERA_HINT_KEY = 'ppr_camera_hint_seen';
+const GALLERY_HINT_KEY = 'ppr_gallery_hint_seen';
 
 interface PhotoUploadSheetProps {
   open: boolean;
@@ -32,12 +45,38 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [cameraDialogOpen, setCameraDialogOpen] = useState(false);
+  const [galleryDialogOpen, setGalleryDialogOpen] = useState(false);
   
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const handleCameraClick = () => {
-    cameraInputRef.current?.click();
+    if (!localStorage.getItem(CAMERA_HINT_KEY)) {
+      setCameraDialogOpen(true);
+    } else {
+      cameraInputRef.current?.click();
+    }
+  };
+
+  const handleCameraContinue = () => {
+    localStorage.setItem(CAMERA_HINT_KEY, '1');
+    setCameraDialogOpen(false);
+    setTimeout(() => cameraInputRef.current?.click(), 100);
+  };
+
+  const handleGalleryClick = () => {
+    if (!localStorage.getItem(GALLERY_HINT_KEY)) {
+      setGalleryDialogOpen(true);
+    } else {
+      galleryInputRef.current?.click();
+    }
+  };
+
+  const handleGalleryContinue = () => {
+    localStorage.setItem(GALLERY_HINT_KEY, '1');
+    setGalleryDialogOpen(false);
+    setTimeout(() => galleryInputRef.current?.click(), 100);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
