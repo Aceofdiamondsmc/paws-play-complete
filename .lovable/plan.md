@@ -1,74 +1,31 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Findings
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+1. **Birthday on Pack tab**: Already implemented -- line 467-475 of `Pack.tsx` shows a 🎂 emoji next to the dog's name on their birthday. This is working.
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+2. **Calendar year navigation**: The `Calendar` component only has month-by-month arrows (ChevronLeft/Right). For a dog born years ago, users must tap backward dozens of times. Fix: add month/year dropdown selectors to the calendar.
 
-### Changes
+3. **Birthday reminder not created on edit**: The auto-create birthday reminder logic (lines 203-214 of `PackMemberForm.tsx`) only runs inside the `else` branch (new dog). When editing an existing dog, the code at line 185-188 just calls `updateDog` and toasts -- no reminder creation. This is the bug.
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+4. **Multiple dogs**: Each dog edit/add is independent, so fixing the edit path will naturally handle both dogs. When you update Dog A's birthday, it creates Dog A's reminder. When you update Dog B's birthday, it creates Dog B's reminder.
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+## Plan
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+### 1. Add year/month dropdowns to the Calendar
+**File: `src/components/ui/calendar.tsx`**
+- Replace the default caption with a custom component that renders a month dropdown (Jan-Dec) and a year dropdown (2000-current year)
+- Uses DayPicker's `captionLayout` or custom `Caption` component
+- Allows jumping directly to any month/year without repeated tapping
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+### 2. Fix birthday reminder creation on dog edit
+**File: `src/components/profile/PackMemberForm.tsx`**
+- After the `updateDog` call succeeds (line 186-188), add the same birthday reminder logic that exists for new dogs
+- Check if `dateOfBirth` is set and differs from `editingDog.date_of_birth` (avoid duplicate reminders)
+- Before creating a new reminder, query existing birthday reminders for this dog name to avoid duplicates (or delete the old one first)
+- The reminder uses `task_details` like `"Buddy's Birthday"` -- we can match on that to find/replace existing reminders
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+### Changes Summary
+- **`src/components/ui/calendar.tsx`**: Add month/year dropdown navigation
+- **`src/components/profile/PackMemberForm.tsx`**: Add birthday reminder creation/update logic in the edit path (lines 185-188), with duplicate detection based on `task_details` matching the dog's name + "Birthday"
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
-
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
-
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
