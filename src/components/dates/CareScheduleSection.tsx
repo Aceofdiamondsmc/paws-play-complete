@@ -480,13 +480,15 @@ export function CareScheduleSection() {
         )}
 
         {/* Conditional Task Details Input */}
-        {(category === 'medication' || category === 'feeding' || category === 'grooming' || category === 'training' || category === 'restock') && (
+        {(category === 'medication' || category === 'feeding' || category === 'grooming' || category === 'training' || category === 'restock' || category === 'vet_visit' || category === 'birthday') && (
           <div className="space-y-2">
             <Label>
               {category === 'medication' ? 'Medication Name & Dosage' : 
                category === 'feeding' ? 'Food Amount' :
                category === 'grooming' ? 'Grooming Details' : 
-               category === 'training' ? 'Training Details' : 'Brand & Size'}
+               category === 'training' ? 'Training Details' :
+               category === 'vet_visit' ? 'Visit Details' :
+               category === 'birthday' ? "Pup's Name" : 'Brand & Size'}
             </Label>
             <Input
               placeholder={
