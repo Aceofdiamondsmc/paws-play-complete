@@ -59,6 +59,7 @@ interface PackMemberFormProps {
     health_notes?: string | null;
     play_style?: string[] | null;
     vaccination_certified?: boolean | null;
+    date_of_birth?: string | null;
   };
 }
 
