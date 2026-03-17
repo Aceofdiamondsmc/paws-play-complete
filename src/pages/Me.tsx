@@ -592,38 +592,29 @@ export default function Me() {
 
         {/* Legal & Support */}
         <Card className="p-0 overflow-hidden">
-          <a
-            href="https://pawsplayrepeat.app/privacy.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+          <button
+            onClick={() => setShowPrivacy(true)}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors w-full text-left"
           >
             <Shield className="w-4 h-4 text-muted-foreground" />
             <span className="flex-1 text-sm font-medium">Privacy Policy</span>
-            <ExternalLink className="w-4 h-4 text-muted-foreground" />
-          </a>
+          </button>
           <Separator />
-          <a
-            href="https://pawsplayrepeat.app/tos.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+          <button
+            onClick={() => setShowTos(true)}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors w-full text-left"
           >
             <Scale className="w-4 h-4 text-muted-foreground" />
             <span className="flex-1 text-sm font-medium">Terms of Service</span>
-            <ExternalLink className="w-4 h-4 text-muted-foreground" />
-          </a>
+          </button>
           <Separator />
-          <a
-            href="https://pawsplayrepeat.app/support.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+          <button
+            onClick={() => setShowSupport(true)}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors w-full text-left"
           >
             <Mail className="w-4 h-4 text-muted-foreground" />
             <span className="flex-1 text-sm font-medium">Contact Support</span>
-            <ExternalLink className="w-4 h-4 text-muted-foreground" />
-          </a>
+          </button>
           <Separator />
           <button
             onClick={() => setShowDeleteConfirm(true)}
