@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera } from 'lucide-react';
+import { Camera, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -21,9 +24,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useDogs } from '@/hooks/useDogs';
+import { useCareNotificationContext } from '@/components/CareNotificationProvider';
 import { toast } from 'sonner';
 import { BreedCombobox } from './BreedCombobox';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 
 // Play style options stored directly (no separate table)
 const PLAY_STYLE_OPTIONS = [
@@ -54,6 +59,7 @@ interface PackMemberFormProps {
     health_notes?: string | null;
     play_style?: string[] | null;
     vaccination_certified?: boolean | null;
+    date_of_birth?: string | null;
   };
 }
 
@@ -63,6 +69,7 @@ const ENERGY_OPTIONS = ['Low', 'Medium', 'High', 'Very High'];
 export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMemberFormProps) {
   const { addDog, updateDog, uploadDogAvatar } = useDogs();
   const { user } = useAuth();
+  const { addReminder } = useCareNotificationContext();
   
   const [name, setName] = useState(editingDog?.name || '');
   const [breed, setBreed] = useState(editingDog?.breed || '');
@@ -77,6 +84,9 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
     editingDog?.play_style || []
   );
   const [vaccinationCertified, setVaccinationCertified] = useState(editingDog?.vaccination_certified ?? false);
+  const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(
+    editingDog?.date_of_birth ? new Date(editingDog.date_of_birth + 'T00:00:00') : undefined
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
@@ -97,7 +107,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
     setAvatarUrl(editingDog?.avatar_url || '');
     setSelectedPlayStyles(editingDog?.play_style || []);
     setVaccinationCertified(editingDog?.vaccination_certified ?? false);
-    // Reset validation state
+    setDateOfBirth(editingDog?.date_of_birth ? new Date(editingDog.date_of_birth + 'T00:00:00') : undefined);
     setErrors({});
     setTouched({});
   }, [editingDog]);
@@ -168,7 +178,8 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         weight_lbs: weightLbs ? parseFloat(weightLbs) : undefined,
         health_notes: healthInfo.trim(),
         play_style: selectedPlayStyles,
-        vaccination_certified: vaccinationCertified
+        vaccination_certified: vaccinationCertified,
+        date_of_birth: dateOfBirth ? format(dateOfBirth, 'yyyy-MM-dd') : undefined,
       };
 
       if (editingDog) {
@@ -188,6 +199,19 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         }
         
         toast.success('Pack member added!');
+
+        // Auto-create birthday reminder if DOB was set
+        if (dateOfBirth) {
+          const dobStr = format(dateOfBirth, 'yyyy-MM-dd');
+          await addReminder({
+            reminder_time: '09:00:00',
+            is_recurring: false,
+            recurrence_pattern: 'yearly',
+            category: 'birthday',
+            task_details: `${name.trim()}'s Birthday`,
+            reminder_date: dobStr,
+          });
+        }
       }
 
       onSuccess?.();
@@ -292,6 +316,34 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
                 placeholder="e.g., 3"
                 className="mt-1"
               />
+            </div>
+
+            <div className="col-span-2">
+              <Label>Date of Birth</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal mt-1",
+                      !dateOfBirth && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateOfBirth ? format(dateOfBirth, 'PPP') : <span>Pick a date (optional)</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateOfBirth}
+                    onSelect={setDateOfBirth}
+                    disabled={(date) => date > new Date() || date < new Date("2000-01-01")}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>

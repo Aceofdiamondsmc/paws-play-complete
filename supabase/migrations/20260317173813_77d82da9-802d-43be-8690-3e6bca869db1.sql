@@ -1,0 +1,1 @@
+ALTER TABLE public.care_reminders ADD COLUMN IF NOT EXISTS reminder_date date DEFAULT NULL;

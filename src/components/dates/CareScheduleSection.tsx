@@ -1,14 +1,18 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Scissors, GraduationCap, ShoppingBag, Trash2, Plus, CheckCircle, AlertTriangle, Timer, Info } from 'lucide-react';
+import { Heart, Clock, Bell, BellOff, PawPrint, Pill, UtensilsCrossed, Scissors, GraduationCap, ShoppingBag, Trash2, Plus, CheckCircle, AlertTriangle, Timer, Info, Stethoscope, Cake, CalendarIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { useCareNotificationContext } from '@/components/CareNotificationProvider';
 import { useCareHistory, type BagSize } from '@/hooks/useCareHistory';
 import { FoodSupplyTracker, EnableFoodTrackerButton } from '@/components/dates/FoodSupplyTracker';
@@ -38,6 +42,10 @@ function getCategoryIcon(category: string) {
       return <GraduationCap className="w-4 h-4 text-primary" />;
     case 'restock':
       return <ShoppingBag className="w-4 h-4 text-primary" />;
+    case 'vet_visit':
+      return <Stethoscope className="w-4 h-4 text-primary" />;
+    case 'birthday':
+      return <Cake className="w-4 h-4 text-primary" />;
     default:
       return <PawPrint className="w-4 h-4 text-primary" />;
   }
@@ -85,6 +93,9 @@ export function CareScheduleSection() {
   const [recurrence, setRecurrence] = useState('daily');
   const [taskDetails, setTaskDetails] = useState('');
   const [saving, setSaving] = useState(false);
+  const [reminderDate, setReminderDate] = useState<Date>();
+
+  const isDateCategory = category === 'vet_visit' || category === 'birthday';
 
   const handleToggleTracker = (enabled: boolean) => {
     setTrackerEnabled(enabled);
@@ -97,13 +108,18 @@ export function CareScheduleSection() {
   };
 
   const handleSaveReminder = async () => {
+    if (isDateCategory && !reminderDate) {
+      toast.error('Please select a date');
+      return;
+    }
     setSaving(true);
     const { error } = await addReminder({
       reminder_time: `${selectedTime}:00`,
-      is_recurring: recurrence !== 'none',
-      recurrence_pattern: recurrence,
+      is_recurring: isDateCategory ? false : recurrence !== 'none',
+      recurrence_pattern: isDateCategory ? 'once' : recurrence,
       category,
       task_details: taskDetails || undefined,
+      reminder_date: reminderDate ? format(reminderDate, 'yyyy-MM-dd') : undefined,
     });
 
     if (error) {
@@ -111,6 +127,7 @@ export function CareScheduleSection() {
     } else {
       toast.success('Reminder saved!');
       setTaskDetails('');
+      setReminderDate(undefined);
     }
     setSaving(false);
   };
@@ -320,6 +337,8 @@ export function CareScheduleSection() {
               {triggeredReminder.category === 'grooming' && 'Time for grooming!'}
               {triggeredReminder.category === 'training' && 'Time for training!'}
               {triggeredReminder.category === 'restock' && `Time to restock dog food!`}
+              {triggeredReminder.category === 'vet_visit' && `🩺 Vet visit: ${triggeredReminder.task_details || 'Appointment today'}`}
+              {triggeredReminder.category === 'birthday' && `🎂 ${triggeredReminder.task_details || "It's your pup's birthday!"}`}
             </span>
           </div>
           <div className="flex gap-2">
@@ -386,6 +405,18 @@ export function CareScheduleSection() {
                   Food Restock
                 </div>
               </SelectItem>
+              <SelectItem value="vet_visit">
+                <div className="flex items-center gap-2">
+                  <Stethoscope className="w-4 h-4" />
+                  Vet Visit
+                </div>
+              </SelectItem>
+              <SelectItem value="birthday">
+                <div className="flex items-center gap-2">
+                  <Cake className="w-4 h-4" />
+                  Birthday
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -407,7 +438,38 @@ export function CareScheduleSection() {
           </Select>
         </div>
 
-        {/* Recurrence Toggle */}
+        {/* Date Picker for date-specific categories */}
+        {isDateCategory && (
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal rounded-full",
+                    !reminderDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {reminderDate ? format(reminderDate, 'PPP') : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={reminderDate}
+                  onSelect={setReminderDate}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
+        {/* Recurrence Toggle - hidden for date-specific categories */}
+        {!isDateCategory && (
         <div className="space-y-2">
           <Label>Repeat</Label>
           <ToggleGroup type="single" value={recurrence} onValueChange={(val) => val && setRecurrence(val)} className="justify-start">
@@ -415,22 +477,27 @@ export function CareScheduleSection() {
             <ToggleGroupItem value="weekly" className="rounded-full">Weekly</ToggleGroupItem>
           </ToggleGroup>
         </div>
+        )}
 
         {/* Conditional Task Details Input */}
-        {(category === 'medication' || category === 'feeding' || category === 'grooming' || category === 'training' || category === 'restock') && (
+        {(category === 'medication' || category === 'feeding' || category === 'grooming' || category === 'training' || category === 'restock' || category === 'vet_visit' || category === 'birthday') && (
           <div className="space-y-2">
             <Label>
               {category === 'medication' ? 'Medication Name & Dosage' : 
                category === 'feeding' ? 'Food Amount' :
                category === 'grooming' ? 'Grooming Details' : 
-               category === 'training' ? 'Training Details' : 'Brand & Size'}
+               category === 'training' ? 'Training Details' :
+               category === 'vet_visit' ? 'Visit Details' :
+               category === 'birthday' ? "Pup's Name" : 'Brand & Size'}
             </Label>
             <Input
               placeholder={
                 category === 'medication' ? 'e.g., Apoquel 16mg' : 
                 category === 'feeding' ? 'e.g., 1 cup kibble' :
                 category === 'grooming' ? 'e.g., Nail trim, bath' : 
-                category === 'training' ? 'e.g., Recall practice' : 'e.g., 30lb bag Purina Pro Plan'
+                category === 'training' ? 'e.g., Recall practice' :
+                category === 'vet_visit' ? 'e.g., Annual vaccines, Dr. Smith' :
+                category === 'birthday' ? "e.g., Max's Birthday" : 'e.g., 30lb bag Purina Pro Plan'
               }
               value={taskDetails}
               onChange={(e) => setTaskDetails(e.target.value)}
@@ -459,9 +526,14 @@ export function CareScheduleSection() {
                     {getCategoryIcon(reminder.category)}
                     <div>
                       <div className="font-medium flex items-center gap-2">
+                        {reminder.reminder_date && (
+                          <span className="text-xs font-semibold text-primary">
+                            {format(new Date(reminder.reminder_date + 'T00:00:00'), 'MMM d')}
+                          </span>
+                        )}
                         {formatTime(reminder.reminder_time)}
                         <span className="text-xs text-muted-foreground capitalize">
-                          {reminder.recurrence_pattern}
+                          {reminder.reminder_date ? 'Once' : reminder.recurrence_pattern}
                         </span>
                         {snoozed && (
                           <Badge variant="outline" className="text-xs bg-warning/20 text-warning border-warning/30">
@@ -551,6 +623,8 @@ export function CareScheduleSection() {
                       {entry.category === 'grooming' && (entry.task_details || entry.notes || 'Groomed')}
                       {entry.category === 'training' && (entry.task_details || entry.notes || 'Trained')}
                       {entry.category === 'restock' && (entry.task_details || entry.notes || 'Food Restocked')}
+                      {entry.category === 'vet_visit' && (entry.task_details || entry.notes || 'Vet Visit')}
+                      {entry.category === 'birthday' && (entry.task_details || entry.notes || 'Birthday')}
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">

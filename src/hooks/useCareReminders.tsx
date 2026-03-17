@@ -14,6 +14,7 @@ export interface CareReminder {
   created_at: string;
   snoozed_until: string | null;
   user_timezone: string | null;
+  reminder_date: string | null;
 }
 
 export function useCareReminders() {
@@ -79,6 +80,7 @@ export function useCareReminders() {
     recurrence_pattern: string;
     category: string;
     task_details?: string;
+    reminder_date?: string;
   }) => {
     if (!user) return { error: new Error('Not authenticated') };
 
@@ -95,6 +97,7 @@ export function useCareReminders() {
         task_details: reminder.task_details || null,
         is_enabled: true,
         user_timezone: userTimezone,
+        reminder_date: reminder.reminder_date || null,
       })
       .select()
       .maybeSingle();
