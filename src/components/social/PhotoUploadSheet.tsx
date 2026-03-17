@@ -276,5 +276,36 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
+
+    <AlertDialog open={cameraDialogOpen} onOpenChange={setCameraDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>📸 Camera Access</AlertDialogTitle>
+          <AlertDialogDescription>
+            Paws Play needs access to your camera to take photos. Your browser may ask for permission after you continue.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleCameraContinue}>Continue</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog open={galleryDialogOpen} onOpenChange={setGalleryDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>🖼️ Photo Library</AlertDialogTitle>
+          <AlertDialogDescription>
+            Photos and videos you select will be uploaded and shared with the pack.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleGalleryContinue}>Continue</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
