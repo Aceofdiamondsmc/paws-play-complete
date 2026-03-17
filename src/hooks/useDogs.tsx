@@ -13,6 +13,7 @@ interface DogData {
   health_notes?: string;
   play_style?: string[];
   vaccination_certified?: boolean;
+  date_of_birth?: string;
 }
 
 export function useDogs() {
