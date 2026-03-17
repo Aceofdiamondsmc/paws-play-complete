@@ -83,6 +83,9 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
     editingDog?.play_style || []
   );
   const [vaccinationCertified, setVaccinationCertified] = useState(editingDog?.vaccination_certified ?? false);
+  const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(
+    editingDog?.date_of_birth ? new Date(editingDog.date_of_birth + 'T00:00:00') : undefined
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
