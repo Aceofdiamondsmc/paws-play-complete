@@ -296,9 +296,9 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
     <AlertDialog open={galleryDialogOpen} onOpenChange={setGalleryDialogOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>🖼️ Photo Library</AlertDialogTitle>
+          <AlertDialogTitle>🖼️ Photo Library / File</AlertDialogTitle>
           <AlertDialogDescription>
-            Photos and videos you select will be uploaded and shared with the pack.
+            Photos and files you select will be uploaded and shared with the pack.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
