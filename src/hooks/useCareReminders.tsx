@@ -80,6 +80,7 @@ export function useCareReminders() {
     recurrence_pattern: string;
     category: string;
     task_details?: string;
+    reminder_date?: string;
   }) => {
     if (!user) return { error: new Error('Not authenticated') };
 
