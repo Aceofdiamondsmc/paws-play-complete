@@ -283,7 +283,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
         <AlertDialogHeader>
           <AlertDialogTitle>📸 Camera Access</AlertDialogTitle>
           <AlertDialogDescription>
-            Paws Play needs access to your camera to take photos. Your browser may ask for permission after you continue.
+            Paws Play needs access to your camera to take photos and videos. Your browser may ask for permission after you continue.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
