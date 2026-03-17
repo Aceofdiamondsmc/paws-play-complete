@@ -168,7 +168,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithApple = async () => {
-    const redirectUrl = `${window.location.origin}/me`;
+    const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+    const redirectUrl = isNative
+      ? 'com.pawsplayrepeat.app://callback'
+      : `${window.location.origin}/me`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
       options: {
