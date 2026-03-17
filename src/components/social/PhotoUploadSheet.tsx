@@ -235,8 +235,8 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
 
               <input ref={galleryInputRef} type="file" accept="image/*,video/*,.heic,.heif" onChange={handleFileSelect} className="hidden" />
               <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={handleGalleryClick}>
-                <ImageIcon className="w-8 h-8 text-primary" />
-                <span className="text-sm font-medium text-foreground">Photo / Video</span>
+                <FolderOpen className="w-8 h-8 text-primary" />
+                <span className="text-sm font-medium text-foreground">Photo Library / File</span>
               </Button>
             </div>
           )}
