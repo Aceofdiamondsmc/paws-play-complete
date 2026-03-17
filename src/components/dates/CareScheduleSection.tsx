@@ -526,9 +526,14 @@ export function CareScheduleSection() {
                     {getCategoryIcon(reminder.category)}
                     <div>
                       <div className="font-medium flex items-center gap-2">
+                        {reminder.reminder_date && (
+                          <span className="text-xs font-semibold text-primary">
+                            {format(new Date(reminder.reminder_date + 'T00:00:00'), 'MMM d')}
+                          </span>
+                        )}
                         {formatTime(reminder.reminder_time)}
                         <span className="text-xs text-muted-foreground capitalize">
-                          {reminder.recurrence_pattern}
+                          {reminder.reminder_date ? 'Once' : reminder.recurrence_pattern}
                         </span>
                         {snoozed && (
                           <Badge variant="outline" className="text-xs bg-warning/20 text-warning border-warning/30">
