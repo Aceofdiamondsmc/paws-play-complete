@@ -97,6 +97,7 @@ export function useCareReminders() {
         task_details: reminder.task_details || null,
         is_enabled: true,
         user_timezone: userTimezone,
+        reminder_date: reminder.reminder_date || null,
       })
       .select()
       .maybeSingle();
