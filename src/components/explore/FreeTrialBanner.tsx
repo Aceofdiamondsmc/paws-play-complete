@@ -32,7 +32,7 @@ export function FreeTrialBanner() {
           </ul>
           <p className="text-xs text-muted-foreground">Then $9.99/month</p>
           <Button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/me')}
             className="w-full rounded-full font-bold"
             size="lg"
           >
