@@ -464,6 +464,15 @@ export default function Pack() {
         <h1 className="text-4xl font-bold text-white mt-4 flex items-center justify-center gap-2">
           {currentDog.name}
           <VaccinationBadge certified={currentDog.vaccination_certified} size={24} />
+          {(() => {
+            if (!currentDog.date_of_birth) return null;
+            const today = new Date();
+            const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            if (currentDog.date_of_birth.slice(5) === todayMD) {
+              return <span title="Birthday today!">🎂</span>;
+            }
+            return null;
+          })()}
         </h1>
         <p className="text-white/90 text-lg">{currentDog.breed || 'Golden Retriever'}</p>
       </div>
