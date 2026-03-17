@@ -227,7 +227,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <input ref={cameraInputRef} type="file" accept="image/*,.heic,.heif" capture="environment" onChange={handleFileSelect} className="hidden" />
+              <input ref={cameraInputRef} type="file" accept="image/*,video/*,.heic,.heif" capture="environment" onChange={handleFileSelect} className="hidden" />
               <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={handleCameraClick}>
                 <Camera className="w-8 h-8 text-primary" />
                 <span className="text-sm font-medium text-foreground">Camera</span>
