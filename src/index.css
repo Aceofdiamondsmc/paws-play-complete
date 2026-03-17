@@ -314,6 +314,12 @@
   animation: shimmer-sweep 2s ease-in-out 0.5s 1;
 }
 
+/* Force-hide OneSignal bell widget (cached SDK may ignore JS config) */
+#onesignal-bell-container,
+.onesignal-bell-launcher {
+  display: none !important;
+}
+
 /* Import Nunito font */
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
 
