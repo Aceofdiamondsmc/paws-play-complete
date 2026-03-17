@@ -199,7 +199,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <input ref={cameraInputRef} type="file" accept="image/*,.heic,.heif" capture="environment" onChange={handleFileSelect} className="hidden" />
               <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={handleCameraClick}>
                 <Camera className="w-8 h-8 text-primary" />
@@ -209,12 +209,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
               <input ref={galleryInputRef} type="file" accept="image/*,video/*,.heic,.heif" onChange={handleFileSelect} className="hidden" />
               <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={() => galleryInputRef.current?.click()}>
                 <ImageIcon className="w-8 h-8 text-primary" />
-                <span className="text-sm font-medium text-foreground">Gallery</span>
-              </Button>
-
-              <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={() => galleryInputRef.current?.click()}>
-                <Video className="w-8 h-8 text-primary" />
-                <span className="text-sm font-medium text-foreground">Video</span>
+                <span className="text-sm font-medium text-foreground">Photo / Video</span>
               </Button>
             </div>
           )}
