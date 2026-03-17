@@ -64,23 +64,33 @@ export function NotificationPrompt() {
         if (permResult.receive === 'granted') {
           await PushNotifications.register();
           await PushNotifications.addListener('registration', async (token) => {
-            const { error } = await supabase
-              .from('profiles')
-              .update({
-                onesignal_player_id: token.value,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', user.id);
+            try {
+              // Register token with OneSignal via Edge Function
+              const { error: fnError } = await supabase.functions.invoke('register-push-token', {
+                body: { token: token.value, device_type: 'ios' },
+              });
 
-            clearTimeout(timeoutId);
-            setLoading(false);
+              if (fnError) {
+                console.error('Error registering push token with OneSignal:', fnError);
+                // Fallback: save raw token to profile
+                await supabase
+                  .from('profiles')
+                  .update({
+                    onesignal_player_id: token.value,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', user.id);
+              }
 
-            if (error) {
-              console.error('Error saving push token:', error);
-              toast.error('Failed to save notification settings');
-            } else {
+              clearTimeout(timeoutId);
+              setLoading(false);
               toast.success('Notifications enabled! 🔔');
               setPromptType(null);
+            } catch (err) {
+              console.error('Error during push token registration:', err);
+              clearTimeout(timeoutId);
+              setLoading(false);
+              toast.error('Failed to save notification settings');
             }
           });
           await PushNotifications.addListener('registrationError', (err) => {
