@@ -93,6 +93,9 @@ export function CareScheduleSection() {
   const [recurrence, setRecurrence] = useState('daily');
   const [taskDetails, setTaskDetails] = useState('');
   const [saving, setSaving] = useState(false);
+  const [reminderDate, setReminderDate] = useState<Date>();
+
+  const isDateCategory = category === 'vet_visit' || category === 'birthday';
 
   const handleToggleTracker = (enabled: boolean) => {
     setTrackerEnabled(enabled);
