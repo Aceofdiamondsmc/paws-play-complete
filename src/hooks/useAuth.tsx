@@ -139,7 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/me`;
+    const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+    const redirectUrl = isNative
+      ? 'com.pawsplayrepeat.app://callback'
+      : `${window.location.origin}/me`;
     const { error } = await supabase.auth.signUp({
       email,
       password,
