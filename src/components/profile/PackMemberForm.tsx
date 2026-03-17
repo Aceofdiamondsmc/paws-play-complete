@@ -69,6 +69,7 @@ const ENERGY_OPTIONS = ['Low', 'Medium', 'High', 'Very High'];
 export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMemberFormProps) {
   const { addDog, updateDog, uploadDogAvatar } = useDogs();
   const { user } = useAuth();
+  const { addReminder } = useCareNotificationContext();
   
   const [name, setName] = useState(editingDog?.name || '');
   const [breed, setBreed] = useState(editingDog?.breed || '');
