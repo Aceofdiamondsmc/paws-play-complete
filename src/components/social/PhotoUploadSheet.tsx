@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Image as ImageIcon, X, Loader2, Send } from 'lucide-react';
+import { Camera, FolderOpen, X, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -227,7 +227,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <input ref={cameraInputRef} type="file" accept="image/*,.heic,.heif" capture="environment" onChange={handleFileSelect} className="hidden" />
+              <input ref={cameraInputRef} type="file" accept="image/*,video/*,.heic,.heif" capture="environment" onChange={handleFileSelect} className="hidden" />
               <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={handleCameraClick}>
                 <Camera className="w-8 h-8 text-primary" />
                 <span className="text-sm font-medium text-foreground">Camera</span>
@@ -235,8 +235,8 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
 
               <input ref={galleryInputRef} type="file" accept="image/*,video/*,.heic,.heif" onChange={handleFileSelect} className="hidden" />
               <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={handleGalleryClick}>
-                <ImageIcon className="w-8 h-8 text-primary" />
-                <span className="text-sm font-medium text-foreground">Photo / Video</span>
+                <FolderOpen className="w-8 h-8 text-primary" />
+                <span className="text-sm font-medium text-foreground">Photo Library / File</span>
               </Button>
             </div>
           )}
@@ -283,7 +283,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
         <AlertDialogHeader>
           <AlertDialogTitle>📸 Camera Access</AlertDialogTitle>
           <AlertDialogDescription>
-            Paws Play needs access to your camera to take photos. Your browser may ask for permission after you continue.
+            Paws Play needs access to your camera to take photos and videos. Your browser may ask for permission after you continue.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -296,9 +296,9 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
     <AlertDialog open={galleryDialogOpen} onOpenChange={setGalleryDialogOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>🖼️ Photo Library</AlertDialogTitle>
+          <AlertDialogTitle>🖼️ Photo Library / File</AlertDialogTitle>
           <AlertDialogDescription>
-            Photos and videos you select will be uploaded and shared with the pack.
+            Photos and files you select will be uploaded and shared with the pack.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
