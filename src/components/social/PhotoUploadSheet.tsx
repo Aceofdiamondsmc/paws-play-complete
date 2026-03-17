@@ -11,11 +11,24 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ensureJpeg } from '@/lib/heic-convert';
+
+const CAMERA_HINT_KEY = 'ppr_camera_hint_seen';
+const GALLERY_HINT_KEY = 'ppr_gallery_hint_seen';
 
 interface PhotoUploadSheetProps {
   open: boolean;
@@ -32,12 +45,38 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [cameraDialogOpen, setCameraDialogOpen] = useState(false);
+  const [galleryDialogOpen, setGalleryDialogOpen] = useState(false);
   
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const handleCameraClick = () => {
-    cameraInputRef.current?.click();
+    if (!localStorage.getItem(CAMERA_HINT_KEY)) {
+      setCameraDialogOpen(true);
+    } else {
+      cameraInputRef.current?.click();
+    }
+  };
+
+  const handleCameraContinue = () => {
+    localStorage.setItem(CAMERA_HINT_KEY, '1');
+    setCameraDialogOpen(false);
+    setTimeout(() => cameraInputRef.current?.click(), 100);
+  };
+
+  const handleGalleryClick = () => {
+    if (!localStorage.getItem(GALLERY_HINT_KEY)) {
+      setGalleryDialogOpen(true);
+    } else {
+      galleryInputRef.current?.click();
+    }
+  };
+
+  const handleGalleryContinue = () => {
+    localStorage.setItem(GALLERY_HINT_KEY, '1');
+    setGalleryDialogOpen(false);
+    setTimeout(() => galleryInputRef.current?.click(), 100);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,6 +205,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
   };
 
   return (
+    <>
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[90vh]">
         <DrawerHeader className="border-b border-border pb-4">
@@ -194,7 +234,7 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
               </Button>
 
               <input ref={galleryInputRef} type="file" accept="image/*,video/*,.heic,.heif" onChange={handleFileSelect} className="hidden" />
-              <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={() => galleryInputRef.current?.click()}>
+              <Button variant="outline" className="h-32 flex-col gap-3 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 rounded-xl" onClick={handleGalleryClick}>
                 <ImageIcon className="w-8 h-8 text-primary" />
                 <span className="text-sm font-medium text-foreground">Photo / Video</span>
               </Button>
@@ -237,5 +277,36 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
+
+    <AlertDialog open={cameraDialogOpen} onOpenChange={setCameraDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>📸 Camera Access</AlertDialogTitle>
+          <AlertDialogDescription>
+            Paws Play needs access to your camera to take photos. Your browser may ask for permission after you continue.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleCameraContinue}>Continue</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog open={galleryDialogOpen} onOpenChange={setGalleryDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>🖼️ Photo Library</AlertDialogTitle>
+          <AlertDialogDescription>
+            Photos and videos you select will be uploaded and shared with the pack.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleGalleryContinue}>Continue</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
