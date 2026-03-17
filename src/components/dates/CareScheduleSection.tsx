@@ -623,6 +623,8 @@ export function CareScheduleSection() {
                       {entry.category === 'grooming' && (entry.task_details || entry.notes || 'Groomed')}
                       {entry.category === 'training' && (entry.task_details || entry.notes || 'Trained')}
                       {entry.category === 'restock' && (entry.task_details || entry.notes || 'Food Restocked')}
+                      {entry.category === 'vet_visit' && (entry.task_details || entry.notes || 'Vet Visit')}
+                      {entry.category === 'birthday' && (entry.task_details || entry.notes || 'Birthday')}
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">

@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Authenticate via CRON_SECRET header
   const cronSecret = Deno.env.get('CRON_SECRET');
   const providedSecret = req.headers.get('x-cron-secret');
   if (!cronSecret || providedSecret !== cronSecret) {
@@ -42,7 +41,7 @@ Deno.serve(async (req) => {
 
     const { data: reminders, error: remindersError } = await supabase
       .from('care_reminders')
-      .select('id, user_id, category, task_details, reminder_time, snoozed_until, user_timezone')
+      .select('id, user_id, category, task_details, reminder_time, snoozed_until, user_timezone, reminder_date, recurrence_pattern')
       .eq('is_enabled', true);
 
     if (remindersError) {
@@ -61,7 +60,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    function getLocalTimeAndDate(utcNow: Date, timezone: string): { hhmm: string; dateStr: string } {
+    function getLocalTimeAndDate(utcNow: Date, timezone: string): { hhmm: string; dateStr: string; month: string; day: string } {
       const localTimeStr = utcNow.toLocaleString('en-US', { timeZone: timezone, hour12: false });
       const localDate = new Date(localTimeStr);
       const hh = String(localDate.getHours()).padStart(2, '0');
@@ -69,18 +68,33 @@ Deno.serve(async (req) => {
       const yyyy = localDate.getFullYear();
       const mo = String(localDate.getMonth() + 1).padStart(2, '0');
       const dd = String(localDate.getDate()).padStart(2, '0');
-      return { hhmm: `${hh}:${mm}`, dateStr: `${yyyy}-${mo}-${dd}` };
+      return { hhmm: `${hh}:${mm}`, dateStr: `${yyyy}-${mo}-${dd}`, month: mo, day: dd };
     }
 
     const dueReminders = reminders.filter((r) => {
       const tz = r.user_timezone || 'America/New_York';
-      const { hhmm: userHHMM } = getLocalTimeAndDate(now, tz);
+      const { hhmm: userHHMM, dateStr: localDateStr, month: localMonth, day: localDay } = getLocalTimeAndDate(now, tz);
       const reminderHHMM = r.reminder_time.slice(0, 5);
       if (reminderHHMM !== userHHMM) return false;
+
+      // Check snooze
       if (r.snoozed_until) {
         const snoozeExpiry = new Date(r.snoozed_until);
         if (snoozeExpiry > now) return false;
       }
+
+      // Date-specific reminder: only fire on that exact date
+      if (r.reminder_date) {
+        if (r.recurrence_pattern === 'yearly') {
+          // Yearly: match month and day only
+          const [, rMonth, rDay] = r.reminder_date.split('-');
+          return rMonth === localMonth && rDay === localDay;
+        }
+        // One-time: exact date match
+        return r.reminder_date === localDateStr;
+      }
+
+      // Recurring reminders fire every matching time (existing behavior)
       return true;
     });
 
@@ -186,6 +200,10 @@ function getNotificationContent(category: string, taskDetails: string | null): {
       return { title: '✂️ Grooming Reminder', body: taskDetails ? `Grooming reminder: ${taskDetails}` : 'Time for grooming!' };
     case 'training':
       return { title: '🎓 Training Reminder', body: taskDetails ? `Training reminder: ${taskDetails}` : 'Time for training!' };
+    case 'vet_visit':
+      return { title: '🩺 Vet Visit Reminder', body: taskDetails ? `Vet visit: ${taskDetails}` : 'You have a vet appointment today!' };
+    case 'birthday':
+      return { title: '🎂 Birthday!', body: taskDetails ? `Happy Birthday, ${taskDetails}! 🎉🐾` : "It's your pup's birthday! 🎉" };
     default:
       return { title: '🐾 Dog Walk Reminder', body: 'Time to take your pup for a walk!' };
   }

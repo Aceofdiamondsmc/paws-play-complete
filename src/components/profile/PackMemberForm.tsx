@@ -24,8 +24,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useDogs } from '@/hooks/useDogs';
+import { useCareNotificationContext } from '@/components/CareNotificationProvider';
 import { toast } from 'sonner';
 import { BreedCombobox } from './BreedCombobox';
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 
 // Play style options stored directly (no separate table)
