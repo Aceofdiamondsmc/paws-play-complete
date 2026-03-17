@@ -36,28 +36,8 @@ export default function PhotoUploadSheet({ open, onOpenChange, onPostCreated }: 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  const checkCameraPermission = async (): Promise<boolean> => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach(track => track.stop());
-      return true;
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-          toast({ title: "Camera access needed 📸", description: "Please allow camera access in your browser settings to take photos.", variant: "destructive" });
-        } else if (error.name === 'NotFoundError') {
-          toast({ title: "No camera found", description: "Your device doesn't seem to have a camera available.", variant: "destructive" });
-        } else {
-          toast({ title: "Camera unavailable", description: "Could not access your camera. Please try again.", variant: "destructive" });
-        }
-      }
-      return false;
-    }
-  };
-
-  const handleCameraClick = async () => {
-    const hasPermission = await checkCameraPermission();
-    if (hasPermission) cameraInputRef.current?.click();
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click();
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
