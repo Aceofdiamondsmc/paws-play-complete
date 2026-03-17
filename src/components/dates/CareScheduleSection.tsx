@@ -495,7 +495,9 @@ export function CareScheduleSection() {
                 category === 'medication' ? 'e.g., Apoquel 16mg' : 
                 category === 'feeding' ? 'e.g., 1 cup kibble' :
                 category === 'grooming' ? 'e.g., Nail trim, bath' : 
-                category === 'training' ? 'e.g., Recall practice' : 'e.g., 30lb bag Purina Pro Plan'
+                category === 'training' ? 'e.g., Recall practice' :
+                category === 'vet_visit' ? 'e.g., Annual vaccines, Dr. Smith' :
+                category === 'birthday' ? "e.g., Max's Birthday" : 'e.g., 30lb bag Purina Pro Plan'
               }
               value={taskDetails}
               onChange={(e) => setTaskDetails(e.target.value)}
