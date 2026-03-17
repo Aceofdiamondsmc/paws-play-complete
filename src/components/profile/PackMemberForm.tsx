@@ -186,6 +186,38 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         const { error } = await updateDog(editingDog.id, dogData);
         if (error) throw error;
         toast.success('Pack member updated!');
+
+        // Auto-create/update birthday reminder when DOB changes on edit
+        if (dateOfBirth) {
+          const oldDob = editingDog.date_of_birth;
+          const newDob = format(dateOfBirth, 'yyyy-MM-dd');
+          if (newDob !== oldDob) {
+            // Delete any existing birthday reminder for this dog (match by task_details)
+            const existingReminders = reminders.filter(
+              (r) => r.category === 'birthday' && r.task_details === `${editingDog.name}'s Birthday`
+            );
+            for (const r of existingReminders) {
+              await deleteReminder(r.id);
+            }
+            // Also check with new name in case name changed
+            if (name.trim() !== editingDog.name) {
+              const renamedReminders = reminders.filter(
+                (r) => r.category === 'birthday' && r.task_details === `${name.trim()}'s Birthday`
+              );
+              for (const r of renamedReminders) {
+                await deleteReminder(r.id);
+              }
+            }
+            await addReminder({
+              reminder_time: '09:00:00',
+              is_recurring: false,
+              recurrence_pattern: 'yearly',
+              category: 'birthday',
+              task_details: `${name.trim()}'s Birthday`,
+              reminder_date: newDob,
+            });
+          }
+        }
       } else {
         const { dog, error } = await addDog(dogData);
         if (error) throw error;
