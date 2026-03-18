@@ -34,12 +34,12 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTools from "./pages/admin/AdminTools";
 import AdminVaccinations from "./pages/admin/AdminVaccinations";
 
+const queryClient = new QueryClient();
+
 const ExploreIdRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/services/${id}`} replace />;
 };
-
-const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
@@ -125,8 +125,5 @@ const App = () => {
     </QueryClientProvider>
   );
 };
-
-export default App;
-);
 
 export default App;
