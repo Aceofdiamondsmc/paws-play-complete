@@ -1,30 +1,34 @@
 
 
-## Fix: Generate Sound Files Without Extra Tools
+## Problem
+You're completely stuck locally: no git (requires Xcode CLI tools), no Homebrew (requires 10GB free), no `scripts/` directory in your local clone, and no disk space to install anything. You cannot generate or push the sound files from your Mac.
 
-### The Issue
-The `sox` and `afconvert` commands I suggested require Xcode Command Line Tools (~15GB). You don't need those.
+## Solution: Add a prebuild script so Appflow generates the sounds automatically
 
-### The Solution
-The `scripts/generate-sounds.js` file already in your repo is **pure Node.js** — no extra tools needed. It only uses built-in Node modules (`fs`, `path`, `Buffer`).
+Instead of you running anything locally, I'll add a `prebuild` npm script to `package.json` that runs `node scripts/generate-sounds.js` before every build. When Appflow runs `npm run build`, it will:
 
-### What You Run (just 3 commands)
+1. Automatically execute `generate-sounds.js` first
+2. Generate all 4 `.wav` files
+3. Copy them into `ios/App/App/` and `android/app/src/main/res/raw/`
+4. Then proceed with the normal Vite build
 
-```bash
-node scripts/generate-sounds.js
-npx cap sync
-git add . && git commit -m "Add custom notification sounds" && git push
+### Changes
+
+**package.json** — Add a `prebuild` script:
+```json
+"scripts": {
+  "dev": "vite",
+  "prebuild": "node scripts/generate-sounds.js",
+  "build": "vite build",
+  ...
+}
 ```
 
-That's it. The script generates all 4 `.wav` files and copies them to both `ios/App/App/` and `android/app/src/main/res/raw/` automatically.
+That's it. One line. npm automatically runs `prebuild` before `build`. No local setup needed — Appflow's build environment has Node.js and all the required directories will be created by the script.
 
-### If `node` Isn't Installed
-If even `node` isn't available, install it without Xcode:
-```bash
-brew install node
-```
-Or download directly from [nodejs.org](https://nodejs.org).
-
-### No Code Changes Needed
-Everything is already committed — the script, the Edge Functions referencing `.wav` files, the directory structure. You just need to run the script once to produce the binary sound files.
+### Why this fixes everything
+- You don't need git, Homebrew, or disk space on your Mac
+- You don't need to run anything locally
+- Every Appflow build will have fresh sound files in the correct native directories
+- The script uses only built-in Node.js modules (no dependencies)
 
