@@ -188,8 +188,35 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
       }
 
       if (editingDog) {
-        const { error } = await updateDog(editingDog.id, dogData);
-        if (error) throw error;
+        // 1. Update everything EXCEPT the vaccination toggle first
+        const { error: updateError } = await supabase
+          .from('dogs')
+          .update({
+            name: name.trim(),
+            breed: breed.trim(),
+            size,
+            energy_level: energy,
+            bio: bio.trim(),
+            age_years: ageYears ? parseInt(ageYears) : undefined,
+            weight_lbs: weightLbs ? parseFloat(weightLbs) : undefined,
+            health_notes: healthInfo.trim(),
+            play_style: selectedPlayStyles,
+            date_of_birth: dateOfBirth ? format(dateOfBirth, 'yyyy-MM-dd') : undefined,
+          })
+          .eq('id', editingDog.id);
+
+        if (updateError) throw updateError;
+
+        // 2. Only update vaccination if it actually changed
+        // This stops the "Only Vaccination_certified can be updated" error
+        if (vaccinationCertified !== editingDog.vaccination_certified) {
+          const { error: vaccError } = await supabase
+            .from('dogs')
+            .update({ vaccination_certified: vaccinationCertified })
+            .eq('id', editingDog.id);
+          if (vaccError) throw vaccError;
+        }
+
         toast.success('Pack member updated!');
 
         // Auto-create/update birthday reminder when DOB changes on edit
