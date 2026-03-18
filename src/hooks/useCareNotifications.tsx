@@ -11,6 +11,8 @@ interface MissedMedication {
   task_details: string | null;
 }
 
+const isNative = () => !!(window as any).Capacitor?.isNativePlatform?.();
+
 export function useCareNotifications(reminders: CareReminder[]) {
   const { user } = useAuth();
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(
@@ -24,6 +26,20 @@ export function useCareNotifications(reminders: CareReminder[]) {
   // Pre-warm AudioContext on first user interaction for mobile
   useEffect(() => {
     initAudioContext();
+  }, []);
+
+  // On native, check actual push permission status on mount
+  useEffect(() => {
+    if (!isNative()) return;
+    (async () => {
+      try {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        const result = await PushNotifications.checkPermissions();
+        setPermissionStatus(result.receive === 'granted' ? 'granted' : result.receive === 'denied' ? 'denied' : 'default');
+      } catch (e) {
+        console.warn('Could not check native push permissions:', e);
+      }
+    })();
   }, []);
 
   const hasMissedDose = missedMedications.length > 0;
