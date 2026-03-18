@@ -218,10 +218,6 @@ export default function Social() {
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
 
-  if (!authLoading && !user) {
-    return <Navigate to="/" replace />;
-  }
-  
   // Edit modal state
   const [editingPost, setEditingPost] = useState<{ id: string; content: string } | null>(null);
   
