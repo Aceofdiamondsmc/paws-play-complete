@@ -166,7 +166,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
 
     setIsSubmitting(true);
     try {
-      const dogData = {
+      const dogData: any = {
         name: name.trim(),
         breed: breed.trim(),
         size,
@@ -176,9 +176,16 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         weight_lbs: weightLbs ? parseFloat(weightLbs) : undefined,
         health_notes: healthInfo.trim(),
         play_style: selectedPlayStyles,
-        vaccination_certified: vaccinationCertified,
         date_of_birth: dateOfBirth ? format(dateOfBirth, 'yyyy-MM-dd') : undefined,
       };
+
+      // Only attach vaccination_certified if it's DIFFERENT than the database
+      // to stop the specific Supabase error you are seeing.
+      if (editingDog && vaccinationCertified !== editingDog.vaccination_certified) {
+        dogData.vaccination_certified = vaccinationCertified;
+      } else if (!editingDog) {
+        dogData.vaccination_certified = vaccinationCertified;
+      }
 
       if (editingDog) {
         const { error } = await updateDog(editingDog.id, dogData);
@@ -193,9 +200,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
       onSuccess?.();
       onClose();
     } catch (error: any) {
-      const errorMessage = error.message || 'Check database permissions';
-      toast.error(`Save failed: ${errorMessage}`);
-      console.error('Dog save error:', error);
+      toast.error(`Save failed: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
