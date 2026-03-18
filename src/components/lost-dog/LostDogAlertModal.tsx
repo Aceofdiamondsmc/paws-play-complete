@@ -81,11 +81,11 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   };
 
   const handlePrint = async () => {
-    // We send the user to a dedicated web-view of the flyer.
-    // iOS Safari/Webview natively handles "Print" and "Save to PDF" 
-    // much better than a popup modal does.
-    const flyerUrl = `${window.location.origin}/social`; // Or your specific flyer route
+    // Opens the flyer in a printable view.
+    // Users can then use Safari's native "Share > Print" or "Share > Save to Files".
+    const flyerUrl = `${window.location.origin}/social`;
     window.open(flyerUrl, '_blank');
+    toast.success('Opening printable view...');
   };
   const toggleChecklist = (index: number) => {
     setCheckedItems(prev => {
