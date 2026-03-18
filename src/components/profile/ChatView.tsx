@@ -60,9 +60,9 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
   };
 
   return (
-    <div className="fixed inset-x-0 top-0 z-[60] bg-background flex flex-col" style={{ height: '100dvh' }}>
+    <div className="fixed inset-x-0 top-0 z-[60] bg-background flex flex-col safe-top" style={{ height: '100dvh' }}>
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-background/95 backdrop-blur-sm">
+      <div className="flex items-center gap-3 p-4 border-b bg-background/95 backdrop-blur-sm safe-top">
         <Button variant="ghost" size="icon" onClick={onBack}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
