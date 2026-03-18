@@ -209,11 +209,6 @@ export default function Social() {
   }, []);
   // --- END AUDIO UNLOCKER ---
   
-  // 1. Check if we are in "Print Mode" from the URL
-  const isPrinting = useMemo(() => 
-    new URLSearchParams(window.location.search).get('print') === 'true', 
-  []);
-
   const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts();
   const { activeAlerts, resolveAlert } = useLostDogAlerts();
   const { allParks } = useParks();
