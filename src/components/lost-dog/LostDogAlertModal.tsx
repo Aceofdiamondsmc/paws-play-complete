@@ -81,19 +81,11 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   };
 
   const handlePrint = async () => {
-    try {
-      // This uses the Capacitor Share plugin to open the native iOS share sheet
-      // It is the most reliable way to ensure the menu actually pops up on the phone
-      await Share.share({
-        title: `LOST DOG: ${selectedDog?.name}`,
-        text: `Help find ${selectedDog?.name}! Last seen at ${lastSeenLocation}. Contact: ${contactPhone}`,
-        url: window.location.origin + '/social', 
-        dialogTitle: 'Share Lost Dog Alert',
-      });
-    } catch (error) {
-      console.error('Share error:', error);
-      toast.error('Could not open share menu');
-    }
+    // We send the user to a dedicated web-view of the flyer.
+    // iOS Safari/Webview natively handles "Print" and "Save to PDF" 
+    // much better than a popup modal does.
+    const flyerUrl = `${window.location.origin}/social`; // Or your specific flyer route
+    window.open(flyerUrl, '_blank');
   };
   const toggleChecklist = (index: number) => {
     setCheckedItems(prev => {
