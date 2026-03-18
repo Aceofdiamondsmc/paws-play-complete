@@ -90,8 +90,8 @@ Deno.serve(async (req) => {
           en: `${dog_name || 'A dog'} was last seen at ${last_seen || 'unknown location'}. Our pack needs your eyes on the street. Tap for details and contact info.`,
         },
         priority: 10,
-        android_sound: 'notification',
-        ios_sound: 'default',
+        android_sound: 'paws_alert',
+        ios_sound: 'paws_alert.caf',
       }),
     });
 

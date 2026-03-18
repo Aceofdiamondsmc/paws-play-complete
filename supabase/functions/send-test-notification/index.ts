@@ -82,6 +82,9 @@ Deno.serve(async (req) => {
       contents: { en: body },
       headings: { en: title },
       data: data || {},
+      ios_sound: 'paws_reminder.caf',
+      android_sound: 'paws_reminder',
+      priority: 10,
     };
 
     const osResponse = await fetch('https://api.onesignal.com/notifications', {

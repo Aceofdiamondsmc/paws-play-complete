@@ -142,6 +142,9 @@ Deno.serve(async (req) => {
         contents: { en: `${commenterName} commented on your post!` },
         headings: { en: 'New Comment 💬' },
         data: { type: 'comment', postId: post_id },
+        ios_sound: 'paws_happy.caf',
+        android_sound: 'paws_happy',
+        priority: 10,
       }),
     });
 
