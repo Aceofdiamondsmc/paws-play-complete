@@ -76,16 +76,26 @@ export function VaccinationForm({ open, onClose, dogId, dogName }: VaccinationFo
     setIsSubmitting(true);
 
     try {
+      // 1. Check if this specific vaccine already exists for this dog
+      const existingRecord = records.find(r => r.vaccination_type === vaccinationType);
+
+      if (existingRecord) {
+        // 2. If it exists, we DELETE the old one first to avoid the "Duplicate" error
+        // Alternatively, you could modify your hook to support an 'updateRecord' method
+        await deleteRecord(existingRecord.id);
+      }
+
+      // 3. Add the fresh record
       const { error } = await addRecord(vaccinationType, expiryDate, documentFile || undefined);
       
       if (error) throw error;
 
-      toast.success('Vaccination record added!');
+      toast.success(existingRecord ? 'Vaccination updated!' : 'Vaccination record added!');
       setVaccinationType('Rabies');
       setExpiryDate('');
       setDocumentFile(null);
     } catch (error) {
-      toast.error('Failed to add vaccination record');
+      toast.error('Failed to save vaccination record');
       console.error(error);
     } finally {
       setIsSubmitting(false);
