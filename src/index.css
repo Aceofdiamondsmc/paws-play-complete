@@ -137,9 +137,10 @@
   }
 
   .safe-top {
-    padding-top: var(--safe-area-top);
+    padding-top: var(--safe-area-top) !important;
+    margin-top: 0 !important;
   }
-}
+} /* <--- THIS BRACKET WAS MISSING IN YOUR SNIPPET */
 
 @layer components {
   /* Playful paw button effect */
