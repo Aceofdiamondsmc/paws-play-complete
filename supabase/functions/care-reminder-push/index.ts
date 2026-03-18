@@ -154,8 +154,8 @@ Deno.serve(async (req) => {
             contents: { en: body },
             headings: { en: title },
             data: { type: 'care_reminder', reminderId: reminder.id, category: reminder.category },
-            android_sound: 'notification',
-            ios_sound: 'default',
+            android_sound: reminder.category === 'medication' ? 'paws_urgent' : 'paws_reminder',
+            ios_sound: reminder.category === 'medication' ? 'paws_urgent.caf' : 'paws_reminder.caf',
             priority: 10,
           }),
         });
