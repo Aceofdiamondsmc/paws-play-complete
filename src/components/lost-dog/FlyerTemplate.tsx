@@ -15,7 +15,7 @@ const FlyerTemplate = forwardRef<HTMLDivElement, FlyerTemplateProps>(
     const qrCodeUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(alertUrl)}&choe=UTF-8`;
 
     return (
-      <div ref={ref} id="flyer-template" className="block">
+      <div ref={ref} id="flyer-template" className="block bg-white p-8 ...">
         <div className="w-[8.5in] h-[11in] mx-auto p-8 bg-white text-black font-sans flex flex-col">
           {/* Header */}
           <div className="text-center border-4 border-black p-4 mb-6">
