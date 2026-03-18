@@ -58,6 +58,7 @@
     /* Tab bar */
     --tab-bar-height: 5rem;
     --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-top: env(safe-area-inset-top, 0px);
 
     --sidebar-background: 45 30% 98%;
     --sidebar-foreground: 25 30% 15%;
@@ -131,8 +132,12 @@
   }
 
   /* Safe area padding for mobile */
-  .safe-bottom {
+ .safe-bottom {
     padding-bottom: calc(var(--tab-bar-height) + var(--safe-area-bottom));
+  }
+
+  .safe-top {
+    padding-top: var(--safe-area-top);
   }
 }
 
