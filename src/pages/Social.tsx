@@ -379,10 +379,7 @@ export default function Social() {
         </Button>
       </div>}
       {/* Header with warm cream/orange gradient */}
-      <div className={cn(
-  "sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20 pt-12",
-  isPrinting && "hidden"
-)}>
+      <div className="sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20 pt-12">
         <div className="px-4 pt-4 pb-2">
           <h1 className="text-2xl font-extrabold text-primary italic">Pack Community</h1>
           <p className="text-sm text-primary/70">Share your pup's adventures</p>
