@@ -68,6 +68,23 @@ const App = () => {
     setupListener();
   }, []);
 
+  useEffect(() => {
+    const requestNativePush = async () => {
+      try {
+        const native = (window as any).Capacitor?.isNativePlatform?.();
+        if (!native) return;
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        const result = await PushNotifications.requestPermissions();
+        if (result.receive === 'granted') {
+          await PushNotifications.register();
+        }
+      } catch (e) {
+        console.warn('Push permission request failed:', e);
+      }
+    };
+    requestNativePush();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
