@@ -1,7 +1,4 @@
-import { Share } from '@capacitor/share';
-import { Browser } from '@capacitor/browser';
-import { Capacitor } from '@capacitor/core';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, MapPin, Phone, ChevronRight, ChevronLeft, Loader2, Gift, Printer, CheckSquare, Square, PartyPopper } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useLostDogAlerts } from '@/hooks/useLostDogAlerts';
 import { toast } from 'sonner';
-import FlyerTemplate from './FlyerTemplate';
+import { generateFlyerHTML } from './FlyerTemplate';
 
 interface Props {
   open: boolean;
@@ -38,7 +35,6 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   const [locating, setLocating] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [checkedItems, setCheckedItems] = useState<boolean[]>(new Array(CHECKLIST_ITEMS.length).fill(false));
-  const flyerRef = useRef<HTMLDivElement>(null);
 
   const selectedDog = dogs?.find(d => d.id === selectedDogId);
 
@@ -77,23 +73,33 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     if (error) {
       toast.error('Failed to create alert');
     } else {
-      setStep(4); // Go to success step
+      setStep(4);
     }
   };
 
-  const handlePrint = async () => {
-  // Use your actual Vercel URL here for the most reliability on iOS
-  const flyerUrl = `https://pawsplayrepeat.lovable.app/social?print=true`;
-  
-  if (Capacitor.isNativePlatform()) {
-    await Browser.open({ url: flyerUrl });
-  } else {
-    window.open(flyerUrl, '_blank');
-  }
-  
-  toast.success('Opening printable flyer...');
-};
-  
+  const handlePrint = () => {
+    if (!selectedDog) return;
+
+    const html = generateFlyerHTML({
+      dogName: selectedDog.name,
+      breed: selectedDog.breed,
+      avatarUrl: selectedDog.avatar_url,
+      lastSeenLocation,
+      contactPhone,
+      reward: reward || undefined,
+      alertUrl: window.location.origin + '/social',
+    });
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      toast.success('Flyer opened — use your browser\'s print to save as PDF');
+    } else {
+      toast.error('Pop-up blocked. Please allow pop-ups and try again.');
+    }
+  };
+
   const toggleChecklist = (index: number) => {
     setCheckedItems(prev => {
       const next = [...prev];
@@ -124,8 +130,6 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     if (step === 2) return !!contactPhone;
     return true;
   };
-
-  const totalSteps = 4; // 0-3 form, 4 is success
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -328,20 +332,6 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
           </div>
         )}
       </DialogContent>
-
-      {/* Hidden Flyer Template for printing */}
-      {step === 4 && selectedDog && (
-        <FlyerTemplate
-          ref={flyerRef}
-          dogName={selectedDog.name}
-          breed={selectedDog.breed}
-          avatarUrl={selectedDog.avatar_url}
-          lastSeenLocation={lastSeenLocation}
-          contactPhone={contactPhone}
-          reward={reward || undefined}
-          alertUrl={window.location.origin + '/social'}
-        />
-      )}
     </Dialog>
   );
 }
