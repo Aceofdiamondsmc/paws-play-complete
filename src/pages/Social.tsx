@@ -218,8 +218,7 @@ export default function Social() {
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
 
-  // 2. The "VIP Pass" Guard: Allow entry if logged in OR if printing
-  if (!authLoading && !user && !isPrinting) {
+  if (!authLoading && !user) {
     return <Navigate to="/" replace />;
   }
   
