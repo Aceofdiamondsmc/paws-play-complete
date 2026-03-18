@@ -82,11 +82,17 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   };
 
   const handlePrint = async () => {
-    // Opens the flyer in a printable view.
-    // Users can then use Safari's native "Share > Print" or "Share > Save to Files".
     const flyerUrl = `${window.location.origin}/social`;
-    window.open(flyerUrl, '_blank');
-    toast.success('Opening printable view...');
+    
+    if (Capacitor.isNativePlatform()) {
+      // This opens the system's full browser sheet which HAS the Print/Save PDF buttons
+      await Browser.open({ url: flyerUrl });
+    } else {
+      // Desktop fallback
+      window.open(flyerUrl, '_blank');
+    }
+    
+    toast.success('Opening printable flyer...');
   };
   const toggleChecklist = (index: number) => {
     setCheckedItems(prev => {
