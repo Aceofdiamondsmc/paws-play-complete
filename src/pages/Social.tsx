@@ -189,7 +189,13 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function Social() {
   const navigate = useNavigate();
-  const { user, dogs: userDogs } = useAuth();
+  const { user, loading: authLoading, dogs: userDogs } = useAuth();
+  
+  // 1. Check if we are in "Print Mode" from the URL
+  const isPrinting = useMemo(() => 
+    new URLSearchParams(window.location.search).get('print') === 'true', 
+  []);
+
   const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts();
   const { activeAlerts, resolveAlert } = useLostDogAlerts();
   const { allParks } = useParks();
@@ -198,6 +204,11 @@ export default function Social() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
+
+  // 2. The "VIP Pass" Guard: Allow entry if logged in OR if printing
+  if (!authLoading && !user && !isPrinting) {
+    return <Navigate to="/" replace />;
+  }
   
   // Edit modal state
   const [editingPost, setEditingPost] = useState<{ id: string; content: string } | null>(null);
@@ -356,7 +367,10 @@ export default function Social() {
         </Button>
       </div>}
       {/* Header with warm cream/orange gradient */}
-      <div className="sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20 pt-12">
+      <div className={cn(
+  "sticky top-0 z-10 bg-gradient-to-b from-[hsl(45,60%,92%)] to-[hsl(45,50%,95%)] border-b border-primary/20 pt-12",
+  isPrinting && "hidden"
+)}>
         <div className="px-4 pt-4 pb-2">
           <h1 className="text-2xl font-extrabold text-primary italic">Pack Community</h1>
           <p className="text-sm text-primary/70">Share your pup's adventures</p>
