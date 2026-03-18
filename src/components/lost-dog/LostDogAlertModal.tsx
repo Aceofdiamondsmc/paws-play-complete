@@ -1,3 +1,5 @@
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import { useState, useRef } from 'react';
 import { AlertTriangle, MapPin, Phone, ChevronRight, ChevronLeft, Loader2, Gift, Printer, CheckSquare, Square, PartyPopper } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -78,8 +80,21 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Share.share({
+          title: `Lost Dog Alert: ${selectedDog?.name}`,
+          text: `Help us find ${selectedDog?.name}! Last seen at ${lastSeenLocation}.`,
+          url: window.location.origin + '/social',
+          dialogTitle: 'Share or Print Flyer',
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      window.print();
+    }
   };
 
   const toggleChecklist = (index: number) => {
