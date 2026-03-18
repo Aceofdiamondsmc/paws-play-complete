@@ -190,6 +190,24 @@ function StarRating({ rating }: { rating: number }) {
 export default function Social() {
   const navigate = useNavigate();
   const { user, loading: authLoading, dogs: userDogs } = useAuth();
+
+  // --- AUDIO UNLOCKER FOR IOS ---
+  useEffect(() => {
+    const unlockAudio = () => {
+      const audio = new Audio();
+      audio.play().catch(() => {}); 
+      console.log("iOS Audio Unlocked");
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
+  // --- END AUDIO UNLOCKER ---
   
   // 1. Check if we are in "Print Mode" from the URL
   const isPrinting = useMemo(() => 
