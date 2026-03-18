@@ -62,8 +62,8 @@ Deno.serve(async (req) => {
             en: `${dog_name || 'A dog'} is Safe & Sound! Thank you to everyone who kept a lookout. The pack is back together!`,
           },
           priority: 10,
-          android_sound: 'notification',
-          ios_sound: 'default',
+          android_sound: 'paws_happy',
+          ios_sound: 'paws_happy.caf',
         }),
       });
 
