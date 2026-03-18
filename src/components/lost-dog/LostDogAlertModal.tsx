@@ -82,19 +82,30 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   };
 
   const handlePrint = async () => {
-    if (Capacitor.isNativePlatform()) {
-      try {
+    if (!flyerRef.current) return;
+
+    try {
+      // 1. Turn the Flyer HTML into a high-quality Image string
+      const dataUrl = await htmlToImage.toPng(flyerRef.current, { quality: 0.95 });
+
+      if (Capacitor.isNativePlatform()) {
+        // 2. Share the actual image data so iOS shows "Print" and "Save to Image"
         await Share.share({
-          title: `Lost Dog Alert: ${selectedDog?.name}`,
-          text: `Help us find ${selectedDog?.name}! Last seen at ${lastSeenLocation}.`,
-          url: window.location.origin + '/social',
-          dialogTitle: 'Share or Print Flyer',
+          title: `Lost Dog Flyer: ${selectedDog?.name}`,
+          text: `Help us find ${selectedDog?.name}!`,
+          url: dataUrl, // Now sending the actual image, not a link
+          dialogTitle: 'Print or Save Flyer',
         });
-      } catch (error) {
-        console.error('Error sharing:', error);
+      } else {
+        // Desktop fallback
+        const link = document.createElement('a');
+        link.download = `lost-dog-flyer-${selectedDog?.name}.png`;
+        link.href = dataUrl;
+        link.click();
       }
-    } else {
-      window.print();
+    } catch (error) {
+      console.error('Error generating flyer:', error);
+      toast.error('Could not generate flyer image');
     }
   };
 
