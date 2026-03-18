@@ -1,74 +1,61 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Add Dog-Themed Custom Notification Sounds for iOS
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### What Changes
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+Update all 7 Edge Functions that send OneSignal push notifications to reference custom iOS sound files instead of `'default'`. Also add matching Android sound references.
 
-### Changes
+### Sound Mapping
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+| Sound File | Used By | Vibe |
+|---|---|---|
+| `paws_happy.caf` | like, comment, friend request, message, reunited | Playful yip + jingle |
+| `paws_reminder.caf` | care reminders (feeding, grooming, walks, training, vet, birthday) | Double-bark + bell |
+| `paws_urgent.caf` | care reminders (medication category) | Whimper + double bell |
+| `paws_alert.caf` | lost dog alert | Bark + rising siren |
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+### Edge Function Changes (7 files)
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**`care-reminder-push/index.ts`** (lines 157-158)
+- Change `ios_sound: 'default'` to conditional: if `reminder.category === 'medication'` use `paws_urgent.caf`, otherwise `paws_reminder.caf`
+- Change `android_sound` similarly: `paws_urgent` or `paws_reminder`
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+**`lost-dog-alert/index.ts`**
+- Missing/urgent template: add `ios_sound: 'paws_alert.caf'`, `android_sound: 'paws_alert'`
+- Reunited template: add `ios_sound: 'paws_happy.caf'`, `android_sound: 'paws_happy'`
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+**`comment-notification/index.ts`** (line 138 payload)
+- Add `ios_sound: 'paws_happy.caf'`, `android_sound: 'paws_happy'`, `priority: 10`
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+**`like-notification/index.ts`** (payload around line 126)
+- Add `ios_sound: 'paws_happy.caf'`, `android_sound: 'paws_happy'`, `priority: 10`
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+**`message-notification/index.ts`** (payload around line 92)
+- Add `ios_sound: 'paws_happy.caf'`, `android_sound: 'paws_happy'`, `priority: 10`
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
+**`friend-request-notification/index.ts`** (payload around line 108)
+- Add `ios_sound: 'paws_happy.caf'`, `android_sound: 'paws_happy'`, `priority: 10`
 
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+**`send-test-notification/index.ts`** (payload around line 85)
+- Add `ios_sound: 'paws_reminder.caf'`, `android_sound: 'paws_reminder'`, `priority: 10`
 
-### Tier Order (lowest to highest)
+### Sound File Generation Script
 
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
+Create `scripts/generate-sounds.js` that uses `OfflineAudioContext` (Node.js compatible) to render the 4 existing Web Audio patterns from `alert-sounds.ts` into `.wav` files:
+- `playReminderSound()` → `paws_reminder.wav`
+- `playUrgentSound()` → `paws_urgent.wav`
+- `playPackAlertSound()` → `paws_alert.wav`
+- `playReunitedSound()` → `paws_happy.wav`
 
----
+### Capacitor/Appflow Integration (post-implementation steps for you)
 
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
+Since you use Appflow (not Xcode directly):
 
-### What was implemented:
+1. Run `node scripts/generate-sounds.js` to generate `.wav` files
+2. Convert to iOS format: `afconvert paws_happy.wav ios/App/App/paws_happy.caf -d ima4 -f caff` (repeat for all 4)
+3. The `.caf` files committed in `ios/App/App/` will be picked up automatically by Capacitor during `npx cap sync ios` and included in the Appflow build — no Xcode project file editing needed
+4. For Android: place `.wav` files (renamed without extension or as `.mp3`) in `android/app/src/main/res/raw/` (e.g., `paws_happy.mp3`)
+5. Deploy updated edge functions via Supabase CLI
+6. Appflow will bundle the sound files on next cloud build
 
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
