@@ -1,34 +1,17 @@
 
 
-## Problem
-You're completely stuck locally: no git (requires Xcode CLI tools), no Homebrew (requires 10GB free), no `scripts/` directory in your local clone, and no disk space to install anything. You cannot generate or push the sound files from your Mac.
+## Fix: Add prebuild script to package.json
 
-## Solution: Add a prebuild script so Appflow generates the sounds automatically
+### Problem
+The `prebuild` script that auto-generates notification sound `.wav` files was planned but never actually added to `package.json`. Without it, Appflow builds won't have the sound files in the native directories.
 
-Instead of you running anything locally, I'll add a `prebuild` npm script to `package.json` that runs `node scripts/generate-sounds.js` before every build. When Appflow runs `npm run build`, it will:
+### Change
 
-1. Automatically execute `generate-sounds.js` first
-2. Generate all 4 `.wav` files
-3. Copy them into `ios/App/App/` and `android/app/src/main/res/raw/`
-4. Then proceed with the normal Vite build
+**`package.json`** — Add one line to the `scripts` block:
 
-### Changes
-
-**package.json** — Add a `prebuild` script:
 ```json
-"scripts": {
-  "dev": "vite",
-  "prebuild": "node scripts/generate-sounds.js",
-  "build": "vite build",
-  ...
-}
+"prebuild": "node scripts/generate-sounds.js",
 ```
 
-That's it. One line. npm automatically runs `prebuild` before `build`. No local setup needed — Appflow's build environment has Node.js and all the required directories will be created by the script.
-
-### Why this fixes everything
-- You don't need git, Homebrew, or disk space on your Mac
-- You don't need to run anything locally
-- Every Appflow build will have fresh sound files in the correct native directories
-- The script uses only built-in Node.js modules (no dependencies)
+This goes right before the existing `"build"` entry. npm automatically runs `prebuild` before `build`, so every Appflow build will generate and copy the 4 `.wav` files to `ios/App/App/` and `android/app/src/main/res/raw/` with zero manual steps.
 
