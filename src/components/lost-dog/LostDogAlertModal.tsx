@@ -1,5 +1,4 @@
 import { Share } from '@capacitor/share';
-import * as htmlToImage from 'html-to-image';
 import { Capacitor } from '@capacitor/core';
 import { useState, useRef } from 'react';
 import { AlertTriangle, MapPin, Phone, ChevronRight, ChevronLeft, Loader2, Gift, Printer, CheckSquare, Square, PartyPopper } from 'lucide-react';
@@ -82,33 +81,11 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   };
 
   const handlePrint = async () => {
-    if (!flyerRef.current) return;
-
-    try {
-      // 1. Turn the Flyer HTML into a high-quality Image string
-      const dataUrl = await htmlToImage.toPng(flyerRef.current, { quality: 0.95 });
-
-      if (Capacitor.isNativePlatform()) {
-        // 2. Share the actual image data so iOS shows "Print" and "Save to Image"
-        await Share.share({
-          title: `Lost Dog Flyer: ${selectedDog?.name}`,
-          text: `Help us find ${selectedDog?.name}!`,
-          url: dataUrl, // Now sending the actual image, not a link
-          dialogTitle: 'Print or Save Flyer',
-        });
-      } else {
-        // Desktop fallback
-        const link = document.createElement('a');
-        link.download = `lost-dog-flyer-${selectedDog?.name}.png`;
-        link.href = dataUrl;
-        link.click();
-      }
-    } catch (error) {
-      console.error('Error generating flyer:', error);
-      toast.error('Could not generate flyer image');
-    }
+    // This triggers the native system print/share sheet.
+    // On iOS, this automatically allows the user to "Save to Files" as a PDF 
+    // or send it to a printer. No external libraries needed.
+    window.print();
   };
-
   const toggleChecklist = (index: number) => {
     setCheckedItems(prev => {
       const next = [...prev];
