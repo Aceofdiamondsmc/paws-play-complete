@@ -1,4 +1,5 @@
 import { Share } from '@capacitor/share';
+import * as htmlToImage from 'html-to-image';
 import { Capacitor } from '@capacitor/core';
 import { useState, useRef } from 'react';
 import { AlertTriangle, MapPin, Phone, ChevronRight, ChevronLeft, Loader2, Gift, Printer, CheckSquare, Square, PartyPopper } from 'lucide-react';
