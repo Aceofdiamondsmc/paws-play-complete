@@ -165,7 +165,13 @@ function encodeWav(samples) {
 // ─── Main ──────────────────────────────────────────────────────────────
 
 const outDir = path.join(__dirname, 'output');
-if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+const iosDir = path.join(__dirname, '..', 'ios', 'App', 'App');
+const androidDir = path.join(__dirname, '..', 'android', 'app', 'src', 'main', 'res', 'raw');
+
+// Create all output directories
+for (const dir of [outDir, iosDir, androidDir]) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
 
 const sounds = [
   { name: 'paws_reminder', render: renderReminder },
@@ -177,24 +183,29 @@ const sounds = [
 for (const { name, render } of sounds) {
   const samples = render();
   const wav = encodeWav(samples);
-  const filePath = path.join(outDir, `${name}.wav`);
-  fs.writeFileSync(filePath, wav);
-  console.log(`✅ ${filePath} (${(wav.length / 1024).toFixed(1)} KB)`);
+  const fileName = `${name}.wav`;
+
+  // Write to scripts/output/
+  const outPath = path.join(outDir, fileName);
+  fs.writeFileSync(outPath, wav);
+  console.log(`✅ ${outPath} (${(wav.length / 1024).toFixed(1)} KB)`);
+
+  // Copy to iOS native directory
+  const iosPath = path.join(iosDir, fileName);
+  fs.copyFileSync(outPath, iosPath);
+  console.log(`   → ${iosPath}`);
+
+  // Copy to Android native directory
+  const androidPath = path.join(androidDir, fileName);
+  fs.copyFileSync(outPath, androidPath);
+  console.log(`   → ${androidPath}`);
 }
 
 console.log(`
-🐾 Next steps for Capacitor/Appflow:
+🐾 Done! Sound files generated and copied to native directories.
 
-iOS:
-  for f in scripts/output/*.wav; do
-    afconvert "$f" "ios/App/App/$(basename "${f%.wav}.caf")" -d ima4 -f caff
-  done
-
-Android:
-  cp scripts/output/*.wav android/app/src/main/res/raw/
-
-Then:
+Next steps:
   npx cap sync
   git add . && git commit -m "Add custom notification sounds"
-  Push to trigger Appflow build
+  git push
 `);
