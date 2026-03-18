@@ -155,8 +155,6 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate all fields
     const nameError = validateName(name);
     setErrors({ name: nameError });
     setTouched({ name: true });
@@ -167,9 +165,8 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
     }
 
     setIsSubmitting(true);
-
     try {
-      const dogData: any = {
+      const dogData = {
         name: name.trim(),
         breed: breed.trim(),
         size,
@@ -179,112 +176,25 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         weight_lbs: weightLbs ? parseFloat(weightLbs) : undefined,
         health_notes: healthInfo.trim(),
         play_style: selectedPlayStyles,
+        vaccination_certified: vaccinationCertified,
         date_of_birth: dateOfBirth ? format(dateOfBirth, 'yyyy-MM-dd') : undefined,
       };
 
-      // Only include vaccination_certified if it's actually different from the original
-      // This bypasses the strict database policy if you're just changing the birthday
-      if (vaccinationCertified !== editingDog?.vaccination_certified) {
-        dogData.vaccination_certified = vaccinationCertified;
-      }
-
       if (editingDog) {
-        // 1. Update everything EXCEPT the vaccination toggle first
-        const { error: updateError } = await supabase
-          .from('dogs')
-          .update({
-            name: name.trim(),
-            breed: breed.trim(),
-            size,
-            energy_level: energy,
-            bio: bio.trim(),
-            age_years: ageYears ? parseInt(ageYears) : undefined,
-            weight_lbs: weightLbs ? parseFloat(weightLbs) : undefined,
-            health_notes: healthInfo.trim(),
-            play_style: selectedPlayStyles,
-            date_of_birth: dateOfBirth ? format(dateOfBirth, 'yyyy-MM-dd') : undefined,
-          })
-          .eq('id', editingDog.id);
-
-        if (updateError) throw updateError;
-
-        // 2. Only update vaccination if it actually changed
-        // This stops the "Only Vaccination_certified can be updated" error
-        if (vaccinationCertified !== editingDog.vaccination_certified) {
-          const { error: vaccError } = await supabase
-            .from('dogs')
-            .update({ vaccination_certified: vaccinationCertified })
-            .eq('id', editingDog.id);
-          if (vaccError) throw vaccError;
-        }
-
+        const { error } = await updateDog(editingDog.id, dogData);
+        if (error) throw error;
         toast.success('Pack member updated!');
-
-        // Auto-create/update birthday reminder when DOB changes on edit
-        if (dateOfBirth) {
-          const oldDob = editingDog.date_of_birth;
-          const newDob = format(dateOfBirth, 'yyyy-MM-dd');
-          if (newDob !== oldDob) {
-            // Delete any existing birthday reminder for this dog (match by task_details)
-            const existingReminders = reminders.filter(
-              (r) => r.category === 'birthday' && r.task_details === `${editingDog.name}'s Birthday`
-            );
-            for (const r of existingReminders) {
-              await deleteReminder(r.id);
-            }
-            // Also check with new name in case name changed
-            if (name.trim() !== editingDog.name) {
-              const renamedReminders = reminders.filter(
-                (r) => r.category === 'birthday' && r.task_details === `${name.trim()}'s Birthday`
-              );
-              for (const r of renamedReminders) {
-                await deleteReminder(r.id);
-              }
-            }
-            await addReminder({
-              reminder_time: '09:00:00',
-              is_recurring: false,
-              recurrence_pattern: 'yearly',
-              category: 'birthday',
-              task_details: `${name.trim()}'s Birthday`,
-              reminder_date: newDob,
-            });
-          }
-        }
       } else {
         const { dog, error } = await addDog(dogData);
         if (error) throw error;
-
-        if (dog && avatarUrl && avatarUrl.startsWith('data:')) {
-          // Convert base64 to file and upload
-          const response = await fetch(avatarUrl);
-          const blob = await response.blob();
-          const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-          await uploadDogAvatar(dog.id, file);
-        }
-        
         toast.success('Pack member added!');
-
-        // Auto-create birthday reminder if DOB was set
-        if (dateOfBirth) {
-          const dobStr = format(dateOfBirth, 'yyyy-MM-dd');
-          await addReminder({
-            reminder_time: '09:00:00',
-            is_recurring: false,
-            recurrence_pattern: 'yearly',
-            category: 'birthday',
-            task_details: `${name.trim()}'s Birthday`,
-            reminder_date: dobStr,
-          });
-        }
       }
 
       onSuccess?.();
       onClose();
-    } catch (error: unknown) {
-      const err = error as { message?: string; code?: string };
-      const errorMessage = err?.message || err?.code || 'Unknown error';
-      toast.error(`Failed to save: ${errorMessage}`);
+    } catch (error: any) {
+      const errorMessage = error.message || 'Check database permissions';
+      toast.error(`Save failed: ${errorMessage}`);
       console.error('Dog save error:', error);
     } finally {
       setIsSubmitting(false);
