@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
           },
           priority: 10,
           android_sound: 'paws_happy',
-          ios_sound: 'paws_happy.caf',
+          ios_sound: 'paws_happy.wav',
         }),
       });
 
