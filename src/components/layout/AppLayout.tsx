@@ -7,7 +7,7 @@ import { LostDogFAB } from '../lost-dog/LostDogFAB';
 export function AppLayout() {
   return (
     <CareNotificationProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background safe-top">
         <Header />
         <main className="pb-24">
           <Outlet />
