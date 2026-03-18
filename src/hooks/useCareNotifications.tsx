@@ -11,6 +11,8 @@ interface MissedMedication {
   task_details: string | null;
 }
 
+const isNative = () => !!(window as any).Capacitor?.isNativePlatform?.();
+
 export function useCareNotifications(reminders: CareReminder[]) {
   const { user } = useAuth();
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(
@@ -26,9 +28,39 @@ export function useCareNotifications(reminders: CareReminder[]) {
     initAudioContext();
   }, []);
 
+  // On native, check actual push permission status on mount
+  useEffect(() => {
+    if (!isNative()) return;
+    (async () => {
+      try {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        const result = await PushNotifications.checkPermissions();
+        setPermissionStatus(result.receive === 'granted' ? 'granted' : result.receive === 'denied' ? 'denied' : 'default');
+      } catch (e) {
+        console.warn('Could not check native push permissions:', e);
+      }
+    })();
+  }, []);
+
   const hasMissedDose = missedMedications.length > 0;
 
   const requestPermission = useCallback(async () => {
+    if (isNative()) {
+      try {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        const result = await PushNotifications.requestPermissions();
+        const granted = result.receive === 'granted';
+        setPermissionStatus(granted ? 'granted' : 'denied');
+        if (granted) {
+          await PushNotifications.register();
+        }
+        return granted;
+      } catch (e) {
+        console.warn('Native push permission request failed:', e);
+        return false;
+      }
+    }
+
     if (typeof Notification === 'undefined') {
       console.log('Notifications not supported');
       return false;
