@@ -1,17 +1,17 @@
 
 
-## Fix: Add prebuild script to package.json
+## Fix: Actually add the prebuild script to package.json
 
-### Problem
-The `prebuild` script that auto-generates notification sound `.wav` files was planned but never actually added to `package.json`. Without it, Appflow builds won't have the sound files in the native directories.
+The `prebuild` line was never written to `package.json`. The scripts block currently has no reference to `generate-sounds.js`.
 
 ### Change
 
-**`package.json`** — Add one line to the `scripts` block:
+**`package.json`** line 8 — insert `"prebuild": "node scripts/generate-sounds.js",` before the `"build"` entry.
 
-```json
-"prebuild": "node scripts/generate-sounds.js",
-```
+Everything else is done:
+- `scripts/generate-sounds.js` exists and generates all 4 `.wav` files
+- All 7 Edge Functions correctly reference `paws_happy`, `paws_reminder`, `paws_urgent`, `paws_alert`
+- `alert-sounds.ts` handles in-app Web Audio synthesis
 
-This goes right before the existing `"build"` entry. npm automatically runs `prebuild` before `build`, so every Appflow build will generate and copy the 4 `.wav` files to `ios/App/App/` and `android/app/src/main/res/raw/` with zero manual steps.
+After this one-line fix, the feature is complete.
 
