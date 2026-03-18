@@ -82,18 +82,18 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   };
 
   const handlePrint = async () => {
-    const flyerUrl = `${window.location.origin}/social`;
-    
-    if (Capacitor.isNativePlatform()) {
-      // This opens the system's full browser sheet which HAS the Print/Save PDF buttons
-      await Browser.open({ url: flyerUrl });
-    } else {
-      // Desktop fallback
-      window.open(flyerUrl, '_blank');
-    }
-    
-    toast.success('Opening printable flyer...');
-  };
+  // Use your actual Vercel URL here for the most reliability on iOS
+  const flyerUrl = `https://pawsplayrepeat.lovable.app/social?print=true`;
+  
+  if (Capacitor.isNativePlatform()) {
+    await Browser.open({ url: flyerUrl });
+  } else {
+    window.open(flyerUrl, '_blank');
+  }
+  
+  toast.success('Opening printable flyer...');
+};
+  
   const toggleChecklist = (index: number) => {
     setCheckedItems(prev => {
       const next = [...prev];
