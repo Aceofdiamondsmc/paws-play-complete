@@ -1,69 +1,74 @@
 
 
-## Get Custom Notification Sounds Working Without Local Commands
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-### The Problem
-The `scripts/generate-sounds.js` exists but was never executed. No sound files exist in `ios/App/App/` or `android/app/src/main/res/raw/`. The Edge Functions already reference `.caf` files that don't exist, so push notifications silently fall back to the default sound.
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-### The Fix (two parts)
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-**Part 1: Change iOS sound references from `.caf` to `.wav`**
+### Changes
 
-iOS supports `.wav` files for notification sounds (up to 30 seconds, PCM format). This eliminates the need for `afconvert` entirely. Update all 7 Edge Functions to use `.wav` instead of `.caf`:
-- `paws_happy.caf` → `paws_happy.wav`
-- `paws_reminder.caf` → `paws_reminder.wav`
-- `paws_urgent.caf` → `paws_urgent.wav`
-- `paws_alert.caf` → `paws_alert.wav`
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-Files to update:
-- `supabase/functions/care-reminder-push/index.ts`
-- `supabase/functions/lost-dog-alert/index.ts`
-- `supabase/functions/comment-notification/index.ts`
-- `supabase/functions/like-notification/index.ts`
-- `supabase/functions/message-notification/index.ts`
-- `supabase/functions/friend-request-notification/index.ts`
-- `supabase/functions/send-test-notification/index.ts`
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-**Part 2: Generate and commit the `.wav` files directly**
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-Since Lovable can't run Node scripts, I'll port the sound synthesis logic from `generate-sounds.js` into a self-contained approach: write the raw PCM WAV binary data and commit the files directly to:
-- `ios/App/App/paws_happy.wav`, `paws_reminder.wav`, `paws_urgent.wav`, `paws_alert.wav`
-- `android/app/src/main/res/raw/paws_happy.wav`, `paws_reminder.wav`, `paws_urgent.wav`, `paws_alert.wav`
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-I'll encode the WAV files as base64 strings embedded in a small helper script that writes them out, or more practically, I'll create the binary content using the same synthesis math from `generate-sounds.js` and write the files.
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
-**Reality check:** Lovable's file write tool works with text content, not binary. I cannot write binary `.wav` files directly.
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
 
-### Revised Approach
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
 
-The most practical path:
+**4. Database migration** -- Update the `subscription_tier` column constraint
 
-1. **Update `generate-sounds.js`** to automatically copy outputs to the correct iOS and Android directories (no manual steps)
-2. **Update Edge Functions** to use `.wav` instead of `.caf` (iOS supports WAV natively)
-3. **You run one command** on your Mac: `node scripts/generate-sounds.js` — the script handles everything else
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
 
-That's it — one command instead of five.
+### Tier Order (lowest to highest)
 
-### Technical Details
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 
-**`scripts/generate-sounds.js`** — add auto-copy at the end:
-```javascript
-// After generating WAV files, copy to native directories
-const iosDir = path.join(__dirname, '..', 'ios', 'App', 'App');
-const androidDir = path.join(__dirname, '..', 'android', 'app', 'src', 'main', 'res', 'raw');
-// Create dirs if needed, copy all .wav files to both locations
-```
+---
 
-**Edge Functions** — find/replace `.caf` → `.wav` in all 7 files.
+## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
 
-### What You Do After
-```
-git pull
-node scripts/generate-sounds.js
-npx cap sync
-git add . && git commit -m "Add custom notification sounds"
-git push
-```
+### What was implemented:
 
-Appflow will bundle the sound files on next build.
+1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
 
+2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
+
+3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
+
+### Database tables created:
+- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
+- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
+- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
+
+### Files created/modified:
+- `src/hooks/useLostDogAlerts.tsx` (new)
+- `src/hooks/useGroupPlaydates.tsx` (new)
+- `src/components/lost-dog/LostDogFAB.tsx` (new)
+- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
+- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
+- `src/components/playdate/GroupPlaydateCard.tsx` (new)
+- `supabase/functions/lost-dog-alert/index.ts` (new)
+- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
+- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
+- `src/pages/Explore.tsx` (edited — header rename)
+- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
+- `src/pages/Social.tsx` (edited — lost dog alert banners)
+- `supabase/config.toml` (edited — added lost-dog-alert function)

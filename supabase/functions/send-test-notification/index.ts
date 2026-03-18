@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       contents: { en: body },
       headings: { en: title },
       data: data || {},
-      ios_sound: 'paws_reminder.caf',
+      ios_sound: 'paws_reminder.wav',
       android_sound: 'paws_reminder',
       priority: 10,
     };
