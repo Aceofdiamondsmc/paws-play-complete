@@ -1,74 +1,37 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Fix: Notification Bell on Dates Tab for Native (Apple) Builds
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### Problem
+The notification bell in the Dates tab's Care Schedule section always shows "disengaged" on the native iOS build. This happens because `useCareNotifications.tsx` exclusively uses the Web `Notification` API (`typeof Notification !== 'undefined'`), which doesn't exist in the native Capacitor WebView. The `requestPermission()` function returns `false` immediately, and `permissionStatus` stays `'default'` forever.
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+### Root Cause
+Two separate notification systems exist but aren't connected:
+1. **Web**: `Notification.requestPermission()` in `useCareNotifications.tsx` — works in browsers only
+2. **Native**: `PushNotifications.requestPermissions()` in `App.tsx` and `NotificationPrompt.tsx` — works on native only
 
-### Changes
+The Dates tab bell only checks system #1.
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+### Solution
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+**File: `src/hooks/useCareNotifications.tsx`**
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+Update the hook to detect native platform and use Capacitor's `PushNotifications` API when running natively:
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+1. **`isNativePlatform()` helper** — check `(window as any).Capacitor?.isNativePlatform?.()`
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+2. **Initialize `permissionStatus`** — on native, dynamically import `@capacitor/push-notifications` and call `PushNotifications.checkPermissions()` to get the actual current state, mapping `'granted'` to the web-compatible `'granted'` value
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+3. **`requestPermission()`** — on native, call `PushNotifications.requestPermissions()` and `PushNotifications.register()` instead of `Notification.requestPermission()`. Update `permissionStatus` accordingly.
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+4. **Triggered reminder notifications** — on native, the actual push delivery is handled by OneSignal/APNs (server-side), so the in-app bell status just needs to reflect the correct permission state. The existing `setTriggeredReminder` logic for UI alerts still works since it's state-based, not API-based.
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
+### What stays the same
+- `CareScheduleSection.tsx` UI code — no changes needed, it already reads `permissionStatus` and calls `requestPermission()` from context
+- `CareNotificationProvider.tsx` — no changes needed
+- `AppLayout.tsx` — no changes needed
+- Server-side push via OneSignal edge functions — already handles native delivery
 
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
+### Apple Review Note
+This fix ensures the notification toggle works correctly on the native build, which is important for App Store approval since a non-functional UI element could be flagged as a broken feature.
 
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
