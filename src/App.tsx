@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-import { App as CapacitorApp } from "@capacitor/app";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -43,27 +42,30 @@ const ExploreIdRedirect = () => {
 
 const App = () => {
   useEffect(() => {
-    // This is the "Listener" that catches the login from Safari
-    CapacitorApp.addListener('appUrlOpen', async (event: any) => {
-      // Convert the # fragment from Supabase into a URL we can read
-      const url = new URL(event.url.replace('#', '?'));
-      const accessToken = url.searchParams.get('access_token');
-      const refreshToken = url.searchParams.get('refresh_token');
+    const setupListener = async () => {
+      try {
+        // Dynamic import prevents the "Rollup failed to resolve import" build error
+        const { App: CapacitorApp } = await import('@capacitor/app');
+        
+        await CapacitorApp.addListener('appUrlOpen', async (event: any) => {
+          const url = new URL(event.url.replace('#', '?'));
+          const accessToken = url.searchParams.get('access_token');
+          const refreshToken = url.searchParams.get('refresh_token');
 
-      if (accessToken && refreshToken) {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
+          if (accessToken && refreshToken) {
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (!error) console.log("Native session synced!");
+          }
         });
-        if (!error) {
-          console.log("Login successful, session synced!");
-        }
+      } catch (e) {
+        console.warn("Capacitor App plugin not yet available:", e);
       }
-    });
-
-    return () => {
-      CapacitorApp.removeAllListeners();
     };
+
+    setupListener();
   }, []);
 
   return (
@@ -94,7 +96,6 @@ const App = () => {
                   <Route path="/shop" element={<Shop />} />
                 </Route>
 
-                {/* Admin Routes */}
                 <Route
                   path="/admin"
                   element={
@@ -113,7 +114,6 @@ const App = () => {
                   <Route path="settings" element={<AdminSettings />} />
                 </Route>
 
-                {/* Legacy redirects */}
                 <Route path="/explore" element={<Navigate to="/services" replace />} />
                 <Route path="/explore/:id" element={<ExploreIdRedirect />} />
                 <Route path="*" element={<NotFound />} />
