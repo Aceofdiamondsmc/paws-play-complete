@@ -45,6 +45,22 @@ export function useCareNotifications(reminders: CareReminder[]) {
   const hasMissedDose = missedMedications.length > 0;
 
   const requestPermission = useCallback(async () => {
+    if (isNative()) {
+      try {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        const result = await PushNotifications.requestPermissions();
+        const granted = result.receive === 'granted';
+        setPermissionStatus(granted ? 'granted' : 'denied');
+        if (granted) {
+          await PushNotifications.register();
+        }
+        return granted;
+      } catch (e) {
+        console.warn('Native push permission request failed:', e);
+        return false;
+      }
+    }
+
     if (typeof Notification === 'undefined') {
       console.log('Notifications not supported');
       return false;
