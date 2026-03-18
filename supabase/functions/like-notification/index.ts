@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
         contents: { en: `${likerName} liked your post!` },
         headings: { en: 'New Like ❤️' },
         data: { type: 'like', postId: post_id },
-        ios_sound: 'paws_happy.caf',
+        ios_sound: 'paws_happy.wav',
         android_sound: 'paws_happy',
         priority: 10,
       }),

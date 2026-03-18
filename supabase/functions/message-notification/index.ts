@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
         contents: { en: `${senderName}: ${preview}` },
         headings: { en: 'New Message 💬' },
         data: { type: 'message', conversationId: conversation_id },
-        ios_sound: 'paws_happy.caf',
+        ios_sound: 'paws_happy.wav',
         android_sound: 'paws_happy',
         priority: 10,
       }),

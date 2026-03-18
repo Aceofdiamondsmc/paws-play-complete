@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
         contents: { en: `${requesterName} sent you a friend request!` },
         headings: { en: 'New Friend Request 🐾' },
         data: { type: 'friend_request', friendshipId },
-        ios_sound: 'paws_happy.caf',
+        ios_sound: 'paws_happy.wav',
         android_sound: 'paws_happy',
         priority: 10,
       }),
