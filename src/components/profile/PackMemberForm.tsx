@@ -168,7 +168,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
     setIsSubmitting(true);
 
     try {
-      const dogData = {
+      const dogData: any = {
         name: name.trim(),
         breed: breed.trim(),
         size,
@@ -178,9 +178,14 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         weight_lbs: weightLbs ? parseFloat(weightLbs) : undefined,
         health_notes: healthInfo.trim(),
         play_style: selectedPlayStyles,
-        vaccination_certified: vaccinationCertified,
         date_of_birth: dateOfBirth ? format(dateOfBirth, 'yyyy-MM-dd') : undefined,
       };
+
+      // Only include vaccination_certified if it's actually different from the original
+      // This bypasses the strict database policy if you're just changing the birthday
+      if (vaccinationCertified !== editingDog?.vaccination_certified) {
+        dogData.vaccination_certified = vaccinationCertified;
+      }
 
       if (editingDog) {
         const { error } = await updateDog(editingDog.id, dogData);
