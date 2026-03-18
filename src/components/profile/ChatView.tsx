@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Send, MoreVertical, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,6 +27,20 @@ interface ChatViewProps {
 export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleCustomBack = () => {
+    // Check if the URL contains social or pack
+    if (location.pathname.includes('social') || location.pathname.includes('pack')) {
+      navigate('/social');
+    } else {
+      // If not, we're in the 'Me' tab
+      navigate('/me');
+    }
+    // Still call the original back prop to close the overlay
+    onBack();
+  };
+
   const { messages, loading, sendMessage, deleteConversation } = useConversationMessages(conversationId);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -65,7 +79,7 @@ export function ChatView({ conversationId, otherUser, onBack }: ChatViewProps) {
     <div className="fixed inset-x-0 top-0 z-[60] bg-background flex flex-col safe-top" style={{ height: '100dvh' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pb-4 pt-[60px] border-b bg-background/95 backdrop-blur-sm">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" onClick={handleCustomBack}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <Avatar className="w-10 h-10">
