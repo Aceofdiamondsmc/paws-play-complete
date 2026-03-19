@@ -231,13 +231,14 @@ export function useConversationMessages(conversationId: string | null) {
     };
   }, [conversationId, fetchMessages]);
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string, imageUrl?: string) => {
     if (!user || !conversationId) return { error: new Error('Not ready') };
 
     const { error } = await supabase.from('messages').insert({
       conversation_id: conversationId,
       sender_id: user.id,
-      content
+      content,
+      image_url: imageUrl || null
     });
 
     return { error };
