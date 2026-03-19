@@ -209,7 +209,16 @@ export default function Social() {
   }, []);
   // --- END AUDIO UNLOCKER ---
   
-  const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts();
+  // Build author filter: when "friends" tab is active, pass friend IDs for server-side filtering
+  const friendAuthorFilter = useMemo(() => {
+    if (activeFilter !== 'friends') return undefined;
+    const ids: string[] = [];
+    friends.forEach(f => ids.add ? ids.push(f.friend.id) : null);
+    if (user?.id) ids.push(user.id);
+    return ids;
+  }, [activeFilter, friends, user?.id]);
+
+  const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts(friendAuthorFilter);
   const { activeAlerts, resolveAlert } = useLostDogAlerts();
   const { allParks } = useParks();
   const { isAdmin } = useAdmin();
