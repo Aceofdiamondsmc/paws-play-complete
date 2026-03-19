@@ -209,7 +209,6 @@ export default function Social() {
   }, []);
   // --- END AUDIO UNLOCKER ---
   
-  const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts();
   const { activeAlerts, resolveAlert } = useLostDogAlerts();
   const { allParks } = useParks();
   const { isAdmin } = useAdmin();
@@ -226,14 +225,17 @@ export default function Social() {
   
   const { startConversation } = useMessages();
   const { friends } = useFriendships();
-  
-  // Build set of accepted friend IDs for filtering
-  const friendIds = useMemo(() => {
-    const ids = new Set<string>();
-    friends.forEach(f => ids.add(f.friend.id));
-    if (user?.id) ids.add(user.id);
+
+  // Build author filter: when "friends" tab is active, pass friend IDs for server-side filtering
+  const friendAuthorFilter = useMemo(() => {
+    if (activeFilter !== 'friends') return undefined;
+    const ids: string[] = [];
+    friends.forEach(f => ids.push(f.friend.id));
+    if (user?.id) ids.push(user.id);
     return ids;
-  }, [friends, user?.id]);
+  }, [activeFilter, friends, user?.id]);
+
+  const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts(friendAuthorFilter);
 
   const handleMessageAuthor = async (authorId: string) => {
     if (!user) {
@@ -356,11 +358,9 @@ export default function Social() {
     { id: 'reviews', label: 'Park Reviews', icon: MapPin },
   ];
 
-  // Filter posts based on active filter
+  // Filter posts based on active filter (friends filtering now handled server-side)
   const filteredPosts = activeFilter === 'reviews' 
     ? posts.filter((p) => p.content?.toLowerCase().includes('park'))
-    : activeFilter === 'friends'
-    ? posts.filter((p) => friendIds.has(p.author_id))
     : posts;
 
   return (
