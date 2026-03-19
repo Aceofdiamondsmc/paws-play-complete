@@ -233,16 +233,33 @@ export function useCareNotifications(reminders: CareReminder[]) {
       reminders.forEach((reminder) => {
         if (!reminder.is_enabled) return;
 
-        // Skip if snoozed and snooze hasn't expired
+        const reminderHHMM = reminder.reminder_time.slice(0, 5);
+
+        // Determine if this reminder should fire right now
+        let shouldTrigger = false;
+        let triggerKey = '';
+
         if (reminder.snoozed_until) {
           const snoozeExpiry = new Date(reminder.snoozed_until);
-          if (snoozeExpiry > now) return;
+          if (snoozeExpiry > now) {
+            // Still snoozed — skip
+            return;
+          }
+          // Snooze has expired — check if the snooze expiry falls in the current minute
+          const snoozeHHMM = format(snoozeExpiry, 'HH:mm');
+          if (snoozeHHMM === currentHHMM) {
+            shouldTrigger = true;
+            triggerKey = `${reminder.id}-snooze-${snoozeHHMM}`;
+          }
         }
 
-        const reminderHHMM = reminder.reminder_time.slice(0, 5);
-        const triggerKey = `${reminder.id}-${currentHHMM}`;
+        // Also trigger on the original reminder time (normal behavior)
+        if (!shouldTrigger && reminderHHMM === currentHHMM) {
+          shouldTrigger = true;
+          triggerKey = `${reminder.id}-${currentHHMM}`;
+        }
 
-        if (reminderHHMM === currentHHMM && !triggeredIdsRef.current.has(triggerKey)) {
+        if (shouldTrigger && triggerKey && !triggeredIdsRef.current.has(triggerKey)) {
           triggeredIdsRef.current.add(triggerKey);
 
           setTimeout(() => {
