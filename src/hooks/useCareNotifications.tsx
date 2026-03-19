@@ -125,12 +125,14 @@ export function useCareNotifications(reminders: CareReminder[]) {
               : 'A medication was due 30 minutes ago!';
 
             playUrgentSound();
-            new Notification(title, {
-              body,
-              icon: '/favicon.png',
-              tag: `missed-${missed.reminder_id}`,
-              requireInteraction: true,
-            });
+            if (!isNative()) {
+              new Notification(title, {
+                body,
+                icon: '/favicon.png',
+                tag: `missed-${missed.reminder_id}`,
+                requireInteraction: true,
+              });
+            }
           }
         });
       }
@@ -182,11 +184,13 @@ export function useCareNotifications(reminders: CareReminder[]) {
           const body = getCategoryBody(reminder.category, reminder.task_details);
 
           playReminderSound();
-          new Notification(title, {
-            body,
-            icon: '/favicon.png',
-            tag: reminder.id,
-          });
+          if (!isNative()) {
+            new Notification(title, {
+              body,
+              icon: '/favicon.png',
+              tag: reminder.id,
+            });
+          }
 
           // Set triggered reminder for UI
           setTriggeredReminder(reminder);
@@ -220,6 +224,14 @@ function getCategoryTitle(category: string): string {
       return '💊 Medication Reminder';
     case 'feeding':
       return '🥣 Feeding Reminder';
+    case 'grooming':
+      return '✂️ Grooming Reminder';
+    case 'training':
+      return '🎓 Training Reminder';
+    case 'vet_visit':
+      return '🏥 Vet Visit Reminder';
+    case 'birthday':
+      return '🎂 Birthday Reminder';
     default:
       return '🐾 Dog Walk Reminder';
   }
@@ -231,6 +243,14 @@ function getCategoryBody(category: string, taskDetails: string | null): string {
       return taskDetails ? `Time for ${taskDetails}` : 'Time to give medication';
     case 'feeding':
       return taskDetails ? `Time to feed: ${taskDetails}` : 'Time to feed your pup!';
+    case 'grooming':
+      return taskDetails ? `Time for grooming: ${taskDetails}` : 'Time for grooming!';
+    case 'training':
+      return taskDetails ? `Training time: ${taskDetails}` : 'Time for training!';
+    case 'vet_visit':
+      return taskDetails ? `Vet visit: ${taskDetails}` : 'Time for a vet visit!';
+    case 'birthday':
+      return taskDetails ? `🎉 ${taskDetails}` : "It's your pup's birthday!";
     default:
       return 'Time to take your pup for a walk!';
   }
