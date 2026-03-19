@@ -787,12 +787,17 @@ export default function Pack() {
                         <Button
                           size="sm"
                           className="h-8 rounded-full bg-[#3b82f6]/20 hover:bg-[#3b82f6]/30 text-[#60a5fa] border border-[#3b82f6]/30 text-xs font-semibold"
+                          disabled={messagingOwnerId === currentDog.owner_id}
                           onClick={async (e) => {
                             e.stopPropagation();
                             handleMessage(currentDog.owner_id);
                           }}
                         >
-                          <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                          {messagingOwnerId === currentDog.owner_id ? (
+                            <div className="w-3.5 h-3.5 mr-1 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                          )}
                           Message
                         </Button>
                         {/* Block - always visible */}

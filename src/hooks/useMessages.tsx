@@ -145,7 +145,7 @@ export function useMessages() {
       .single();
 
     if (!error) {
-      await fetchConversations();
+      fetchConversations(); // fire-and-forget — realtime will sync
     }
 
     return { conversation: data as Conversation | null, error };
