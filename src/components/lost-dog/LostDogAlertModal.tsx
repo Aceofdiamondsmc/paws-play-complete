@@ -95,7 +95,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     const alertUrl = window.location.origin + '/social';
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
 
-    // Convert images to base64 so they render inside the print iframe
+    // Convert images to base64 so they render inside the print context
     let avatarDataUrl: string | null = selectedDog.avatar_url;
     if (avatarDataUrl) {
       try { avatarDataUrl = await toDataUrl(avatarDataUrl); } catch { /* keep original */ }
@@ -104,6 +104,8 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     let qrDataUrl: string = qrApiUrl;
     try { qrDataUrl = await toDataUrl(qrApiUrl); } catch { /* keep original */ }
 
+    const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+
     const html = generateFlyerHTML({
       dogName: selectedDog.name,
       breed: selectedDog.breed,
@@ -111,10 +113,28 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
       lastSeenLocation,
       contactPhone,
       reward: reward || undefined,
-      alertUrl, // still used for link text; QR image is separate
+      alertUrl,
       qrImageUrl: qrDataUrl,
+      printOnLoad: isNative, // auto-print when opened in system browser
     });
 
+    if (isNative) {
+      // On native iOS/Android, open in system browser which supports print
+      const blob = new Blob([html], { type: 'text/html' });
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const dataUrl = reader.result as string;
+        try {
+          await Browser.open({ url: dataUrl });
+        } catch {
+          toast.error('Could not open flyer for printing');
+        }
+      };
+      reader.readAsDataURL(blob);
+      return;
+    }
+
+    // Web: use hidden iframe, wait for images, then print
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.width = '0';
@@ -124,14 +144,39 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow?.document;
-    if (doc) {
-      doc.open();
-      doc.write(html);
-      doc.close();
-      iframe.onload = () => {
-        iframe.contentWindow?.print();
-        setTimeout(() => document.body.removeChild(iframe), 1000);
-      };
+    if (!doc) return;
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    // Wait for all images to load before printing
+    const waitForImages = () => {
+      const images = Array.from(doc.querySelectorAll('img'));
+      return Promise.all(
+        images.map(img =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => {
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+              })
+        )
+      );
+    };
+
+    await waitForImages();
+
+    // Clean up after print dialog closes
+    const cleanup = () => {
+      try { document.body.removeChild(iframe); } catch { /* already removed */ }
+    };
+
+    if (iframe.contentWindow) {
+      iframe.contentWindow.addEventListener('afterprint', cleanup);
+      iframe.contentWindow.print();
+      // Fallback cleanup in case afterprint doesn't fire
+      setTimeout(cleanup, 60000);
     }
   };
 
