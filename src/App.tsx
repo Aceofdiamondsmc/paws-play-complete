@@ -78,6 +78,26 @@ const App = () => {
         if (result.receive === 'granted') {
           await PushNotifications.register();
         }
+
+        // Listen for registration events and re-register token with backend
+        // This keeps the OneSignal subscription active even if the APNs token rotates
+        await PushNotifications.addListener('registration', async (token) => {
+          try {
+            const platform = (window as any).Capacitor?.getPlatform?.() || 'ios';
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              await supabase.functions.invoke('register-push-token', {
+                body: {
+                  token: token.value,
+                  device_type: platform,
+                },
+              });
+              console.log('Push token re-registered on launch');
+            }
+          } catch (regErr) {
+            console.warn('Failed to re-register push token:', regErr);
+          }
+        });
       } catch (e) {
         console.warn('Push permission request failed:', e);
       }
