@@ -21,7 +21,7 @@ export function AdminLayout() {
     <div className="min-h-screen bg-background">
       {/* Admin Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 safe-top">
-        <div className="flex h-14 items-center justify-between px-4">
+        <div className="flex h-14 items-center justify-between px-4 pt-4 sm:pt-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
