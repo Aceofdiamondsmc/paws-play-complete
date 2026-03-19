@@ -1,94 +1,50 @@
 
 
-## Vet Visit Log with Vaccination Linking (DONE)
+## Fix: Flyer Images Not Rendering in Print Preview
 
-### What was implemented:
+### Root Cause
+The flyer is rendered inside a hidden iframe. The dog photo (hosted on Supabase storage) and the QR code (from `api.qrserver.com`) are referenced as external URLs. The iframe's security context blocks these cross-origin image loads, so they appear blank when printing.
 
-1. **New `vet_visits` table** — stores dog_id, visit_date, clinic_name, visit_type, vaccination_types[], notes with RLS for user-owned records
-2. **`useVetVisits` hook** — CRUD for vet visits, auto-updates `vaccination_records` expiry (+1 year) and status to `verified`, logs to `care_history`, and optionally creates yearly care reminders
-3. **`VetVisitSection` component** — collapsible section on Dates tab with log form (dog selector, date, clinic, visit type, vaccination checkboxes, notes, yearly reminder toggle) and visit history list
-4. **Renamed Care Schedule `vet_visit` → "Clinic / Urgent"** — updated in CareScheduleSection, useCareNotifications, and care-reminder-push Edge Function to avoid naming conflict
+### Solution
+Convert both images to **base64 data URLs** before injecting them into the flyer HTML. This embeds the image data directly in the document, eliminating cross-origin issues.
 
-### Files created/modified:
-- `src/hooks/useVetVisits.tsx` (new)
-- `src/components/dates/VetVisitSection.tsx` (new)
-- `src/pages/Dates.tsx` (modified — added VetVisitSection)
-- `src/components/dates/CareScheduleSection.tsx` (modified — renamed label)
-- `src/hooks/useCareNotifications.tsx` (modified — renamed notification text)
-- `supabase/functions/care-reminder-push/index.ts` (modified — renamed push text)
+### Changes — `src/components/lost-dog/LostDogAlertModal.tsx`
 
----
+1. Make `handlePrint` an `async` function.
+2. Before calling `generateFlyerHTML`, fetch and convert images to base64:
+   - **Dog avatar**: `fetch(avatarUrl)` → blob → `FileReader.readAsDataURL()` → data URL string.
+   - **QR code**: Same process for the QR API URL.
+3. Pass the base64 data URLs (instead of the original URLs) to `generateFlyerHTML`.
 
+```typescript
+const handlePrint = async () => {
+  if (!selectedDog) return;
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+  // Helper to convert URL to base64
+  const toDataUrl = async (url: string): Promise<string> => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  };
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+  let avatarDataUrl = selectedDog.avatar_url;
+  if (avatarDataUrl) {
+    try { avatarDataUrl = await toDataUrl(avatarDataUrl); } catch {}
+  }
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+  const html = generateFlyerHTML({
+    ...props,
+    avatarUrl: avatarDataUrl,  // now base64
+    ...
+  });
+  // rest stays the same
+};
+```
 
-### Changes
+### Files Modified
+- `src/components/lost-dog/LostDogAlertModal.tsx` — make `handlePrint` async, add `toDataUrl` helper, convert avatar + QR images before generating HTML
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
-
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
-
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
-
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
-
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
-
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
-
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
-
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
