@@ -282,18 +282,45 @@ export default function Social() {
     setIsPosting(false);
   };
 
-  const handleShare = async (postId: string, postContent: string, authorName: string) => {
+  const shareCardRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = async (postId: string, postContent: string, authorName: string, imageUrl: string | null) => {
     const shareUrl = `https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/og-post?postId=${postId}`;
-    
-    const truncatedContent = postContent.length > 100 
-      ? postContent.substring(0, 100) + '...' 
+    const truncatedContent = postContent.length > 100
+      ? postContent.substring(0, 100) + '...'
       : postContent;
-    
-    const shareData = {
-      title: `${authorName} on Paws Play Repeat`,
-      text: truncatedContent,
-      url: shareUrl,
-    };
+    const title = `${authorName} on Paws Play Repeat`;
+
+    // Try to build a shareable image File
+    let file: File | null = null;
+    try {
+      if (imageUrl) {
+        // Post has an image — fetch it and create a File
+        const res = await fetch(imageUrl);
+        const blob = await res.blob();
+        const ext = blob.type === 'image/png' ? 'png' : 'jpg';
+        file = new File([blob], `paws-post.${ext}`, { type: blob.type || 'image/jpeg' });
+      } else if (shareCardRef.current) {
+        // Text-only post — render branded card to JPEG
+        const { toJpeg } = await import('html-to-image');
+        const dataUrl = await toJpeg(shareCardRef.current, { quality: 0.92, width: 600, height: 600 });
+        const resp = await fetch(dataUrl);
+        const blob = await resp.blob();
+        file = new File([blob], 'paws-post.jpg', { type: 'image/jpeg' });
+      }
+    } catch (e) {
+      console.warn('Could not create share image, falling back to link share', e);
+    }
+
+    // Build share data — include file if supported
+    const shareData: ShareData = { title, text: truncatedContent };
+    if (file) {
+      shareData.files = [file];
+    }
+    // Always include the OG url as fallback context
+    if (!file) {
+      shareData.url = shareUrl;
+    }
 
     if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
       try {
@@ -305,12 +332,11 @@ export default function Social() {
         }
       }
     } else {
+      // Fallback: copy link to clipboard
       try {
         const shareText = `${truncatedContent}\n\nCheck it out on Paws Play Repeat: ${shareUrl}`;
         await navigator.clipboard.writeText(shareText);
-        toast.success('Link copied!', {
-          description: 'Post link copied to your clipboard',
-        });
+        toast.success('Link copied!', { description: 'Post link copied to your clipboard' });
       } catch (error) {
         console.error('Failed to copy:', error);
         toast.error('Failed to copy link');
