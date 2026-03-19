@@ -30,6 +30,8 @@ const VISIT_TYPES = [
 const COMMON_VACCINATIONS = [
   'Rabies',
   'DHPP',
+  'DA2P',
+  'Parvovirus',
   'Bordetella',
   'Leptospirosis',
   'Canine Influenza',
@@ -230,7 +232,7 @@ export function VetVisitSection() {
                   Vaccinations Given
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Selected vaccines will auto-update your dog's vaccination records (+1 year expiry)
+                  Selected vaccines will auto-update your dog's vaccination records (6-month or 1-year expiry depending on vaccine)
                 </p>
                 <div className="grid grid-cols-2 gap-2 mt-1">
                   {COMMON_VACCINATIONS.map(vacc => (

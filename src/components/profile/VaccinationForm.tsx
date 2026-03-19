@@ -31,6 +31,8 @@ interface VaccinationFormProps {
 const VACCINATION_TYPES = [
   'Rabies',
   'DHPP (Distemper)',
+  'DA2P',
+  'Parvovirus',
   'Bordetella',
   'Leptospirosis',
   'Lyme Disease',
