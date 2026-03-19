@@ -81,8 +81,8 @@ FlyerTemplate.displayName = 'FlyerTemplate';
  * Generates a standalone HTML string for the lost dog flyer.
  * Used to open in a new window for printing — no Tailwind or app dependencies.
  */
-export function generateFlyerHTML(props: FlyerTemplateProps): string {
-  const { dogName, breed, avatarUrl, lastSeenLocation, contactPhone, reward, alertUrl, qrImageUrl } = props;
+export function generateFlyerHTML(props: FlyerTemplateProps & { printOnLoad?: boolean }): string {
+  const { dogName, breed, avatarUrl, lastSeenLocation, contactPhone, reward, alertUrl, qrImageUrl, printOnLoad } = props;
   const qrUrl = qrImageUrl || getQrCodeUrl(alertUrl);
 
   const photoBlock = avatarUrl
@@ -96,6 +96,10 @@ export function generateFlyerHTML(props: FlyerTemplateProps): string {
         <p style="font-size:24px;font-weight:900;margin:0;">💰 REWARD: ${reward}</p>
         <p style="font-size:12px;font-weight:600;margin:4px 0 0;">FOR SAFE RETURN</p>
       </div>`
+    : '';
+
+  const printScript = printOnLoad
+    ? `<script>window.onload = function() { window.print(); };<\/script>`
     : '';
 
   return `<!DOCTYPE html>
@@ -154,7 +158,7 @@ export function generateFlyerHTML(props: FlyerTemplateProps): string {
     </div>
   </div>
 
-  <script>window.onload = function() { window.print(); };</script>
+  ${printScript}
 </body>
 </html>`;
 }

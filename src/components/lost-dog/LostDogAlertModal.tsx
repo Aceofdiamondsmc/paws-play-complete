@@ -400,7 +400,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
               ))}
             </div>
 
-            <div className="flex flex-col gap-2 pt-2">
+            <div className="flex flex-col gap-3 pt-2">
               <Button variant="outline" size="sm" onClick={handlePrint} className="rounded-full w-full">
                 <Printer className="w-4 h-4 mr-2" />
                 Download / Print Flyer
