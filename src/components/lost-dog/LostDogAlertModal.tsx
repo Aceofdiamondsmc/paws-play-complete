@@ -77,17 +77,41 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     }
   };
 
-  const handlePrint = () => {
+  const toDataUrl = async (url: string): Promise<string> => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const handlePrint = async () => {
     if (!selectedDog) return;
+
+    const alertUrl = window.location.origin + '/social';
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
+
+    // Convert images to base64 so they render inside the print iframe
+    let avatarDataUrl: string | null = selectedDog.avatar_url;
+    if (avatarDataUrl) {
+      try { avatarDataUrl = await toDataUrl(avatarDataUrl); } catch { /* keep original */ }
+    }
+
+    let qrDataUrl: string = qrApiUrl;
+    try { qrDataUrl = await toDataUrl(qrApiUrl); } catch { /* keep original */ }
 
     const html = generateFlyerHTML({
       dogName: selectedDog.name,
       breed: selectedDog.breed,
-      avatarUrl: selectedDog.avatar_url,
+      avatarUrl: avatarDataUrl,
       lastSeenLocation,
       contactPhone,
       reward: reward || undefined,
-      alertUrl: window.location.origin + '/social',
+      alertUrl, // still used for link text; QR image is separate
+      qrImageUrl: qrDataUrl,
     });
 
     const iframe = document.createElement('iframe');
