@@ -1,27 +1,35 @@
 
 
-## Fix Flyer Printing on Native iOS + Admin Dashboard Exit Button
+## Fix Snooze Not Working
 
-### Problem 1: Flyer fails on native iOS
-The current code creates a `data:text/html;base64,...` URL from a Blob and passes it to `Browser.open()`. iOS Safari and the Capacitor Browser plugin reject data URLs — they cannot navigate to `data:` scheme URLs. This triggers the "Could not open flyer for printing" error.
+### Root Cause
 
-**Fix**: Instead of a data URL, use a `blob:` URL via `URL.createObjectURL()`. However, Capacitor Browser also can't open blob URLs in the system browser. The real fix is to **use the web iframe approach for all platforms** — the hidden iframe + `window.print()` works inside the Capacitor WebView too. Remove the native-specific branch entirely.
+The snooze is fundamentally broken because of a timing mismatch:
 
-### Problem 2: Admin Dashboard back button doesn't work on native
-The back button calls `navigate('/me')`, which uses React Router navigation. On native iOS, this should work, but the issue is likely that the admin layout sits outside the normal `AppLayout` with `BottomNav`, so the `/me` route navigation may not be resolving correctly, or the button area is obscured by the iOS safe area despite the `safe-top` class — the `pt-4` padding pushes the button down but the tap target may still be under the status bar area.
+1. **Snooze sets `snoozed_until` to 15 minutes from now** — e.g., if reminder fires at 10:00, snooze sets expiry to 10:15.
+2. **The check loop only triggers when `reminderHHMM === currentHHMM`** — it matches `reminder_time` (10:00) against the current clock time.
+3. **After snooze expires at 10:15, `currentHHMM` is "10:15" but `reminderHHMM` is still "10:00"** — they no longer match, so the reminder never re-fires.
 
-**Fix**: Increase the header height and ensure the back button has adequate tap target area. Also add `window.history.back()` as a fallback if navigate doesn't work on native.
+The snooze effectively silences the reminder permanently until the next day.
+
+Additionally, on native iOS, pre-scheduled local notifications ignore snooze entirely since they're set at the original time during app startup.
+
+### Plan
+
+**File: `src/hooks/useCareNotifications.tsx`** — Fix the check loop to also trigger reminders whose snooze has just expired:
+
+- After the existing `reminderHHMM === currentHHMM` check, add a second condition: if a reminder has `snoozed_until` set, and the snooze expiry falls within the current minute (i.e., snooze just expired), treat it as a triggered reminder regardless of the original `reminder_time`.
+- Use a trigger key that includes the snooze expiry time to prevent duplicate firing.
+- When rescheduling native local notifications, skip snoozed reminders and schedule a notification at the `snoozed_until` time instead of the original `reminder_time`.
+
+**File: `src/hooks/useCareReminders.tsx`** — After a successful snooze, also clear the `triggeredIdsRef` key so the reminder can re-fire (this is already partially handled by `clearTriggeredReminder` in the UI, but the ref isn't cleared).
+
+**File: `supabase/functions/care-reminder-push/index.ts`** — The edge function already skips snoozed reminders correctly, but it never re-checks them after snooze expires. Add logic to also fire reminders whose `snoozed_until` minute matches the current local time.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/lost-dog/LostDogAlertModal.tsx` | Remove native `Browser.open` branch; use iframe print approach for all platforms |
-| `src/components/admin/AdminLayout.tsx` | Fix back button tap target and add fallback navigation for native iOS |
-
-### Technical Details
-
-**Flyer fix** — Remove lines 107 and 121-135 (the `isNative` check and `Browser.open` branch). The iframe approach (lines 137+) already works universally, including inside Capacitor WebViews.
-
-**Admin exit fix** — The header currently uses `pt-4 sm:pt-0` which may not be enough on newer iPhones with dynamic island. Change to use `env(safe-area-inset-top)` padding and increase the header min-height. Also make the back button larger with explicit min tap target of 44x44px (Apple HIG minimum).
+| `src/hooks/useCareNotifications.tsx` | Add snooze-expiry trigger logic to check loop; fix native local notification scheduling for snoozed reminders |
+| `supabase/functions/care-reminder-push/index.ts` | Add snooze-expiry matching so server-side push also re-fires after snooze |
 
