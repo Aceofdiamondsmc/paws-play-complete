@@ -229,7 +229,7 @@ function getCategoryTitle(category: string): string {
     case 'training':
       return '🎓 Training Reminder';
     case 'vet_visit':
-      return '🏥 Vet Visit Reminder';
+      return '🏥 Clinic / Urgent Reminder';
     case 'birthday':
       return '🎂 Birthday Reminder';
     default:
