@@ -282,18 +282,45 @@ export default function Social() {
     setIsPosting(false);
   };
 
-  const handleShare = async (postId: string, postContent: string, authorName: string) => {
+  const shareCardRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = async (postId: string, postContent: string, authorName: string, imageUrl: string | null) => {
     const shareUrl = `https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/og-post?postId=${postId}`;
-    
-    const truncatedContent = postContent.length > 100 
-      ? postContent.substring(0, 100) + '...' 
+    const truncatedContent = postContent.length > 100
+      ? postContent.substring(0, 100) + '...'
       : postContent;
-    
-    const shareData = {
-      title: `${authorName} on Paws Play Repeat`,
-      text: truncatedContent,
-      url: shareUrl,
-    };
+    const title = `${authorName} on Paws Play Repeat`;
+
+    // Try to build a shareable image File
+    let file: File | null = null;
+    try {
+      if (imageUrl) {
+        // Post has an image — fetch it and create a File
+        const res = await fetch(imageUrl);
+        const blob = await res.blob();
+        const ext = blob.type === 'image/png' ? 'png' : 'jpg';
+        file = new File([blob], `paws-post.${ext}`, { type: blob.type || 'image/jpeg' });
+      } else if (shareCardRef.current) {
+        // Text-only post — render branded card to JPEG
+        const { toJpeg } = await import('html-to-image');
+        const dataUrl = await toJpeg(shareCardRef.current, { quality: 0.92, width: 600, height: 600 });
+        const resp = await fetch(dataUrl);
+        const blob = await resp.blob();
+        file = new File([blob], 'paws-post.jpg', { type: 'image/jpeg' });
+      }
+    } catch (e) {
+      console.warn('Could not create share image, falling back to link share', e);
+    }
+
+    // Build share data — include file if supported
+    const shareData: ShareData = { title, text: truncatedContent };
+    if (file) {
+      shareData.files = [file];
+    }
+    // Always include the OG url as fallback context
+    if (!file) {
+      shareData.url = shareUrl;
+    }
 
     if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
       try {
@@ -305,12 +332,11 @@ export default function Social() {
         }
       }
     } else {
+      // Fallback: copy link to clipboard
       try {
         const shareText = `${truncatedContent}\n\nCheck it out on Paws Play Repeat: ${shareUrl}`;
         await navigator.clipboard.writeText(shareText);
-        toast.success('Link copied!', {
-          description: 'Post link copied to your clipboard',
-        });
+        toast.success('Link copied!', { description: 'Post link copied to your clipboard' });
       } catch (error) {
         console.error('Failed to copy:', error);
         toast.error('Failed to copy link');
@@ -338,6 +364,37 @@ export default function Social() {
     : posts;
 
   return (
+    <>
+    {/* Hidden share card for text-only posts */}
+    <div style={{ position: 'fixed', left: '-9999px', top: 0 }} aria-hidden="true">
+      <div
+        ref={shareCardRef}
+        style={{
+          width: 600,
+          height: 600,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, hsl(45,60%,92%), hsl(30,70%,85%))',
+          padding: 48,
+          fontFamily: 'system-ui, sans-serif',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🐾</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: 'hsl(30,50%,30%)', marginBottom: 24, fontStyle: 'italic' }}>
+          Paws Play Repeat
+        </div>
+        <div style={{ fontSize: 20, color: 'hsl(30,40%,25%)', lineHeight: 1.5, maxHeight: 300, overflow: 'hidden', wordBreak: 'break-word' }}>
+          {/* Content is dynamically set via the share function's text; the card is a branded backdrop */}
+          Share the love for your pup! 🐕
+        </div>
+        <div style={{ marginTop: 'auto', fontSize: 14, color: 'hsl(30,30%,50%)' }}>
+          pawsplayrepeat.com
+        </div>
+      </div>
+    </div>
     <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
       {/* Floating Action Button - Bottom Right (hidden when comments drawer is open) */}
       {!commentsPostId && <div className="fixed bottom-24 right-4 z-[100] flex flex-col items-center gap-2">
@@ -631,7 +688,8 @@ export default function Social() {
                       onClick={() => handleShare(
                         post.id, 
                         post.content || '', 
-                        post.author?.display_name || post.author?.username || 'Someone'
+                        post.author?.display_name || post.author?.username || 'Someone',
+                        post.image_url || null
                       )}
                       className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
                       aria-label="Share post"
@@ -741,5 +799,6 @@ export default function Social() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </>
   );
 }
