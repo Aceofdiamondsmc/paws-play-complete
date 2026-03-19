@@ -184,11 +184,13 @@ export function useCareNotifications(reminders: CareReminder[]) {
           const body = getCategoryBody(reminder.category, reminder.task_details);
 
           playReminderSound();
-          new Notification(title, {
-            body,
-            icon: '/favicon.png',
-            tag: reminder.id,
-          });
+          if (!isNative()) {
+            new Notification(title, {
+              body,
+              icon: '/favicon.png',
+              tag: reminder.id,
+            });
+          }
 
           // Set triggered reminder for UI
           setTriggeredReminder(reminder);
