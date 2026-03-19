@@ -24,7 +24,7 @@ interface Comment {
   author?: Partial<Profile>;
 }
 
-export function usePosts() {
+export function usePosts(authorFilter?: string[] | null) {
   const { user } = useAuth();
   const [posts, setPosts] = useState<PostWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,11 +43,23 @@ export function usePosts() {
       setLoading(true);
 
       // Single query against the public_posts view (pre-joins author profile data)
-      const { data: postsData, error } = await supabase
+      let query = supabase
         .from('public_posts' as any)
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
+
+      // Server-side author filter (used for "Pack Friends" tab)
+      if (authorFilter && authorFilter.length > 0) {
+        query = query.in('author_id', authorFilter);
+      } else if (authorFilter && authorFilter.length === 0) {
+        // Empty friend list — no results to show
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: postsData, error } = await query;
 
       if (error) throw error;
 
