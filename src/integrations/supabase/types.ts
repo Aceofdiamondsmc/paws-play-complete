@@ -1605,6 +1605,50 @@ export type Database = {
         }
         Relationships: []
       }
+      vet_visits: {
+        Row: {
+          clinic_name: string | null
+          created_at: string
+          dog_id: string
+          id: string
+          notes: string | null
+          user_id: string
+          vaccination_types: string[] | null
+          visit_date: string
+          visit_type: string
+        }
+        Insert: {
+          clinic_name?: string | null
+          created_at?: string
+          dog_id: string
+          id?: string
+          notes?: string | null
+          user_id: string
+          vaccination_types?: string[] | null
+          visit_date: string
+          visit_type?: string
+        }
+        Update: {
+          clinic_name?: string | null
+          created_at?: string
+          dog_id?: string
+          id?: string
+          notes?: string | null
+          user_id?: string
+          vaccination_types?: string[] | null
+          visit_date?: string
+          visit_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vet_visits_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       dogs_discovery: {
