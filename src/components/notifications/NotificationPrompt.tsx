@@ -72,6 +72,7 @@ export function NotificationPrompt() {
 
     try {
       if (isNativePlatform()) {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
         await PushNotifications.removeAllListeners();
         const permResult = await PushNotifications.requestPermissions();
         
