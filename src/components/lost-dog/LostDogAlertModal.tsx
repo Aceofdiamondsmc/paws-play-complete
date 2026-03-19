@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, MapPin, Phone, ChevronRight, ChevronLeft, Loader2, Gift, Printer, CheckSquare, Square, PartyPopper } from 'lucide-react';
-import { Browser } from '@capacitor/browser';
+// Using universal iframe print approach (no Browser import needed)
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
