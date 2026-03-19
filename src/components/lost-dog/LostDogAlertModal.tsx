@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { AlertTriangle, MapPin, Phone, ChevronRight, ChevronLeft, Loader2, Gift, Printer, CheckSquare, Square, PartyPopper } from 'lucide-react';
-// Using universal iframe print approach (no Browser import needed)
+import { useState, useRef, useCallback } from 'react';
+import { AlertTriangle, MapPin, Phone, ChevronRight, ChevronLeft, Loader2, Gift, Printer, CheckSquare, Square, PartyPopper, Share2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLostDogAlerts } from '@/hooks/useLostDogAlerts';
 import { toast } from 'sonner';
 import { generateFlyerHTML } from './FlyerTemplate';
+import FlyerTemplate from './FlyerTemplate';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { toJpeg } from 'html-to-image';
 
 interface Props {
   open: boolean;
@@ -36,6 +40,8 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   const [locating, setLocating] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [checkedItems, setCheckedItems] = useState<boolean[]>(new Array(CHECKLIST_ITEMS.length).fill(false));
+  const [printing, setPrinting] = useState(false);
+  const flyerRef = useRef<HTMLDivElement>(null);
 
   const selectedDog = dogs?.find(d => d.id === selectedDogId);
 
@@ -89,76 +95,132 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     });
   };
 
-  const handlePrint = async () => {
-    if (!selectedDog) return;
-
-    const alertUrl = window.location.origin + '/social';
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
-
-    // Convert images to base64 so they render inside the print context
-    let avatarDataUrl: string | null = selectedDog.avatar_url;
-    if (avatarDataUrl) {
-      try { avatarDataUrl = await toDataUrl(avatarDataUrl); } catch { /* keep original */ }
+  /** Native iOS/Android: render flyer to image → save to cache → open share sheet */
+  const handleNativeShare = useCallback(async () => {
+    if (!selectedDog || !flyerRef.current) {
+      toast.error('Flyer not ready — please try again');
+      return;
     }
 
-    let qrDataUrl: string = qrApiUrl;
-    try { qrDataUrl = await toDataUrl(qrApiUrl); } catch { /* keep original */ }
+    setPrinting(true);
+    try {
+      // Convert the offscreen flyer DOM to a JPEG data URL
+      const dataUrl = await toJpeg(flyerRef.current, {
+        quality: 0.92,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      });
 
-    const html = generateFlyerHTML({
-      dogName: selectedDog.name,
-      breed: selectedDog.breed,
-      avatarUrl: avatarDataUrl,
-      lastSeenLocation,
-      contactPhone,
-      reward: reward || undefined,
-      alertUrl,
-      qrImageUrl: qrDataUrl,
-      printOnLoad: false,
-    });
+      // Strip the data URL prefix to get raw base64
+      const base64Data = dataUrl.replace(/^data:image\/jpeg;base64,/, '');
 
-    // Web: use hidden iframe, wait for images, then print
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    iframe.style.opacity = '0';
-    document.body.appendChild(iframe);
+      // Write to the device cache directory
+      const fileName = `lost-dog-flyer-${Date.now()}.jpg`;
+      const writeResult = await Filesystem.writeFile({
+        path: fileName,
+        data: base64Data,
+        directory: Directory.Cache,
+      });
 
-    const doc = iframe.contentWindow?.document;
-    if (!doc) return;
+      // Open native share sheet with the file URI
+      await Share.share({
+        title: `Missing Dog - ${selectedDog.name}`,
+        text: `Please help find ${selectedDog.name}! Last seen: ${lastSeenLocation}. Contact: ${contactPhone}`,
+        url: writeResult.uri,
+        dialogTitle: 'Share or Print Flyer',
+      });
 
-    doc.open();
-    doc.write(html);
-    doc.close();
+      toast.success('Flyer ready to share or print!');
+    } catch (err) {
+      console.error('Native share failed:', err);
+      toast.error('Could not generate flyer. Please try again.');
+    } finally {
+      setPrinting(false);
+    }
+  }, [selectedDog, lastSeenLocation, contactPhone]);
 
-    // Wait for all images to load before printing
-    const waitForImages = () => {
-      const images = Array.from(doc.querySelectorAll('img'));
-      return Promise.all(
-        images.map(img =>
-          img.complete
-            ? Promise.resolve()
-            : new Promise<void>((resolve) => {
-                img.onload = () => resolve();
-                img.onerror = () => resolve();
-              })
-        )
-      );
-    };
+  /** Web: use hidden iframe + window.print() */
+  const handleWebPrint = useCallback(async () => {
+    if (!selectedDog) return;
 
-    await waitForImages();
+    setPrinting(true);
+    try {
+      const alertUrl = window.location.origin + '/social';
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
 
-    // Clean up after print dialog closes
-    const cleanup = () => {
-      try { document.body.removeChild(iframe); } catch { /* already removed */ }
-    };
+      let avatarDataUrl: string | null = selectedDog.avatar_url;
+      if (avatarDataUrl) {
+        try { avatarDataUrl = await toDataUrl(avatarDataUrl); } catch { /* keep original */ }
+      }
 
-    if (iframe.contentWindow) {
-      iframe.contentWindow.addEventListener('afterprint', cleanup);
-      iframe.contentWindow.print();
-      // Fallback cleanup in case afterprint doesn't fire
-      setTimeout(cleanup, 60000);
+      let qrDataUrl: string = qrApiUrl;
+      try { qrDataUrl = await toDataUrl(qrApiUrl); } catch { /* keep original */ }
+
+      const html = generateFlyerHTML({
+        dogName: selectedDog.name,
+        breed: selectedDog.breed,
+        avatarUrl: avatarDataUrl,
+        lastSeenLocation,
+        contactPhone,
+        reward: reward || undefined,
+        alertUrl,
+        qrImageUrl: qrDataUrl,
+        printOnLoad: false,
+      });
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      iframe.style.opacity = '0';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow?.document;
+      if (!doc) return;
+
+      doc.open();
+      doc.write(html);
+      doc.close();
+
+      const waitForImages = () => {
+        const images = Array.from(doc.querySelectorAll('img'));
+        return Promise.all(
+          images.map(img =>
+            img.complete
+              ? Promise.resolve()
+              : new Promise<void>((resolve) => {
+                  img.onload = () => resolve();
+                  img.onerror = () => resolve();
+                })
+          )
+        );
+      };
+
+      await waitForImages();
+
+      const cleanup = () => {
+        try { document.body.removeChild(iframe); } catch { /* already removed */ }
+      };
+
+      if (iframe.contentWindow) {
+        iframe.contentWindow.addEventListener('afterprint', cleanup);
+        iframe.contentWindow.print();
+        setTimeout(cleanup, 60000);
+      }
+    } catch (err) {
+      console.error('Web print failed:', err);
+      toast.error('Could not open print dialog.');
+    } finally {
+      setPrinting(false);
+    }
+  }, [selectedDog, lastSeenLocation, contactPhone, reward]);
+
+  const handlePrint = () => {
+    if (Capacitor.isNativePlatform()) {
+      handleNativeShare();
+    } else {
+      handleWebPrint();
     }
   };
 
@@ -192,6 +254,9 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     if (step === 2) return !!contactPhone;
     return true;
   };
+
+  const isNative = Capacitor.isNativePlatform();
+  const alertUrl = typeof window !== 'undefined' ? window.location.origin + '/social' : '';
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -383,14 +448,51 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
             </div>
 
             <div className="flex flex-col gap-3 pt-2">
-              <Button variant="outline" size="sm" onClick={handlePrint} className="rounded-full w-full">
-                <Printer className="w-4 h-4 mr-2" />
-                Download / Print Flyer
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                disabled={printing}
+                className="rounded-full w-full"
+              >
+                {printing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : isNative ? (
+                  <Share2 className="w-4 h-4 mr-2" />
+                ) : (
+                  <Printer className="w-4 h-4 mr-2" />
+                )}
+                {printing ? 'Generating Flyer...' : isNative ? 'Share / Print Flyer' : 'Download / Print Flyer'}
               </Button>
               <Button size="sm" onClick={handleClose} className="rounded-full w-full">
                 Got it, let's find {selectedDog?.name}!
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* Offscreen flyer for native image capture — only rendered on success step */}
+        {step === 4 && selectedDog && (
+          <div
+            style={{
+              position: 'fixed',
+              left: '-9999px',
+              top: 0,
+              width: '816px', /* 8.5in at 96dpi */
+              zIndex: -1,
+              pointerEvents: 'none',
+            }}
+          >
+            <FlyerTemplate
+              ref={flyerRef}
+              dogName={selectedDog.name}
+              breed={selectedDog.breed}
+              avatarUrl={selectedDog.avatar_url}
+              lastSeenLocation={lastSeenLocation}
+              contactPhone={contactPhone}
+              reward={reward || undefined}
+              alertUrl={alertUrl}
+            />
           </div>
         )}
       </DialogContent>

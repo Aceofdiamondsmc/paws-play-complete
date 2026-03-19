@@ -1,5 +1,5 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Trees, Settings, ArrowLeft, Shield, Users, Store, MessageSquare, Wrench, ShieldCheck } from 'lucide-react';
+import { Outlet, NavLink, Link } from 'react-router-dom';
+import { Trees, Settings, ArrowLeft, Shield, Users, Store, MessageSquare, Wrench, ShieldCheck, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import pawsplayLogo from '@/assets/pawsplay-logo.png';
@@ -15,33 +15,30 @@ const adminNavItems = [
 ];
 
 export function AdminLayout() {
-  const navigate = useNavigate();
-
-  const handleBack = () => {
-    try {
-      navigate('/me');
-    } catch {
-      window.history.back();
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Admin Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      {/* Admin Header - with safe-area padding for iOS notch */}
+      <header
+        className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
+      >
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              className="shrink-0 min-w-[44px] min-h-[44px]"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <img 
-              src={pawsplayLogo} 
-              alt="PawsPlay" 
+            <Link to="/me">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 min-w-[44px] min-h-[44px]"
+                asChild
+              >
+                <span>
+                  <ArrowLeft className="h-5 w-5" />
+                </span>
+              </Button>
+            </Link>
+            <img
+              src={pawsplayLogo}
+              alt="PawsPlay"
               className="h-8 w-auto"
             />
           </div>
@@ -52,9 +49,16 @@ export function AdminLayout() {
         </div>
       </header>
 
-      {/* Admin Navigation */}
+      {/* Admin Navigation with redundant Exit button */}
       <nav className="border-b bg-muted/30">
         <div className="flex items-center gap-1 px-4 py-2 overflow-x-auto">
+          <Link
+            to="/me"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap bg-destructive/10 text-destructive hover:bg-destructive/20 mr-1 shrink-0"
+          >
+            <LogOut className="h-4 w-4" />
+            Exit
+          </Link>
           {adminNavItems.map(({ path, icon: Icon, label }) => (
             <NavLink
               key={path}
