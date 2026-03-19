@@ -4,30 +4,24 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import pawsplayLogo from '@/assets/pawsplay-logo.png';
 
-const adminNavItems = [
-  { path: '/admin/parks', icon: Trees, label: 'Parks' },
-  { path: '/admin/services', icon: Store, label: 'Services' },
-  { path: '/admin/social', icon: MessageSquare, label: 'Social' },
-  { path: '/admin/users', icon: Users, label: 'Users' },
-  { path: '/admin/vaccinations', icon: ShieldCheck, label: 'Vaccinations' },
-  { path: '/admin/tools', icon: Wrench, label: 'Tools' },
-  { path: '/admin/settings', icon: Settings, label: 'Settings' },
-];
+const handleBack = (navigate: ReturnType<typeof useNavigate>) => {
+  // Try React Router first, fall back to browser history
+  try {
+    navigate('/me');
+  } catch {
+    window.history.back();
+  }
+};
 
-export function AdminLayout() {
-  const navigate = useNavigate();
-
-  return (
-    <div className="min-h-screen bg-background">
       {/* Admin Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 safe-top">
-        <div className="flex h-14 items-center justify-between px-4 pt-4 sm:pt-0">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/me')}
-              className="shrink-0"
+              onClick={() => handleBack(navigate)}
+              className="shrink-0 min-w-[44px] min-h-[44px]"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
