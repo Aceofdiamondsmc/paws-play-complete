@@ -657,7 +657,8 @@ export default function Social() {
                       onClick={() => handleShare(
                         post.id, 
                         post.content || '', 
-                        post.author?.display_name || post.author?.username || 'Someone'
+                        post.author?.display_name || post.author?.username || 'Someone',
+                        post.image_url || null
                       )}
                       className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
                       aria-label="Share post"
