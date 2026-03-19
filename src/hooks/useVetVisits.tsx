@@ -74,12 +74,12 @@ export function useVetVisits() {
       // 2. Auto-update vaccination records
       const vaccTypes = data.vaccination_types || [];
       if (vaccTypes.length > 0) {
-        const visitDate = new Date(data.visit_date);
-        const expiryDate = new Date(visitDate);
-        expiryDate.setFullYear(expiryDate.getFullYear() + VACCINATION_EXPIRY_YEARS);
-        const expiryStr = expiryDate.toISOString().split('T')[0];
-
         for (const vaccType of vaccTypes) {
+          const expiryMonths = VACCINATION_EXPIRY_MONTHS[vaccType] ?? 12;
+          const visitDate = new Date(data.visit_date);
+          const expiryDate = new Date(visitDate);
+          expiryDate.setMonth(expiryDate.getMonth() + expiryMonths);
+          const expiryStr = expiryDate.toISOString().split('T')[0];
           // Check if record exists
           const { data: existing } = await supabase
             .from('vaccination_records')
