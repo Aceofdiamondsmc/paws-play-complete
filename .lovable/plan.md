@@ -1,74 +1,59 @@
 
 
-## Add "Starter" Tier and Rename "Basic" to "Value"
+## Vet Visit Log — Resolving Category Conflict
 
-### Overview
-Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
+### The Conflict
 
-### Stripe Setup (Done)
-- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
+The Care Schedule already has a `vet_visit` category used for quick reminders (e.g., "Annual vaccines, Dr. Smith"). The new Vet Visit Log is a richer, structured feature with dog selection, clinic name, visit type, and vaccination linking. Using the same name would confuse users.
+
+### Solution: Rename the Care Schedule category to "Clinic / Urgent"
+
+- Rename the existing `vet_visit` category in the Care Schedule dropdown to **"Clinic / Urgent"** — this repositions it as a quick reminder for unplanned or urgent vet trips (sick visits, emergencies, follow-ups)
+- The new **Vet Visit Log** section becomes the primary place for structured, planned vet visit tracking with yearly recurrence and vaccination auto-linking
+
+This gives each feature a distinct purpose:
+
+```text
+┌─────────────────────────────────┬──────────────────────────────────────┐
+│  Care Schedule: "Clinic/Urgent" │  Vet Visit Log (new section)         │
+├─────────────────────────────────┼──────────────────────────────────────┤
+│  Quick reminder with time       │  Full log: dog, clinic, visit type   │
+│  "Pick up meds at 3pm"         │  "Annual Checkup at PetVet Clinic"   │
+│  "Emergency follow-up tomorrow" │  Yearly recurrence for annual visits │
+│  One-time or recurring          │  Auto-updates vaccination records    │
+│  No dog or vaccination linking  │  Visit history with delete           │
+└─────────────────────────────────┴──────────────────────────────────────┘
+```
 
 ### Changes
 
-**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
+**Database**
+- New `vet_visits` table: `id`, `user_id`, `dog_id`, `visit_date`, `clinic_name`, `visit_type` (Annual Checkup / Vaccination / Sick Visit / Dental / Surgery / Other), `vaccination_types[]`, `notes`, `created_at`
+- RLS: users manage own records (`user_id = auth.uid()`)
 
-Reorder and update the tiers array to:
-1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
-2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
-3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
-4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
+**`src/components/dates/CareScheduleSection.tsx`** — Rename only
+- Change `vet_visit` display label from "Vet Visit" to "Clinic / Urgent"
+- Update placeholder text to "e.g., Emergency follow-up, pick up meds"
+- Update icon label and notification text accordingly
+- Keep the `vet_visit` internal category value unchanged (no DB migration needed)
 
-Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
+**`src/hooks/useCareNotifications.tsx`** — Update notification text
+- Change "Vet Visit Reminder" to "Clinic / Urgent Reminder"
 
-**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
+**`supabase/functions/care-reminder-push/index.ts`** — Update push text
+- Change `vet_visit` notification title to "🏥 Clinic / Urgent Reminder"
 
-Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
+**`src/hooks/useVetVisits.tsx`** (new)
+- CRUD for `vet_visits` table
+- `logVisit()`: inserts visit, then for each selected vaccination type either updates existing `vaccination_records` (set `expiry_date = visit_date + 1 year`, `status = 'verified'`) or inserts a new record
+- Also logs to `care_history` with category `'vet_log'` for the activity feed
 
-**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
+**`src/components/dates/VetVisitSection.tsx`** (new)
+- Collapsible section on Dates tab with stethoscope icon
+- "Log Vet Visit" form: dog selector (from user's dogs), visit date picker, clinic name input, visit type dropdown, multi-select checkboxes for common vaccinations (Rabies, DHPP, Bordetella, Leptospirosis, Canine Influenza, Lyme), notes field
+- "Repeat Yearly" toggle that creates a `care_reminder` with `recurrence_pattern: 'yearly'` and `reminder_date` set to the visit date
+- Visit history list showing past visits grouped by dog, with delete option
 
-Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
+**`src/pages/Dates.tsx`**
+- Import and render `VetVisitSection` between Care Schedule and Playdates sections
 
-**4. Database migration** -- Update the `subscription_tier` column constraint
-
-The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
-
-### Tier Order (lowest to highest)
-
-| Tier | Price | Billing |
-|------|-------|---------|
-| Starter | $9.99 | /month |
-| Value | $29.99 | one-time |
-| Featured | $19.99 | /month |
-| Premium | $149.99 | /year |
-
----
-
-## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
-
-### What was implemented:
-
-1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
-
-2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
-
-3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
-
-### Database tables created:
-- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
-- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
-- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
-
-### Files created/modified:
-- `src/hooks/useLostDogAlerts.tsx` (new)
-- `src/hooks/useGroupPlaydates.tsx` (new)
-- `src/components/lost-dog/LostDogFAB.tsx` (new)
-- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
-- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
-- `src/components/playdate/GroupPlaydateCard.tsx` (new)
-- `supabase/functions/lost-dog-alert/index.ts` (new)
-- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
-- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
-- `src/pages/Explore.tsx` (edited — header rename)
-- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
-- `src/pages/Social.tsx` (edited — lost dog alert banners)
-- `supabase/config.toml` (edited — added lost-dog-alert function)
