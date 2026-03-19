@@ -75,13 +75,22 @@ Deno.serve(async (req) => {
       const tz = r.user_timezone || 'America/New_York';
       const { hhmm: userHHMM, dateStr: localDateStr, month: localMonth, day: localDay } = getLocalTimeAndDate(now, tz);
       const reminderHHMM = r.reminder_time.slice(0, 5);
-      if (reminderHHMM !== userHHMM) return false;
+
+      let timeMatches = reminderHHMM === userHHMM;
 
       // Check snooze
       if (r.snoozed_until) {
         const snoozeExpiry = new Date(r.snoozed_until);
-        if (snoozeExpiry > now) return false;
+        if (snoozeExpiry > now) return false; // Still snoozed
+
+        // Snooze expired — check if snooze expiry falls in the current minute
+        const { hhmm: snoozeHHMM } = getLocalTimeAndDate(snoozeExpiry, tz);
+        if (snoozeHHMM === userHHMM) {
+          timeMatches = true; // Re-fire at snooze expiry time
+        }
       }
+
+      if (!timeMatches) return false;
 
       // Date-specific reminder: only fire on that exact date
       if (r.reminder_date) {

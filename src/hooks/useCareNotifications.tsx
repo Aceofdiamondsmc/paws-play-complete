@@ -81,10 +81,22 @@ export function useCareNotifications(reminders: CareReminder[]) {
         reminders.forEach((reminder, index) => {
           if (!reminder.is_enabled) return;
 
-          // Skip snoozed reminders
+          const title = getCategoryTitle(reminder.category);
+          const body = getCategoryBody(reminder.category, reminder.task_details);
+
+          // If snoozed and snooze is in the future, schedule at snooze expiry instead
           if (reminder.snoozed_until) {
             const snoozeExpiry = new Date(reminder.snoozed_until);
-            if (snoozeExpiry > now) return;
+            if (snoozeExpiry > now) {
+              notificationsToSchedule.push({
+                id: index + 1000,
+                title,
+                body,
+                schedule: { at: snoozeExpiry, allowWhileIdle: true },
+                sound: 'paws_reminder.wav',
+              });
+              return;
+            }
           }
 
           // Parse reminder time (HH:mm:ss)
@@ -96,9 +108,6 @@ export function useCareNotifications(reminders: CareReminder[]) {
           if (scheduleDate <= now) {
             scheduleDate.setDate(scheduleDate.getDate() + 1);
           }
-
-          const title = getCategoryTitle(reminder.category);
-          const body = getCategoryBody(reminder.category, reminder.task_details);
 
           // Use index + 1000 offset to avoid ID collisions
           notificationsToSchedule.push({
