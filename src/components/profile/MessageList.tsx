@@ -33,10 +33,10 @@ export function MessageList({ onSelectConversation }: MessageListProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <MessageCircle className="w-5 h-5 text-primary" />
-          <h3 className="font-bold">Messages</h3>
+          <h3 className="font-bold text-lg">Messages</h3>
         </div>
         {totalUnread > 0 && (
-          <Badge variant="destructive" className="rounded-full">
+          <Badge variant="destructive" className="rounded-full px-2.5">
             {totalUnread}
           </Badge>
         )}
@@ -49,44 +49,49 @@ export function MessageList({ onSelectConversation }: MessageListProps) {
           <p className="text-xs mt-1">Start chatting from the Social or Pack tabs</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {(showAll ? conversations : conversations.slice(0, 5)).map(convo => (
-            <button
-              key={convo.id}
-              onClick={() => onSelectConversation(convo.id)}
-              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors text-left"
-            >
-              <div className="relative">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={convo.otherUser?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary">
-                    {convo.otherUser?.display_name?.[0] || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                {convo.unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-                    {convo.unreadCount}
-                  </span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold truncate">
-                    {convo.otherUser?.display_name || 'Unknown User'}
-                  </h4>
-                  {convo.lastMessage && (
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(convo.lastMessage.created_at || ''), { addSuffix: false })}
+        <div className="space-y-1">
+          {(showAll ? conversations : conversations.slice(0, 5)).map(convo => {
+            const hasUnread = convo.unreadCount > 0;
+            return (
+              <button
+                key={convo.id}
+                onClick={() => onSelectConversation(convo.id)}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted/80 transition-colors text-left ${
+                  hasUnread ? 'border-l-[3px] border-l-primary bg-primary/[0.03]' : ''
+                }`}
+              >
+                <div className="relative">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={convo.otherUser?.avatar_url || undefined} />
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                      {convo.otherUser?.display_name?.[0] || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {hasUnread && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center font-bold">
+                      {convo.unreadCount}
                     </span>
                   )}
                 </div>
-                <p className={`text-sm truncate ${convo.unreadCount > 0 ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
-                  {convo.lastMessage?.content || 'No messages yet'}
-                </p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            </button>
-          ))}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h4 className={`truncate ${hasUnread ? 'font-bold text-foreground' : 'font-semibold text-foreground/90'}`}>
+                      {convo.otherUser?.display_name || 'Unknown User'}
+                    </h4>
+                    {convo.lastMessage && (
+                      <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                        {formatDistanceToNow(new Date(convo.lastMessage.created_at || ''), { addSuffix: false })}
+                      </span>
+                    )}
+                  </div>
+                  <p className={`text-[13px] truncate mt-0.5 ${hasUnread ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                    {convo.lastMessage?.content || 'No messages yet'}
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </button>
+            );
+          })}
           
           {conversations.length > 5 && (
             <button
