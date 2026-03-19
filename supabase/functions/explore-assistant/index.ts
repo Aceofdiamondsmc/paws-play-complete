@@ -108,7 +108,7 @@ GUIDELINES:
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages,
+          ...sanitizedMessages,
         ],
         stream: true,
       }),
