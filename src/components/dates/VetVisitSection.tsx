@@ -30,6 +30,8 @@ const VISIT_TYPES = [
 const COMMON_VACCINATIONS = [
   'Rabies',
   'DHPP',
+  'DA2P',
+  'Parvovirus',
   'Bordetella',
   'Leptospirosis',
   'Canine Influenza',
