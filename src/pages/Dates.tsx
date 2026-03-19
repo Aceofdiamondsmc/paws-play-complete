@@ -423,6 +423,11 @@ export default function Dates() {
         )}
       </div>
 
+      {/* Vet Visit Log */}
+      <div className="px-4 pb-4">
+        <VetVisitSection />
+      </div>
+
       {/* Care Schedule Section */}
       <div className="px-4 pb-4">
         <CareScheduleSection />
