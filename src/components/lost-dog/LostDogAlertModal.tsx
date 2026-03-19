@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, MapPin, Phone, ChevronRight, ChevronLeft, Loader2, Gift, Printer, CheckSquare, Square, PartyPopper } from 'lucide-react';
-import { Browser } from '@capacitor/browser';
+// Using universal iframe print approach (no Browser import needed)
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -104,8 +104,6 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     let qrDataUrl: string = qrApiUrl;
     try { qrDataUrl = await toDataUrl(qrApiUrl); } catch { /* keep original */ }
 
-    const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
-
     const html = generateFlyerHTML({
       dogName: selectedDog.name,
       breed: selectedDog.breed,
@@ -115,24 +113,8 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
       reward: reward || undefined,
       alertUrl,
       qrImageUrl: qrDataUrl,
-      printOnLoad: isNative, // auto-print when opened in system browser
+      printOnLoad: false,
     });
-
-    if (isNative) {
-      // On native iOS/Android, open in system browser which supports print
-      const blob = new Blob([html], { type: 'text/html' });
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const dataUrl = reader.result as string;
-        try {
-          await Browser.open({ url: dataUrl });
-        } catch {
-          toast.error('Could not open flyer for printing');
-        }
-      };
-      reader.readAsDataURL(blob);
-      return;
-    }
 
     // Web: use hidden iframe, wait for images, then print
     const iframe = document.createElement('iframe');

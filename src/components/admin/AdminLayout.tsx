@@ -17,17 +17,25 @@ const adminNavItems = [
 export function AdminLayout() {
   const navigate = useNavigate();
 
+  const handleBack = () => {
+    try {
+      navigate('/me');
+    } catch {
+      window.history.back();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Admin Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 safe-top">
-        <div className="flex h-14 items-center justify-between px-4 pt-4 sm:pt-0">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/me')}
-              className="shrink-0"
+              onClick={handleBack}
+              className="shrink-0 min-w-[44px] min-h-[44px]"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
