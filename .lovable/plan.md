@@ -1,35 +1,51 @@
 
 
-## Fix Snooze Not Working
+## Fix Admin Exit + Flyer on iOS (Revised)
 
-### Root Cause
+### Problem Recap
+1. **Admin exit**: `viewport-fit=cover` is missing from `index.html`, so `env(safe-area-inset-top)` resolves to `0` on iOS. The back button sits under the notch/status bar and is untappable.
+2. **Flyer print**: `window.print()` inside an iframe is a no-op in iOS WKWebView. The button does nothing.
 
-The snooze is fundamentally broken because of a timing mismatch:
+### Changes
 
-1. **Snooze sets `snoozed_until` to 15 minutes from now** — e.g., if reminder fires at 10:00, snooze sets expiry to 10:15.
-2. **The check loop only triggers when `reminderHHMM === currentHHMM`** — it matches `reminder_time` (10:00) against the current clock time.
-3. **After snooze expires at 10:15, `currentHHMM` is "10:15" but `reminderHHMM` is still "10:00"** — they no longer match, so the reminder never re-fires.
+#### 1. `index.html` — Add `viewport-fit=cover`
+Update the viewport meta tag to include `viewport-fit=cover` so iOS safe-area env values actually work.
 
-The snooze effectively silences the reminder permanently until the next day.
+#### 2. `src/components/admin/AdminLayout.tsx` — Reliable exit
+- Use a `<Link to="/me">` instead of a JS `navigate()` handler (declarative routing works even if JS event handling has issues in the safe-area).
+- Add a second, always-visible "Exit Admin" button below the header (inside the nav bar area) as a failsafe escape hatch.
+- Use `pt-[max(env(safe-area-inset-top),12px)]` to guarantee minimum top padding even if env values are partially broken.
 
-Additionally, on native iOS, pre-scheduled local notifications ignore snooze entirely since they're set at the original time during app startup.
+#### 3. Install `@capacitor/filesystem`
+Yes — this is required. iOS needs a real `file://` URI for the share sheet's Print option to appear. The flow will be:
+1. Render flyer HTML in a hidden div
+2. Convert to JPEG via `html-to-image`
+3. Write to temp file via `@capacitor/filesystem` → get `file://` URI
+4. Open native share sheet via `@capacitor/share` with the file URI
 
-### Plan
+Without Filesystem, we can only pass a base64 data URI to Share, which iOS often strips the Print option from.
 
-**File: `src/hooks/useCareNotifications.tsx`** — Fix the check loop to also trigger reminders whose snooze has just expired:
+#### 4. `src/components/lost-dog/LostDogAlertModal.tsx` — Native share flow
+- Detect native Capacitor environment (`Capacitor.isNativePlatform()`).
+- **Native path**: Render flyer as an offscreen DOM element → `html-to-image` to generate JPEG blob → `Filesystem.writeFile()` to cache directory → `Share.share({ url: fileUri })` → native share sheet with Print option.
+- **Web path**: Keep existing iframe + `window.print()` (works fine on desktop browsers).
+- Add toast feedback on success/error so the button never silently fails.
 
-- After the existing `reminderHHMM === currentHHMM` check, add a second condition: if a reminder has `snoozed_until` set, and the snooze expiry falls within the current minute (i.e., snooze just expired), treat it as a triggered reminder regardless of the original `reminder_time`.
-- Use a trigger key that includes the snooze expiry time to prevent duplicate firing.
-- When rescheduling native local notifications, skip snoozed reminders and schedule a notification at the `snoozed_until` time instead of the original `reminder_time`.
-
-**File: `src/hooks/useCareReminders.tsx`** — After a successful snooze, also clear the `triggeredIdsRef` key so the reminder can re-fire (this is already partially handled by `clearTriggeredReminder` in the UI, but the ref isn't cleared).
-
-**File: `supabase/functions/care-reminder-push/index.ts`** — The edge function already skips snoozed reminders correctly, but it never re-checks them after snooze expires. Add logic to also fire reminders whose `snoozed_until` minute matches the current local time.
+#### 5. Install `html-to-image`
+Needed to convert the flyer HTML to a high-res image for the native share flow.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/hooks/useCareNotifications.tsx` | Add snooze-expiry trigger logic to check loop; fix native local notification scheduling for snoozed reminders |
-| `supabase/functions/care-reminder-push/index.ts` | Add snooze-expiry matching so server-side push also re-fires after snooze |
+| `package.json` | Add `@capacitor/filesystem`, `html-to-image` |
+| `index.html` | Add `viewport-fit=cover` to viewport meta |
+| `src/components/admin/AdminLayout.tsx` | Declarative Link exit + redundant exit button + safe-area fix |
+| `src/components/lost-dog/LostDogAlertModal.tsx` | Native Capacitor share/print flow with Filesystem + Share |
+
+### After Implementation
+- Run `npm install`
+- Run `npx cap sync`
+- Trigger new Appflow build
+- Test on device: Admin exit and Flyer share/print
 
