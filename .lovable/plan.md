@@ -1,22 +1,19 @@
 
 
-## Fix Admin Exit + Flyer on iOS — IMPLEMENTED
+## Fix: Downgrade @capacitor/filesystem to match Capacitor 6
 
-### Changes Made
+### Problem
+The Appflow build failed because `@capacitor/filesystem@8.1.2` requires `@capacitor/core >= 8.0.0`, but the project runs Capacitor 6. All other Capacitor plugins in the project are pinned to `^6.0.0`.
 
-1. **`index.html`** — Added `viewport-fit=cover` to viewport meta so `env(safe-area-inset-top)` resolves correctly on iOS.
+### Fix
+Change `@capacitor/filesystem` from `^8.1.2` to `^6.0.0` in `package.json`. The Capacitor 6 version of Filesystem has the same API (`writeFile`, `Directory.Cache`, etc.) so no code changes are needed in `LostDogAlertModal.tsx`.
 
-2. **`src/components/admin/AdminLayout.tsx`** — Replaced JS `navigate()` with declarative `<Link to="/me">`. Added redundant "Exit" button in the nav bar. Used `max(env(safe-area-inset-top), 12px)` for reliable top padding.
-
-3. **`src/components/lost-dog/LostDogAlertModal.tsx`** — Split into native vs web paths:
-   - **Native (Capacitor)**: Renders offscreen `FlyerTemplate` → `html-to-image` JPEG → `Filesystem.writeFile()` to cache → `Share.share()` with `file://` URI → native share sheet with Print option.
-   - **Web**: Keeps existing iframe + `window.print()`.
-   - Added loading state and error toasts.
-
-4. **`package.json`** — Added `@capacitor/filesystem` (already had `html-to-image` and `@capacitor/share`).
+### File Changed
+- `package.json` — Change `"@capacitor/filesystem": "^8.1.2"` to `"@capacitor/filesystem": "^6.0.0"`
 
 ### After Implementation
-- `npm install`
-- `npx cap sync`
-- Trigger new Appflow build
-- Test on device: Admin exit and Flyer share/print
+1. Pull changes
+2. Run `npm install`
+3. Run `npx cap sync`
+4. Push to GitHub and trigger Appflow build
+
