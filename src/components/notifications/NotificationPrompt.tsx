@@ -6,7 +6,6 @@ import { AuthContext } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isIOS, isStandalone } from '@/lib/navigation-utils';
-import { PushNotifications } from '@capacitor/push-notifications';
 
 declare global {
   interface Window {
@@ -24,12 +23,27 @@ export function NotificationPrompt() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user && profile && !profile.onesignal_player_id) {
-      if (isNativePlatform()) {
-        const timer = setTimeout(() => setPromptType('standard'), 3000);
-        return () => clearTimeout(timer);
-      }
+    if (!user || !profile) return;
 
+    // On native, check actual push permission status instead of onesignal_player_id
+    if (isNativePlatform()) {
+      (async () => {
+        try {
+          const { PushNotifications } = await import('@capacitor/push-notifications');
+          const result = await PushNotifications.checkPermissions();
+          if (result.receive !== 'granted') {
+            const timer = setTimeout(() => setPromptType('standard'), 3000);
+            return () => clearTimeout(timer);
+          }
+        } catch (e) {
+          console.warn('Could not check native push permissions:', e);
+        }
+      })();
+      return;
+    }
+
+    // Web: only show if no onesignal_player_id
+    if (!profile.onesignal_player_id) {
       const dismissed = localStorage.getItem('ios-install-prompt-dismissed');
       const dismissedAt = dismissed ? parseInt(dismissed, 10) : 0;
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
