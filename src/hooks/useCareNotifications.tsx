@@ -42,6 +42,86 @@ export function useCareNotifications(reminders: CareReminder[]) {
     })();
   }, []);
 
+  // Schedule local notifications on native for background delivery
+  useEffect(() => {
+    if (!isNative() || reminders.length === 0) return;
+
+    const scheduleLocalNotifications = async () => {
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+
+        // Check/request local notification permission
+        const permResult = await LocalNotifications.checkPermissions();
+        if (permResult.display === 'prompt' || permResult.display === 'prompt-with-rationale') {
+          const reqResult = await LocalNotifications.requestPermissions();
+          if (reqResult.display !== 'granted') {
+            console.warn('Local notification permission not granted');
+            return;
+          }
+        } else if (permResult.display !== 'granted') {
+          console.warn('Local notification permission denied');
+          return;
+        }
+
+        // Cancel all previously scheduled notifications to reschedule fresh
+        const pending = await LocalNotifications.getPending();
+        if (pending.notifications.length > 0) {
+          await LocalNotifications.cancel({ notifications: pending.notifications });
+        }
+
+        const now = new Date();
+        const notificationsToSchedule: Array<{
+          id: number;
+          title: string;
+          body: string;
+          schedule: { at: Date; allowWhileIdle: boolean };
+          sound: string;
+        }> = [];
+
+        reminders.forEach((reminder, index) => {
+          if (!reminder.is_enabled) return;
+
+          // Skip snoozed reminders
+          if (reminder.snoozed_until) {
+            const snoozeExpiry = new Date(reminder.snoozed_until);
+            if (snoozeExpiry > now) return;
+          }
+
+          // Parse reminder time (HH:mm:ss)
+          const [hours, minutes] = reminder.reminder_time.split(':').map(Number);
+
+          // Schedule for today if not yet passed, otherwise schedule for tomorrow
+          const scheduleDate = new Date();
+          scheduleDate.setHours(hours, minutes, 0, 0);
+          if (scheduleDate <= now) {
+            scheduleDate.setDate(scheduleDate.getDate() + 1);
+          }
+
+          const title = getCategoryTitle(reminder.category);
+          const body = getCategoryBody(reminder.category, reminder.task_details);
+
+          // Use index + 1000 offset to avoid ID collisions
+          notificationsToSchedule.push({
+            id: index + 1000,
+            title,
+            body,
+            schedule: { at: scheduleDate, allowWhileIdle: true },
+            sound: 'paws_reminder.wav',
+          });
+        });
+
+        if (notificationsToSchedule.length > 0) {
+          await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+          console.log(`Scheduled ${notificationsToSchedule.length} local notifications`);
+        }
+      } catch (e) {
+        console.warn('Failed to schedule local notifications:', e);
+      }
+    };
+
+    scheduleLocalNotifications();
+  }, [reminders]);
+
   const hasMissedDose = missedMedications.length > 0;
 
   const requestPermission = useCallback(async () => {
@@ -114,42 +194,37 @@ export function useCareNotifications(reminders: CareReminder[]) {
       setMissedMedications(activeMissed);
 
       // Trigger high-priority notifications for each missed medication
-      if (permissionStatus === 'granted') {
-        activeMissed.forEach((missed) => {
-          if (!missedNotifiedIdsRef.current.has(missed.reminder_id)) {
-            missedNotifiedIdsRef.current.add(missed.reminder_id);
+      // Always show in-app alerts; only use browser Notification API on web
+      activeMissed.forEach((missed) => {
+        if (!missedNotifiedIdsRef.current.has(missed.reminder_id)) {
+          missedNotifiedIdsRef.current.add(missed.reminder_id);
 
+          playUrgentSound();
+
+          if (!isNative() && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
             const title = '⚠️ Urgent: Missed Medication';
             const body = missed.task_details
               ? `${missed.task_details} was due 30 minutes ago!`
               : 'A medication was due 30 minutes ago!';
-
-            playUrgentSound();
-            if (!isNative()) {
-              new Notification(title, {
-                body,
-                icon: '/favicon.png',
-                tag: `missed-${missed.reminder_id}`,
-                requireInteraction: true,
-              });
-            }
+            new Notification(title, {
+              body,
+              icon: '/favicon.png',
+              tag: `missed-${missed.reminder_id}`,
+              requireInteraction: true,
+            });
           }
-        });
-      }
+        }
+      });
     };
 
-    // Check immediately
     checkMissedMedications();
-
-    // Check every 60 seconds
     const interval = setInterval(checkMissedMedications, 60000);
-
     return () => clearInterval(interval);
-  }, [user, permissionStatus, reminders]);
+  }, [user, reminders]);
 
-  // Check for triggered reminders (existing logic)
+  // Check for triggered reminders — runs regardless of push permission
   useEffect(() => {
-    if (permissionStatus !== 'granted' || reminders.length === 0) return;
+    if (reminders.length === 0) return;
 
     const checkReminders = () => {
       const now = new Date();
@@ -164,27 +239,23 @@ export function useCareNotifications(reminders: CareReminder[]) {
           if (snoozeExpiry > now) return;
         }
 
-        // Extract HH:MM from reminder_time (which is "HH:mm:ss" format)
         const reminderHHMM = reminder.reminder_time.slice(0, 5);
-
-        // Create a unique key for this reminder + current minute
         const triggerKey = `${reminder.id}-${currentHHMM}`;
 
         if (reminderHHMM === currentHHMM && !triggeredIdsRef.current.has(triggerKey)) {
-          // Mark as triggered for this minute
           triggeredIdsRef.current.add(triggerKey);
 
-          // Clean up old keys after 2 minutes
           setTimeout(() => {
             triggeredIdsRef.current.delete(triggerKey);
           }, 120000);
 
-          // Show browser notification
-          const title = getCategoryTitle(reminder.category);
-          const body = getCategoryBody(reminder.category, reminder.task_details);
-
+          // Always play sound and show in-app banner
           playReminderSound();
-          if (!isNative()) {
+
+          // Only use browser Notification API on web when granted
+          if (!isNative() && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            const title = getCategoryTitle(reminder.category);
+            const body = getCategoryBody(reminder.category, reminder.task_details);
             new Notification(title, {
               body,
               icon: '/favicon.png',
@@ -192,20 +263,16 @@ export function useCareNotifications(reminders: CareReminder[]) {
             });
           }
 
-          // Set triggered reminder for UI
+          // Set triggered reminder for UI banner
           setTriggeredReminder(reminder);
         }
       });
     };
 
-    // Check immediately
     checkReminders();
-
-    // Check every 30 seconds
     const interval = setInterval(checkReminders, 30000);
-
     return () => clearInterval(interval);
-  }, [permissionStatus, reminders]);
+  }, [reminders]);
 
   return {
     permissionStatus,
