@@ -1,35 +1,22 @@
 
 
-## Fix Snooze Not Working
+## Fix Admin Exit + Flyer on iOS — IMPLEMENTED
 
-### Root Cause
+### Changes Made
 
-The snooze is fundamentally broken because of a timing mismatch:
+1. **`index.html`** — Added `viewport-fit=cover` to viewport meta so `env(safe-area-inset-top)` resolves correctly on iOS.
 
-1. **Snooze sets `snoozed_until` to 15 minutes from now** — e.g., if reminder fires at 10:00, snooze sets expiry to 10:15.
-2. **The check loop only triggers when `reminderHHMM === currentHHMM`** — it matches `reminder_time` (10:00) against the current clock time.
-3. **After snooze expires at 10:15, `currentHHMM` is "10:15" but `reminderHHMM` is still "10:00"** — they no longer match, so the reminder never re-fires.
+2. **`src/components/admin/AdminLayout.tsx`** — Replaced JS `navigate()` with declarative `<Link to="/me">`. Added redundant "Exit" button in the nav bar. Used `max(env(safe-area-inset-top), 12px)` for reliable top padding.
 
-The snooze effectively silences the reminder permanently until the next day.
+3. **`src/components/lost-dog/LostDogAlertModal.tsx`** — Split into native vs web paths:
+   - **Native (Capacitor)**: Renders offscreen `FlyerTemplate` → `html-to-image` JPEG → `Filesystem.writeFile()` to cache → `Share.share()` with `file://` URI → native share sheet with Print option.
+   - **Web**: Keeps existing iframe + `window.print()`.
+   - Added loading state and error toasts.
 
-Additionally, on native iOS, pre-scheduled local notifications ignore snooze entirely since they're set at the original time during app startup.
+4. **`package.json`** — Added `@capacitor/filesystem` (already had `html-to-image` and `@capacitor/share`).
 
-### Plan
-
-**File: `src/hooks/useCareNotifications.tsx`** — Fix the check loop to also trigger reminders whose snooze has just expired:
-
-- After the existing `reminderHHMM === currentHHMM` check, add a second condition: if a reminder has `snoozed_until` set, and the snooze expiry falls within the current minute (i.e., snooze just expired), treat it as a triggered reminder regardless of the original `reminder_time`.
-- Use a trigger key that includes the snooze expiry time to prevent duplicate firing.
-- When rescheduling native local notifications, skip snoozed reminders and schedule a notification at the `snoozed_until` time instead of the original `reminder_time`.
-
-**File: `src/hooks/useCareReminders.tsx`** — After a successful snooze, also clear the `triggeredIdsRef` key so the reminder can re-fire (this is already partially handled by `clearTriggeredReminder` in the UI, but the ref isn't cleared).
-
-**File: `supabase/functions/care-reminder-push/index.ts`** — The edge function already skips snoozed reminders correctly, but it never re-checks them after snooze expires. Add logic to also fire reminders whose `snoozed_until` minute matches the current local time.
-
-### Files Changed
-
-| File | Change |
-|------|--------|
-| `src/hooks/useCareNotifications.tsx` | Add snooze-expiry trigger logic to check loop; fix native local notification scheduling for snoozed reminders |
-| `supabase/functions/care-reminder-push/index.ts` | Add snooze-expiry matching so server-side push also re-fires after snooze |
-
+### After Implementation
+- `npm install`
+- `npx cap sync`
+- Trigger new Appflow build
+- Test on device: Admin exit and Flyer share/print
