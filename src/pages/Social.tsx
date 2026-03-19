@@ -364,6 +364,37 @@ export default function Social() {
     : posts;
 
   return (
+    <>
+    {/* Hidden share card for text-only posts */}
+    <div style={{ position: 'fixed', left: '-9999px', top: 0 }} aria-hidden="true">
+      <div
+        ref={shareCardRef}
+        style={{
+          width: 600,
+          height: 600,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, hsl(45,60%,92%), hsl(30,70%,85%))',
+          padding: 48,
+          fontFamily: 'system-ui, sans-serif',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🐾</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: 'hsl(30,50%,30%)', marginBottom: 24, fontStyle: 'italic' }}>
+          Paws Play Repeat
+        </div>
+        <div style={{ fontSize: 20, color: 'hsl(30,40%,25%)', lineHeight: 1.5, maxHeight: 300, overflow: 'hidden', wordBreak: 'break-word' }}>
+          {/* Content is dynamically set via the share function's text; the card is a branded backdrop */}
+          Share the love for your pup! 🐕
+        </div>
+        <div style={{ marginTop: 'auto', fontSize: 14, color: 'hsl(30,30%,50%)' }}>
+          pawsplayrepeat.com
+        </div>
+      </div>
+    </div>
     <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
       {/* Floating Action Button - Bottom Right (hidden when comments drawer is open) */}
       {!commentsPostId && <div className="fixed bottom-24 right-4 z-[100] flex flex-col items-center gap-2">
