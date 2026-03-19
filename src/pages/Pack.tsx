@@ -177,19 +177,26 @@ export default function Pack() {
   const { friends, sentRequests, pendingRequests, sendFriendRequest, acceptRequest, declineRequest, removeFriend } = useFriendships();
   const { blockUser } = useBlockedUsers();
   const { startConversation } = useMessages();
+  const [messagingOwnerId, setMessagingOwnerId] = useState<string | null>(null);
 
   const handleMessage = async (ownerId: string) => {
     if (!user) {
       packNavigate('/me');
       return;
     }
-    const { conversation, error } = await startConversation(ownerId);
-    if (error) {
-      toast.error('Failed to start conversation');
-      return;
-    }
-    if (conversation) {
-      packNavigate(`/me?chat=${conversation.id}`);
+    if (messagingOwnerId) return;
+    setMessagingOwnerId(ownerId);
+    try {
+      const { conversation, error } = await startConversation(ownerId);
+      if (error) {
+        toast.error('Failed to start conversation');
+        return;
+      }
+      if (conversation) {
+        packNavigate(`/me?chat=${conversation.id}`);
+      }
+    } finally {
+      setMessagingOwnerId(null);
     }
   };
   const [searchParams, setSearchParams] = useSearchParams();
