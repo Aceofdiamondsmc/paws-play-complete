@@ -8,6 +8,7 @@ interface FlyerTemplateProps {
   contactPhone: string;
   reward?: string;
   alertUrl: string;
+  qrImageUrl?: string;
 }
 
 const getQrCodeUrl = (url: string) =>
