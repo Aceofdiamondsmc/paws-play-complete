@@ -1,5 +1,25 @@
 
 
+## Vet Visit Log with Vaccination Linking (DONE)
+
+### What was implemented:
+
+1. **New `vet_visits` table** — stores dog_id, visit_date, clinic_name, visit_type, vaccination_types[], notes with RLS for user-owned records
+2. **`useVetVisits` hook** — CRUD for vet visits, auto-updates `vaccination_records` expiry (+1 year) and status to `verified`, logs to `care_history`, and optionally creates yearly care reminders
+3. **`VetVisitSection` component** — collapsible section on Dates tab with log form (dog selector, date, clinic, visit type, vaccination checkboxes, notes, yearly reminder toggle) and visit history list
+4. **Renamed Care Schedule `vet_visit` → "Clinic / Urgent"** — updated in CareScheduleSection, useCareNotifications, and care-reminder-push Edge Function to avoid naming conflict
+
+### Files created/modified:
+- `src/hooks/useVetVisits.tsx` (new)
+- `src/components/dates/VetVisitSection.tsx` (new)
+- `src/pages/Dates.tsx` (modified — added VetVisitSection)
+- `src/components/dates/CareScheduleSection.tsx` (modified — renamed label)
+- `src/hooks/useCareNotifications.tsx` (modified — renamed notification text)
+- `supabase/functions/care-reminder-push/index.ts` (modified — renamed push text)
+
+---
+
+
 ## Add "Starter" Tier and Rename "Basic" to "Value"
 
 ### Overview
