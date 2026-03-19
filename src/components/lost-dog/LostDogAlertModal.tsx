@@ -90,13 +90,23 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
       alertUrl: window.location.origin + '/social',
     });
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(html);
-      printWindow.document.close();
-      toast.success('Flyer opened — use your browser\'s print to save as PDF');
-    } else {
-      toast.error('Pop-up blocked. Please allow pop-ups and try again.');
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.opacity = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(html);
+      doc.close();
+      iframe.onload = () => {
+        iframe.contentWindow?.print();
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+      };
     }
   };
 
