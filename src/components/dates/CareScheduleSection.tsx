@@ -408,7 +408,7 @@ export function CareScheduleSection() {
               <SelectItem value="vet_visit">
                 <div className="flex items-center gap-2">
                   <Stethoscope className="w-4 h-4" />
-                  Vet Visit
+                  Clinic / Urgent
                 </div>
               </SelectItem>
               <SelectItem value="birthday">
