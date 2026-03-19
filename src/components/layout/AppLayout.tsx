@@ -3,6 +3,7 @@ import { BottomNav } from './BottomNav';
 import { Header } from './Header';
 import { CareNotificationProvider } from '../CareNotificationProvider';
 import { LostDogFAB } from '../lost-dog/LostDogFAB';
+import { ResetZoomButton } from './ResetZoomButton';
 
 export function AppLayout() {
   return (
@@ -13,6 +14,7 @@ export function AppLayout() {
           <Outlet />
         </main>
         <LostDogFAB />
+        <ResetZoomButton />
         <BottomNav />
       </div>
     </CareNotificationProvider>
