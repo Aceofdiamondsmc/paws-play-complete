@@ -134,7 +134,7 @@ export function usePosts(authorFilter?: string[] | null) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, authorFilter]);
 
   // Initial fetch
   useEffect(() => {

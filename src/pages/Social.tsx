@@ -365,11 +365,9 @@ export default function Social() {
     { id: 'reviews', label: 'Park Reviews', icon: MapPin },
   ];
 
-  // Filter posts based on active filter
+  // Filter posts based on active filter (friends filtering now handled server-side)
   const filteredPosts = activeFilter === 'reviews' 
     ? posts.filter((p) => p.content?.toLowerCase().includes('park'))
-    : activeFilter === 'friends'
-    ? posts.filter((p) => friendIds.has(p.author_id))
     : posts;
 
   return (
