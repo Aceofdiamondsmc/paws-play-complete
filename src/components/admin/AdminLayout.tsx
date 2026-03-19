@@ -26,7 +26,7 @@ export function AdminLayout() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/parks')}
+              onClick={() => navigate('/me')}
               className="shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
