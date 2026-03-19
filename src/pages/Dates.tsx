@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, Clock, MapPin, Check, X, Plus, Dog, Send, Inbox, ShieldBan, MessageSquare, Trash2, CheckCircle, Utensils, Lock, Package, Users, ChevronDown } from 'lucide-react';
 import { CareScheduleSection } from '@/components/dates/CareScheduleSection';
+import { VetVisitSection } from '@/components/dates/VetVisitSection';
 import { BlockUserDialog } from '@/components/dates/BlockUserDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -420,6 +421,11 @@ export default function Dates() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Vet Visit Log */}
+      <div className="px-4 pb-4">
+        <VetVisitSection />
       </div>
 
       {/* Care Schedule Section */}

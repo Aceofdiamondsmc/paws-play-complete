@@ -229,7 +229,7 @@ function getCategoryTitle(category: string): string {
     case 'training':
       return '🎓 Training Reminder';
     case 'vet_visit':
-      return '🏥 Vet Visit Reminder';
+      return '🏥 Clinic / Urgent Reminder';
     case 'birthday':
       return '🎂 Birthday Reminder';
     default:
@@ -248,7 +248,7 @@ function getCategoryBody(category: string, taskDetails: string | null): string {
     case 'training':
       return taskDetails ? `Training time: ${taskDetails}` : 'Time for training!';
     case 'vet_visit':
-      return taskDetails ? `Vet visit: ${taskDetails}` : 'Time for a vet visit!';
+      return taskDetails ? `Clinic/Urgent: ${taskDetails}` : 'Clinic or urgent appointment!';
     case 'birthday':
       return taskDetails ? `🎉 ${taskDetails}` : "It's your pup's birthday!";
     default:

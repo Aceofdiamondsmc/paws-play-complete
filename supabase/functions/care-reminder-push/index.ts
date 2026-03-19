@@ -201,7 +201,7 @@ function getNotificationContent(category: string, taskDetails: string | null): {
     case 'training':
       return { title: '🎓 Training Reminder', body: taskDetails ? `Training reminder: ${taskDetails}` : 'Time for training!' };
     case 'vet_visit':
-      return { title: '🩺 Vet Visit Reminder', body: taskDetails ? `Vet visit: ${taskDetails}` : 'You have a vet appointment today!' };
+      return { title: '🏥 Clinic / Urgent Reminder', body: taskDetails ? `Clinic/Urgent: ${taskDetails}` : 'You have a clinic appointment!' };
     case 'birthday':
       return { title: '🎂 Birthday!', body: taskDetails ? `Happy Birthday, ${taskDetails}! 🎉🐾` : "It's your pup's birthday! 🎉" };
     default:
