@@ -1,58 +1,74 @@
 
 
-## Speed Up Message Button on Pack Tab
+## Add "Starter" Tier and Rename "Basic" to "Value"
 
-### Problem
-When tapping "Message" on the Pack tab, `handleMessage` calls `startConversation` which:
-1. Checks local state for an existing conversation
-2. If not found, INSERTs a new conversation row
-3. Then calls `fetchConversations()` which re-fetches ALL conversations with N+1 queries (last message + unread count per conversation)
-4. Only THEN navigates to `/me?chat={id}`
+### Overview
+Add a new $9.99/month "Starter" tier (the lowest-priced option), rename "Basic" to "Value", and reorder all tiers from cheapest to most expensive.
 
-This waterfall makes the button feel sluggish. There's also no loading indicator, so users don't know anything is happening.
+### Stripe Setup (Done)
+- Created Stripe product "Starter Listing" with price `price_1T4vr4FJz7YiRCGBNOix6uLP` ($9.99/month, recurring)
 
-### Solution
+### Changes
 
-**File: `src/pages/Pack.tsx`**
+**1. `src/pages/SubmitService.tsx`** -- Update `PRICING_TIERS` array
 
-1. **Add a `messagingOwnerId` loading state** to track which owner's message button was tapped
-2. **Navigate immediately** after getting the conversation ID — don't await `fetchConversations()` refresh
-3. **Disable the button** and show a spinner while the async call is in progress to prevent double-taps
+Reorder and update the tiers array to:
+1. **Starter** -- $9.99/month (new) -- basic directory listing, searchable, contact info
+2. **Value** -- $29.99 one-time (renamed from Basic) -- everything in Starter for a full year
+3. **Featured** -- $19.99/month (unchanged) -- priority placement, badge
+4. **Premium** -- $149.99/year (unchanged) -- top placement, verified
 
-**File: `src/hooks/useMessages.tsx`**
+Also update `selectedTier` default from `'basic'` to `'starter'` and add a `Sparkles` icon import for the new tier.
 
-4. **Remove the `await fetchConversations()` call** inside `startConversation` after insert — the realtime subscription will pick up the new conversation, and we navigate away immediately anyway. This eliminates the expensive N+1 re-fetch blocking the navigation.
+**2. `supabase/functions/create-checkout-session/index.ts`** -- Add starter tier to PRICING map
 
-### Technical Details
+Add `starter` entry with price ID `price_1T4vr4FJz7YiRCGBNOix6uLP`, mode `subscription`, and rename `basic` display name to "Value Listing".
 
-In `Pack.tsx`, the `handleMessage` function becomes:
+**3. `src/hooks/useServiceSubmissions.tsx`** -- Update TypeScript types
 
-```typescript
-const [messagingOwnerId, setMessagingOwnerId] = useState<string | null>(null);
+Add `'starter'` to the `subscription_tier` union types in both `ServiceSubmission` and `SubmissionFormData` interfaces.
 
-const handleMessage = async (ownerId: string) => {
-  if (!user || messagingOwnerId) return;
-  setMessagingOwnerId(ownerId);
-  try {
-    const { conversation, error } = await startConversation(ownerId);
-    if (error) { toast.error('Failed to start conversation'); return; }
-    if (conversation) packNavigate(`/me?chat=${conversation.id}`);
-  } finally {
-    setMessagingOwnerId(null);
-  }
-};
-```
+**4. Database migration** -- Update the `subscription_tier` column constraint
 
-The Message button gets `disabled={messagingOwnerId === currentDog.owner_id}` and shows a spinner when loading.
+The `service_submissions` table likely has a check constraint limiting tier values to `basic`, `featured`, `premium`. Need to add `'starter'` as an allowed value.
 
-In `useMessages.tsx`, the `startConversation` function changes from:
-```typescript
-if (!error) { await fetchConversations(); }
-```
-to:
-```typescript
-if (!error) { fetchConversations(); } // fire-and-forget
-```
+### Tier Order (lowest to highest)
 
-This makes navigation near-instant after the single INSERT query completes.
+| Tier | Price | Billing |
+|------|-------|---------|
+| Starter | $9.99 | /month |
+| Value | $29.99 | one-time |
+| Featured | $19.99 | /month |
+| Premium | $149.99 | /year |
 
+---
+
+## Lost Dog SOS, Rename Explore → Services, Group Playdates (DONE)
+
+### What was implemented:
+
+1. **Lost Dog SOS** — Floating red SOS button (LostDogFAB) on every tab for authenticated users with dogs. Opens a multi-step modal to report a lost dog, creates a public Social post, and sends OneSignal push notification broadcast. Lost dog alerts appear as banners at the top of the Social feed.
+
+2. **Rename Explore → Services** — BottomNav now shows "Services" with Scissors icon. Explore page header updated to match.
+
+3. **Group Playdates** — New "+New" dropdown on Dates page with "1-on-1 Playdate" and "Group Playdate" options. Group playdate creation modal, card component with RSVP functionality, and a dedicated section on the Dates page.
+
+### Database tables created:
+- `lost_dog_alerts` — tracks active/found/cancelled lost dog reports
+- `group_playdates` — group playdate events with organizer, location, date/time, max dogs
+- `group_playdate_rsvps` — RSVPs with user_id, dog_id, status
+
+### Files created/modified:
+- `src/hooks/useLostDogAlerts.tsx` (new)
+- `src/hooks/useGroupPlaydates.tsx` (new)
+- `src/components/lost-dog/LostDogFAB.tsx` (new)
+- `src/components/lost-dog/LostDogAlertModal.tsx` (new)
+- `src/components/playdate/CreateGroupPlaydateModal.tsx` (new)
+- `src/components/playdate/GroupPlaydateCard.tsx` (new)
+- `supabase/functions/lost-dog-alert/index.ts` (new)
+- `src/components/layout/AppLayout.tsx` (edited — added LostDogFAB)
+- `src/components/layout/BottomNav.tsx` (edited — Scissors icon, "Services" label)
+- `src/pages/Explore.tsx` (edited — header rename)
+- `src/pages/Dates.tsx` (edited — +New dropdown, group playdates section)
+- `src/pages/Social.tsx` (edited — lost dog alert banners)
+- `supabase/config.toml` (edited — added lost-dog-alert function)

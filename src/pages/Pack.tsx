@@ -177,19 +177,26 @@ export default function Pack() {
   const { friends, sentRequests, pendingRequests, sendFriendRequest, acceptRequest, declineRequest, removeFriend } = useFriendships();
   const { blockUser } = useBlockedUsers();
   const { startConversation } = useMessages();
+  const [messagingOwnerId, setMessagingOwnerId] = useState<string | null>(null);
 
   const handleMessage = async (ownerId: string) => {
     if (!user) {
       packNavigate('/me');
       return;
     }
-    const { conversation, error } = await startConversation(ownerId);
-    if (error) {
-      toast.error('Failed to start conversation');
-      return;
-    }
-    if (conversation) {
-      packNavigate(`/me?chat=${conversation.id}`);
+    if (messagingOwnerId) return;
+    setMessagingOwnerId(ownerId);
+    try {
+      const { conversation, error } = await startConversation(ownerId);
+      if (error) {
+        toast.error('Failed to start conversation');
+        return;
+      }
+      if (conversation) {
+        packNavigate(`/me?chat=${conversation.id}`);
+      }
+    } finally {
+      setMessagingOwnerId(null);
     }
   };
   const [searchParams, setSearchParams] = useSearchParams();
@@ -780,12 +787,17 @@ export default function Pack() {
                         <Button
                           size="sm"
                           className="h-8 rounded-full bg-[#3b82f6]/20 hover:bg-[#3b82f6]/30 text-[#60a5fa] border border-[#3b82f6]/30 text-xs font-semibold"
+                          disabled={messagingOwnerId === currentDog.owner_id}
                           onClick={async (e) => {
                             e.stopPropagation();
                             handleMessage(currentDog.owner_id);
                           }}
                         >
-                          <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                          {messagingOwnerId === currentDog.owner_id ? (
+                            <div className="w-3.5 h-3.5 mr-1 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                          )}
                           Message
                         </Button>
                         {/* Block - always visible */}
