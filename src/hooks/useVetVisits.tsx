@@ -25,7 +25,11 @@ export interface LogVetVisitData {
   reminder_time?: string;
 }
 
-const VACCINATION_EXPIRY_YEARS = 1;
+const VACCINATION_EXPIRY_MONTHS: Record<string, number> = {
+  'Bordetella': 6,
+  'Canine Influenza': 6,
+  // All others default to 12 months
+};
 
 export function useVetVisits() {
   const { user } = useAuth();
