@@ -125,12 +125,14 @@ export function useCareNotifications(reminders: CareReminder[]) {
               : 'A medication was due 30 minutes ago!';
 
             playUrgentSound();
-            new Notification(title, {
-              body,
-              icon: '/favicon.png',
-              tag: `missed-${missed.reminder_id}`,
-              requireInteraction: true,
-            });
+            if (!isNative()) {
+              new Notification(title, {
+                body,
+                icon: '/favicon.png',
+                tag: `missed-${missed.reminder_id}`,
+                requireInteraction: true,
+              });
+            }
           }
         });
       }
