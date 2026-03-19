@@ -799,5 +799,6 @@ export default function Social() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </>
   );
 }
