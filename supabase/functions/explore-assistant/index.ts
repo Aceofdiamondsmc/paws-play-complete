@@ -41,6 +41,21 @@ serve(async (req) => {
     }
 
     const { messages } = await req.json();
+
+    if (!Array.isArray(messages)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid messages format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const sanitizedMessages = messages
+      .filter((msg: any) => ['user', 'assistant'].includes(msg.role))
+      .slice(-MAX_MESSAGES)
+      .map((msg: any) => ({
+        role: msg.role,
+        content: typeof msg.content === 'string' ? msg.content.slice(0, MAX_CHAR_LENGTH) : '',
+      }));
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
