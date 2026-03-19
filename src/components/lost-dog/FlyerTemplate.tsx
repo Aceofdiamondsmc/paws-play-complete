@@ -82,8 +82,8 @@ FlyerTemplate.displayName = 'FlyerTemplate';
  * Used to open in a new window for printing — no Tailwind or app dependencies.
  */
 export function generateFlyerHTML(props: FlyerTemplateProps): string {
-  const { dogName, breed, avatarUrl, lastSeenLocation, contactPhone, reward, alertUrl } = props;
-  const qrUrl = getQrCodeUrl(alertUrl);
+  const { dogName, breed, avatarUrl, lastSeenLocation, contactPhone, reward, alertUrl, qrImageUrl } = props;
+  const qrUrl = qrImageUrl || getQrCodeUrl(alertUrl);
 
   const photoBlock = avatarUrl
     ? `<div style="text-align:center;margin-bottom:24px;">
