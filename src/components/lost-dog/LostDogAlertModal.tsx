@@ -527,11 +527,12 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
               ref={flyerRef}
               dogName={selectedDog.name}
               breed={selectedDog.breed}
-              avatarUrl={selectedDog.avatar_url}
+              avatarUrl={preparedAvatar || selectedDog.avatar_url}
               lastSeenLocation={lastSeenLocation}
               contactPhone={contactPhone}
               reward={reward || undefined}
               alertUrl={alertUrl}
+              qrImageUrl={preparedQr || undefined}
             />
           </div>
         )}
