@@ -1,141 +1,126 @@
 
-## Plan: Fix the phone flyer image issue at the real root
+## Diagnosis
 
-### What I found
+This is probably **not Appflow**, and not simply “your phone is bad.”
 
-The main reason this is still failing on your phone is:
+What the code shows right now is:
 
-- the app tries to convert the dog photo to base64 first
-- but if that conversion fails on iPhone/Safari/WebKit, the **native flyer path falls back to the original remote `avatar_url`**
-- that fallback is exactly the kind of image source that often renders as a **blank box** in print/share capture on mobile
+1. **New dog avatar uploads are now normalized** to JPEG in `useDogs.tsx`.
+2. But that only helps **photos uploaded after that change**.
+3. The flyer on native iPhone/Appflow still uses `html-to-image` in `LostDogAlertModal.tsx`.
+4. That native path does **not wait for the offscreen flyer `<img>` to fully decode/render** before taking the JPEG snapshot.
 
-I confirmed that in `LostDogAlertModal.tsx` the offscreen native flyer still does this:
-
-```text
-avatarUrl={preparedAvatar || selectedDog.avatar_url}
-```
-
-So even after the “hardening,” the native share/print path can still reuse the original remote Supabase image URL and reintroduce the same failure.
-
-### Why one Google-image account works
-
-That part makes sense based on the code and the behavior:
-
-- Google/other external images may already be:
-  - smaller
-  - cached
-  - easier for iPhone WebKit to decode
-  - delivered with headers Safari happens to tolerate better in this flow
-- your Supabase dog avatar images are public, but **public does not guarantee they can be safely re-rendered inside canvas / html-to-image / iOS print capture**
-- so one image source can “randomly” work while another becomes a blank rectangle
-
-In short:
+So the likely reality is:
 
 ```text
-Same flyer code
-Different image host / file / caching behavior
-=> one works, one prints blank
+old upload or hard-to-decode image
++ iPhone WebKit timing
++ html-to-image snapshots too early
+= blank photo box
 ```
 
-### Also found an upload-related gap
+## Direct answers
 
-Dog avatar uploads are converted to JPEG only for HEIC files.
+### Is it your phone?
+Not mainly.  
+It is much more likely an **iPhone WebKit rendering/timing issue** in the flyer generation flow.
 
-That means many dog photos can still be:
-- very large
-- progressive JPEGs
-- PNGs with odd metadata
-- formats iPhone preview displays fine but print/share capture fails on
+### Is Appflow the issue?
+No.  
+Appflow is just how the Capacitor app is built. This is a **runtime rendering problem**, not a build pipeline problem.
 
-So the flyer path is being asked to rescue files that were never normalized strongly enough for print capture.
+### Should you use all new uploads?
+For any dog photo uploaded **before** the JPEG-normalization change: **yes, re-uploading can help**.
 
-### What I would change
+But re-uploading alone is **not enough** if the app still snapshots the flyer before the image is ready.
 
-#### 1. Remove the native fallback to remote avatar URLs
-In `src/components/lost-dog/LostDogAlertModal.tsx`:
-- stop passing `selectedDog.avatar_url` into the offscreen flyer
-- use only the prepared image result
-- if preparation fails, show the placeholder intentionally
+### Why does one Google-image account work?
+Most likely because that specific image is:
+- smaller
+- easier for iPhone to decode
+- cached differently
+- loaded fast enough before the snapshot happens
 
-This is the most important fix.
+So it is not that Google is “supported” and your other photos are not. It is more likely that one image wins the timing race and others do not.
 
-#### 2. Prepare flyer image from the actual source file earlier and more reliably
-Still in `LostDogAlertModal.tsx`:
-- improve the image prep step so it is more tolerant on iPhone:
-  - use `img.decode()` when available
-  - wait for image readiness before drawing
-  - preserve aspect ratio cleanly
-  - add stronger logging branches for:
-    - load fail
-    - canvas export fail
-    - tainted canvas fail
-- if prep fails, do **not** silently fall back to remote URL for native rendering
+## What is still missing in the code
 
-#### 3. Normalize dog avatar uploads more aggressively
-In `src/hooks/useDogs.tsx`:
-- convert **all dog avatar uploads** to a print-safe JPEG, not only HEIC
-- resize large uploads on upload
-- strip problematic metadata by re-encoding through canvas before storage
-
-This prevents future flyer failures instead of only trying to patch them later.
-
-#### 4. Keep placeholder behavior explicit
-In `src/components/lost-dog/FlyerTemplate.tsx`:
-- keep the visible placeholder block
-- make sure the native flyer always shows:
-  - actual prepared image, or
-  - clear placeholder
-- never a broken `<img>` that becomes a blank box
-
-### Files to update
-
-| File | Change |
-|------|--------|
-| `src/components/lost-dog/LostDogAlertModal.tsx` | Remove native fallback to raw avatar URL; only use prepared flyer image or placeholder |
-| `src/hooks/useDogs.tsx` | Re-encode all dog avatar uploads to print-safe JPEG and resize before upload |
-| `src/lib/heic-convert.ts` or new shared image util | Add reusable “normalize image to JPEG” helper for uploads and flyer prep |
-| `src/components/lost-dog/FlyerTemplate.tsx` | Keep placeholder-only fallback and avoid broken image rendering |
-
-### Expected result
-
-After this fix:
-- iPhone flyer printing will no longer depend on whether the raw remote image URL happens to work
-- dogs whose image prep fails will show a clear placeholder instead of a blank box
-- newly uploaded dog photos will be much more reliable in the flyer flow
-
-### Why this matches your symptom exactly
+The current native share code does this:
 
 ```text
-Why only one account works?
-Because that account's image source/file happens to survive iPhone print rendering.
-
-Why do the others fail?
-Because the native flyer still falls back to remote avatar URLs when base64 prep fails,
-and iPhone print/share capture is fragile with those URLs.
+prepare base64 image
+render offscreen flyer
+immediately call html-to-image
 ```
 
-### Recommended implementation priority
-
-1. Remove `preparedAvatar || selectedDog.avatar_url` fallback
-2. Force placeholder when prep fails
-3. Normalize all future avatar uploads to print-safe JPEG
-4. Optionally add a one-time “re-save dog photo” path for existing dogs whose stored image is problematic
-
-### Technical details
+What it does **not** do is:
 
 ```text
-Current native path:
-prepare avatar -> if fail -> use raw selectedDog.avatar_url -> html-to-image capture -> blank box on iPhone
-
-Correct native path:
-prepare avatar -> if success use preparedAvatar
-prepare avatar -> if fail use placeholder
-never pass raw remote avatar URL into the native flyer capture
+wait until the offscreen flyer image is actually loaded and decoded
+then capture it
 ```
 
-<lov-actions>
-<lov-suggestion message="Test the lost dog flyer end-to-end on your iPhone after removing the raw avatar fallback and verify whether the placeholder or real image appears consistently">Test flyer end-to-end</lov-suggestion>
-<lov-suggestion message="Implement the flyer fix by removing the native fallback to selectedDog.avatar_url and forcing a placeholder when image preparation fails">Remove raw avatar fallback</lov-suggestion>
-<lov-suggestion message="Normalize all dog avatar uploads by re-encoding every uploaded image to a resized JPEG before saving to Supabase Storage">Harden avatar uploads</lov-suggestion>
-<lov-suggestion message="Add debug toasts or logging around flyer image preparation so we can tell whether the failure is image load, canvas export, or html-to-image capture on iPhone">Add flyer debug logging</lov-suggestion>
-</lov-actions>
+That is the strongest remaining gap.
+
+## Best interpretation of the problem
+
+You likely have **two overlapping causes**:
+
+1. **Older dog photos** are still problematic because they were uploaded before normalization.
+2. **Even with prepared base64**, the flyer capture can still happen too early on iPhone.
+
+## What I would change next
+
+### 1. Add an explicit “flyer image ready” check
+In `LostDogAlertModal.tsx`:
+- wait for the offscreen flyer image element to report complete
+- use `img.decode()` when available
+- only allow native share/print after that finishes
+
+### 2. Block capture until assets are actually painted
+Before calling `toJpeg(...)`:
+- verify the image exists
+- verify it has non-zero natural width/height
+- add a short post-decode delay for iOS paint stability
+
+### 3. Keep re-upload guidance for existing dogs
+Because `useDogs.tsx` now normalizes uploads, **re-uploading older dog photos is worthwhile** for accounts still using old files.
+
+### 4. Add temporary logging/toasts
+So we can tell which of these is happening:
+- base64 prep failed
+- offscreen image never loaded
+- `html-to-image` captured before paint
+- capture succeeded but image area was empty
+
+## Expected outcome
+
+After that next fix:
+
+```text
+old photos -> better if re-uploaded
+new photos -> already safer
+native flyer -> waits until image is truly ready before capture
+```
+
+That is the most likely path to finally stop the blank box behavior.
+
+## Recommended next implementation
+
+| Priority | Change | Why |
+|---|---|---|
+| 1 | Wait for offscreen flyer image readiness before `toJpeg` | Most likely remaining bug |
+| 2 | Add readiness state and disable Share/Print until ready | Prevents premature capture |
+| 3 | Re-upload older dog photos | Helps affected existing accounts |
+| 4 | Add debug logging around prep/capture | Confirms exact failure point |
+
+## Bottom line
+
+The most likely answer is:
+
+```text
+Not Appflow
+Not just your phone
+Partly old uploads
+Mostly the native flyer snapshot happening before the image is fully ready
+```
