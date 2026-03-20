@@ -41,6 +41,8 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [checkedItems, setCheckedItems] = useState<boolean[]>(new Array(CHECKLIST_ITEMS.length).fill(false));
   const [printing, setPrinting] = useState(false);
+  const [preparedAvatar, setPreparedAvatar] = useState<string | null>(null);
+  const [preparedQr, setPreparedQr] = useState<string | null>(null);
   const flyerRef = useRef<HTMLDivElement>(null);
 
   const selectedDog = dogs?.find(d => d.id === selectedDogId);
@@ -80,6 +82,18 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     if (error) {
       toast.error('Failed to create alert');
     } else {
+      // Prepare flyer assets (avatar + QR) once for both web and native paths
+      const dog = dogs?.find(d => d.id === selectedDogId);
+      const alertUrl = window.location.origin + '/social';
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
+
+      const [avatarB64, qrB64] = await Promise.all([
+        dog?.avatar_url ? imageToBase64(dog.avatar_url) : Promise.resolve(null),
+        imageToBase64(qrApiUrl),
+      ]);
+
+      setPreparedAvatar(avatarB64);
+      setPreparedQr(qrB64 || qrApiUrl); // fallback to raw URL for QR
       setStep(4);
     }
   };
@@ -172,31 +186,23 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     }
   }, [selectedDog, lastSeenLocation, contactPhone]);
 
-  /** Web: use hidden iframe + window.print() */
+  /** Web: use hidden iframe + window.print() with pre-prepared base64 assets */
   const handleWebPrint = useCallback(async () => {
     if (!selectedDog) return;
 
     setPrinting(true);
     try {
       const alertUrl = window.location.origin + '/social';
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
-
-      let avatarDataUrl = selectedDog.avatar_url
-        ? await imageToBase64(selectedDog.avatar_url)
-        : null;
-
-      let qrDataUrl: string | null = await imageToBase64(qrApiUrl);
-      if (!qrDataUrl) qrDataUrl = qrApiUrl; // fallback to raw URL for QR
 
       const html = generateFlyerHTML({
         dogName: selectedDog.name,
         breed: selectedDog.breed,
-        avatarUrl: avatarDataUrl,
+        avatarUrl: preparedAvatar,
         lastSeenLocation,
         contactPhone,
         reward: reward || undefined,
         alertUrl,
-        qrImageUrl: qrDataUrl,
+        qrImageUrl: preparedQr || undefined,
         printOnLoad: false,
       });
 
@@ -246,7 +252,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     } finally {
       setPrinting(false);
     }
-  }, [selectedDog, lastSeenLocation, contactPhone, reward]);
+  }, [selectedDog, lastSeenLocation, contactPhone, reward, preparedAvatar, preparedQr]);
 
   const handlePrint = () => {
     if (Capacitor.isNativePlatform()) {
@@ -273,6 +279,8 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     setReward('');
     setCoords(null);
     setCheckedItems(new Array(CHECKLIST_ITEMS.length).fill(false));
+    setPreparedAvatar(null);
+    setPreparedQr(null);
   };
 
   const handleClose = () => {
@@ -519,11 +527,12 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
               ref={flyerRef}
               dogName={selectedDog.name}
               breed={selectedDog.breed}
-              avatarUrl={selectedDog.avatar_url}
+              avatarUrl={preparedAvatar || selectedDog.avatar_url}
               lastSeenLocation={lastSeenLocation}
               contactPhone={contactPhone}
               reward={reward || undefined}
               alertUrl={alertUrl}
+              qrImageUrl={preparedQr || undefined}
             />
           </div>
         )}
