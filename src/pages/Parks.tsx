@@ -71,6 +71,12 @@ export default function Parks() {
     detectedState,
   } = useNearbyParks();
 
+  const handlePullRefresh = useCallback(async () => {
+    searchNearMe();
+  }, [searchNearMe]);
+
+  const { containerRef: pullRefreshRef, PullIndicator } = usePullToRefresh({ onRefresh: handlePullRefresh });
+
   return (
     <div className="h-screen flex flex-col">
       {/* Sticky Header */}
