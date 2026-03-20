@@ -1,0 +1,26 @@
+{
+	"appId": "com.pawsplayrepeat.app",
+	"appName": "Paws Play Repeat",
+	"webDir": "dist",
+	"server": {
+		"iosScheme": "com.pawsplayrepeat.app",
+		"androidScheme": "https"
+	},
+	"plugins": {
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"alert"
+			]
+		}
+	},
+	"packageClassList": [
+		"AppPlugin",
+		"CAPBrowserPlugin",
+		"FilesystemPlugin",
+		"LocalNotificationsPlugin",
+		"PushNotificationsPlugin",
+		"SharePlugin"
+	]
+}
