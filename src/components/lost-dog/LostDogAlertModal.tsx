@@ -279,6 +279,8 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     setReward('');
     setCoords(null);
     setCheckedItems(new Array(CHECKLIST_ITEMS.length).fill(false));
+    setPreparedAvatar(null);
+    setPreparedQr(null);
   };
 
   const handleClose = () => {
