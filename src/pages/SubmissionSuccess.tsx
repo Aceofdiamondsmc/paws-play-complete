@@ -119,6 +119,7 @@ export default function SubmissionSuccess() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
