@@ -10,6 +10,7 @@ import { useLostDogAlerts } from '@/hooks/useLostDogAlerts';
 import { toast } from 'sonner';
 import { generateFlyerHTML } from './FlyerTemplate';
 import FlyerTemplate from './FlyerTemplate';
+import { imageUrlToBase64 } from '@/lib/image-utils';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
