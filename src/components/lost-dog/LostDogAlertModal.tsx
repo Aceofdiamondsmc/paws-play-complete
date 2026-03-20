@@ -44,6 +44,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   const [printing, setPrinting] = useState(false);
   const [preparedAvatar, setPreparedAvatar] = useState<string | null>(null);
   const [preparedQr, setPreparedQr] = useState<string | null>(null);
+  const [flyerReady, setFlyerReady] = useState(false);
   const flyerRef = useRef<HTMLDivElement>(null);
 
   const selectedDog = dogs?.find(d => d.id === selectedDogId);
@@ -68,6 +69,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   const handleSubmit = async () => {
     if (!selectedDogId || !lastSeenLocation || !contactPhone) return;
     setSubmitting(true);
+    setFlyerReady(false);
 
     const { error } = await createAlert({
       dog_id: selectedDogId,
@@ -83,23 +85,38 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     if (error) {
       toast.error('Failed to create alert');
     } else {
-      // Prepare flyer assets (avatar + QR) once for both web and native paths
       const dog = dogs?.find(d => d.id === selectedDogId);
       const alertUrl = window.location.origin + '/social';
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
+
+      console.log('[flyer] Starting image preparation...');
 
       const [avatarB64, qrB64] = await Promise.all([
         dog?.avatar_url ? imageUrlToBase64(dog.avatar_url) : Promise.resolve(null),
         imageUrlToBase64(qrApiUrl),
       ]);
 
+      console.log('[flyer] Avatar prep:', avatarB64 ? `${avatarB64.length} chars` : 'FAILED (will use placeholder)');
+      console.log('[flyer] QR prep:', qrB64 ? 'OK' : 'FAILED (will use API URL)');
+
+      // IMPORTANT: Do NOT fall back to raw remote avatar URL.
+      // If base64 prep failed, pass null so flyer shows placeholder.
       setPreparedAvatar(avatarB64);
-      setPreparedQr(qrB64 || qrApiUrl); // fallback to raw URL for QR
+      setPreparedQr(qrB64 || qrApiUrl);
       setStep(4);
+      // flyerReady will be set by FlyerTemplate's onReady callback
     }
   };
 
-  // imageToBase64 moved to shared lib: src/lib/image-utils.ts
+  /** Called by FlyerTemplate when all images are loaded and decoded */
+  const handleFlyerReady = useCallback(() => {
+    console.log('[flyer] FlyerTemplate reports READY for capture');
+    // Add a post-decode delay for iOS paint stability
+    setTimeout(() => {
+      setFlyerReady(true);
+      console.log('[flyer] Flyer capture enabled after paint delay');
+    }, 500);
+  }, []);
 
   /** Native iOS/Android: render flyer to image → save to cache → open share sheet */
   const handleNativeShare = useCallback(async () => {
@@ -108,19 +125,28 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
       return;
     }
 
+    if (!flyerReady) {
+      toast.error('Flyer images still loading — please wait a moment');
+      return;
+    }
+
     setPrinting(true);
     try {
-      // Convert the offscreen flyer DOM to a JPEG data URL
+      console.log('[flyer] Starting native capture via html-to-image...');
+
+      // Extra safety: wait a bit more for iOS paint
+      await new Promise(r => setTimeout(r, 300));
+
       const dataUrl = await toJpeg(flyerRef.current, {
         quality: 0.92,
         pixelRatio: 2,
         backgroundColor: '#ffffff',
       });
 
-      // Strip the data URL prefix to get raw base64
+      console.log('[flyer] html-to-image capture complete, size:', dataUrl.length);
+
       const base64Data = dataUrl.replace(/^data:image\/jpeg;base64,/, '');
 
-      // Write to the device cache directory
       const fileName = `lost-dog-flyer-${Date.now()}.jpg`;
       const writeResult = await Filesystem.writeFile({
         path: fileName,
@@ -128,7 +154,6 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
         directory: Directory.Cache,
       });
 
-      // Open native share sheet with the file URI
       await Share.share({
         title: `Missing Dog - ${selectedDog.name}`,
         text: `Please help find ${selectedDog.name}! Last seen: ${lastSeenLocation}. Contact: ${contactPhone}`,
@@ -138,12 +163,12 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
 
       toast.success('Flyer ready to share or print!');
     } catch (err) {
-      console.error('Native share failed:', err);
+      console.error('[flyer] Native share failed:', err);
       toast.error('Could not generate flyer. Please try again.');
     } finally {
       setPrinting(false);
     }
-  }, [selectedDog, lastSeenLocation, contactPhone]);
+  }, [selectedDog, lastSeenLocation, contactPhone, flyerReady]);
 
   /** Web: use hidden iframe + window.print() with pre-prepared base64 assets */
   const handleWebPrint = useCallback(async () => {
@@ -195,12 +220,10 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
       };
 
       await waitForImages();
-      // Extra delay to ensure images are fully painted before print
       await new Promise(r => setTimeout(r, 2000));
 
       if (iframe.contentWindow) {
         iframe.contentWindow.print();
-        // Keep iframe alive for iOS print spooler
         setTimeout(() => {
           try { document.body.removeChild(iframe); } catch { /* already removed */ }
         }, 10000);
@@ -240,6 +263,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     setCheckedItems(new Array(CHECKLIST_ITEMS.length).fill(false));
     setPreparedAvatar(null);
     setPreparedQr(null);
+    setFlyerReady(false);
   };
 
   const handleClose = () => {
@@ -256,6 +280,9 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
 
   const isNative = Capacitor.isNativePlatform();
   const alertUrl = typeof window !== 'undefined' ? window.location.origin + '/social' : '';
+
+  // For native: disable share/print until flyer reports ready
+  const canPrintOrShare = isNative ? flyerReady : true;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -451,7 +478,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
                 variant="outline"
                 size="sm"
                 onClick={handlePrint}
-                disabled={printing}
+                disabled={printing || !canPrintOrShare}
                 className="rounded-full w-full"
               >
                 {printing ? (
@@ -461,7 +488,13 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
                 ) : (
                   <Printer className="w-4 h-4 mr-2" />
                 )}
-                {printing ? 'Generating Flyer...' : isNative ? 'Share / Print Flyer' : 'Download / Print Flyer'}
+                {printing
+                  ? 'Generating Flyer...'
+                  : !canPrintOrShare
+                    ? 'Loading flyer images...'
+                    : isNative
+                      ? 'Share / Print Flyer'
+                      : 'Download / Print Flyer'}
               </Button>
               <Button size="sm" onClick={handleClose} className="rounded-full w-full">
                 Got it, let's find {selectedDog?.name}!
@@ -477,7 +510,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
               position: 'fixed',
               left: '-9999px',
               top: 0,
-              width: '816px', /* 8.5in at 96dpi */
+              width: '816px',
               zIndex: -1,
               pointerEvents: 'none',
             }}
@@ -492,6 +525,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
               reward={reward || undefined}
               alertUrl={alertUrl}
               qrImageUrl={preparedQr || undefined}
+              onReady={handleFlyerReady}
             />
           </div>
         )}

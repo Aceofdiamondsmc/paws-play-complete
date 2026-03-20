@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useRef, useCallback } from 'react';
 
 interface FlyerTemplateProps {
   dogName: string;
@@ -9,14 +9,68 @@ interface FlyerTemplateProps {
   reward?: string;
   alertUrl: string;
   qrImageUrl?: string;
+  /** Called when all images in the flyer are fully loaded and decoded */
+  onReady?: () => void;
 }
 
 const getQrCodeUrl = (url: string) =>
   `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
 
 const FlyerTemplate = forwardRef<HTMLDivElement, FlyerTemplateProps>(
-  ({ dogName, breed, avatarUrl, lastSeenLocation, contactPhone, reward, alertUrl, qrImageUrl }, ref) => {
+  ({ dogName, breed, avatarUrl, lastSeenLocation, contactPhone, reward, alertUrl, qrImageUrl, onReady }, ref) => {
     const qrSrc = qrImageUrl || getQrCodeUrl(alertUrl);
+    const avatarRef = useRef<HTMLImageElement>(null);
+    const qrRef = useRef<HTMLImageElement>(null);
+    const readyFired = useRef(false);
+
+    const checkReady = useCallback(() => {
+      if (readyFired.current) return;
+
+      const avatarOk = !avatarUrl || (avatarRef.current?.complete && (avatarRef.current?.naturalWidth ?? 0) > 0);
+      const qrOk = qrRef.current?.complete && (qrRef.current?.naturalWidth ?? 0) > 0;
+
+      if (avatarOk && qrOk) {
+        readyFired.current = true;
+        console.log('[flyer] All images loaded and ready for capture');
+        onReady?.();
+      }
+    }, [avatarUrl, onReady]);
+
+    // Also fire ready if there's no avatar (placeholder path)
+    useEffect(() => {
+      if (!avatarUrl) {
+        // Still wait for QR
+        const timer = setInterval(() => {
+          if (qrRef.current?.complete && (qrRef.current?.naturalWidth ?? 0) > 0) {
+            if (!readyFired.current) {
+              readyFired.current = true;
+              console.log('[flyer] Placeholder path — QR ready');
+              onReady?.();
+            }
+            clearInterval(timer);
+          }
+        }, 100);
+        return () => clearInterval(timer);
+      }
+    }, [avatarUrl, onReady]);
+
+    const handleImageLoad = useCallback((imgRef: React.RefObject<HTMLImageElement | null>) => {
+      const img = imgRef.current;
+      if (!img) { checkReady(); return; }
+
+      // Use decode() for iOS reliability
+      if (typeof img.decode === 'function') {
+        img.decode().then(() => {
+          console.log('[flyer] Image decoded:', img.src.substring(0, 60));
+          checkReady();
+        }).catch(() => {
+          console.warn('[flyer] decode() failed, checking anyway');
+          checkReady();
+        });
+      } else {
+        checkReady();
+      }
+    }, [checkReady]);
 
     return (
       <div ref={ref} id="flyer-template" className="block bg-white p-8" style={{ color: '#000' }}>
@@ -32,9 +86,15 @@ const FlyerTemplate = forwardRef<HTMLDivElement, FlyerTemplateProps>(
           <div className="flex justify-center mb-6">
             {avatarUrl ? (
               <img
+                ref={avatarRef}
                 src={avatarUrl}
                 alt={dogName}
                 className="w-96 h-96 object-cover border-4 border-black rounded-lg"
+                onLoad={() => handleImageLoad(avatarRef)}
+                onError={() => {
+                  console.warn('[flyer] Avatar image failed to load');
+                  checkReady();
+                }}
               />
             ) : (
               <div
@@ -75,9 +135,15 @@ const FlyerTemplate = forwardRef<HTMLDivElement, FlyerTemplateProps>(
             <p className="text-xs" style={{ color: '#6b7280' }}>Created on PawsPlayRepeat.com</p>
             <div className="flex flex-col items-center">
               <img
+                ref={qrRef}
                 src={qrSrc}
                 alt="Scan for more info"
                 className="w-24 h-24 border-2 border-black p-1"
+                onLoad={() => handleImageLoad(qrRef)}
+                onError={() => {
+                  console.warn('[flyer] QR image failed to load');
+                  checkReady();
+                }}
               />
               <p className="text-xs font-bold mt-1 text-center max-w-[120px] leading-tight" style={{ color: '#000' }}>
                 SCAN FOR MORE PHOTOS & LIVE UPDATES
