@@ -18,11 +18,11 @@ export function FreeTrialBanner() {
   // Show sign-up CTA for logged-out users
   if (!user) {
     return (
-      <Card className="p-5 border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+      <Card className="p-5 border-2 border-success/30 bg-gradient-to-br from-success/10 via-success/5 to-background overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-24 h-24 bg-success/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative space-y-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
+            <Sparkles className="w-5 h-5 text-success" />
             <h3 className="font-bold text-lg">1st Month Free</h3>
           </div>
           <ul className="text-sm text-muted-foreground space-y-1">
@@ -118,11 +118,11 @@ export function FreeTrialBanner() {
 
   // No subscription — show CTA
   return (
-    <Card className="p-5 border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background overflow-hidden relative">
-      <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+    <Card className="p-5 border-2 border-success/30 bg-gradient-to-br from-success/10 via-success/5 to-background overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-success/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
       <div className="relative space-y-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
+          <Sparkles className="w-5 h-5 text-success" />
           <h3 className="font-bold text-lg">1st Month Free</h3>
         </div>
         <ul className="text-sm text-muted-foreground space-y-1">

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, Clock, ArrowRight, Store, Settings, Loader2 } from 'lucide-react';
+import { CheckCircle, Clock, ArrowRight, ArrowLeft, Store, Settings, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +28,25 @@ export default function SubmissionSuccess() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-success/5 to-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-success/5 to-background">
+      {/* Safe-area header for iOS */}
+      <div
+        className="bg-card border-b p-4 sticky top-0 z-50"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
+      >
+        <div className="max-w-md mx-auto flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="min-w-[44px] min-h-[44px]"
+            onClick={() => navigate('/services')}
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </Button>
+          <h1 className="text-lg font-bold">Submission Complete</h1>
+        </div>
+      </div>
+      <div className="flex items-center justify-center p-4 flex-1">
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 rounded-full bg-success/20 flex items-center justify-center mb-4">
@@ -101,6 +119,7 @@ export default function SubmissionSuccess() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
