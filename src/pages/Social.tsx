@@ -238,6 +238,12 @@ export default function Social() {
 
   const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts(friendAuthorFilter);
 
+  const handlePullRefresh = useCallback(async () => {
+    await refresh();
+  }, [refresh]);
+
+  const { containerRef: pullRefreshRef, PullIndicator } = usePullToRefresh({ onRefresh: handlePullRefresh });
+
   const handleMessageAuthor = async (authorId: string) => {
     if (!user) {
       navigate('/me');
