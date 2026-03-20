@@ -160,7 +160,8 @@ export default function Parks() {
           <ParksMap parks={allParks} loading={loading} />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto">
+        <div ref={pullRefreshRef} className="flex-1 overflow-y-auto">
+          <PullIndicator />
           {/* Location Loading / Detecting spinner - BLOCKS park rendering */}
           {(locationLoading || (loading && !dataReady)) && (
             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
