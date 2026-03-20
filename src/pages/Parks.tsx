@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { MapPin, List, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Loader2, MapPinOff, Search, Plus } from 'lucide-react';
 import { SuggestParkModal } from '@/components/parks/SuggestParkModal';
 import { useAuth } from '@/hooks/useAuth';
