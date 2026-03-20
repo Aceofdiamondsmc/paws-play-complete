@@ -12,6 +12,7 @@ import { ParkPreviewSheet } from '@/components/parks/ParkPreviewSheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { Park } from '@/types';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 const filterOptions = [
   { id: 'fenced', label: 'Fully Fenced', icon: 'Fence', color: 'bg-amber-100 text-amber-600', activeColor: 'bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.5)]' },
   { id: 'water', label: 'Water Station', icon: 'Droplets', color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]' },
