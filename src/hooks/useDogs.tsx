@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { ensureJpeg } from '@/lib/heic-convert';
+import { toast } from '@/hooks/use-toast';
 
 interface DogData {
   name: string;
