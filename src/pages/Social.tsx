@@ -402,7 +402,7 @@ export default function Social() {
         </div>
       </div>
     </div>
-    <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
+    <div ref={pullRefreshRef} className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative overflow-y-auto">
       {/* Floating Action Button - Bottom Right (hidden when comments drawer is open) */}
       {!commentsPostId && <div className="fixed bottom-24 right-4 z-[100] flex flex-col items-center gap-2">
         {/* Sign in tooltip for non-logged in users */}
