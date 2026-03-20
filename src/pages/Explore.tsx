@@ -117,7 +117,7 @@ export default function Explore() {
   );
 
   return (
-    <div className="min-h-screen pb-24">
+    <div ref={pullRefreshRef} className="min-h-screen pb-24 overflow-y-auto">
       {/* Header */}
       <div className="bg-card/95 backdrop-blur border-b border-border p-4 space-y-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
