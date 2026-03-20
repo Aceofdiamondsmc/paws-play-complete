@@ -15,56 +15,71 @@ const getQrCodeUrl = (url: string) =>
   `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
 
 const FlyerTemplate = forwardRef<HTMLDivElement, FlyerTemplateProps>(
-  ({ dogName, breed, avatarUrl, lastSeenLocation, contactPhone, reward, alertUrl }, ref) => {
+  ({ dogName, breed, avatarUrl, lastSeenLocation, contactPhone, reward, alertUrl, qrImageUrl }, ref) => {
+    const qrSrc = qrImageUrl || getQrCodeUrl(alertUrl);
+
     return (
-      <div ref={ref} id="flyer-template" className="block bg-white p-8">
-        <div className="w-[8.5in] h-[11in] mx-auto p-8 bg-white text-black font-sans flex flex-col">
+      <div ref={ref} id="flyer-template" className="block bg-white p-8" style={{ color: '#000' }}>
+        <div
+          className="mx-auto p-8 bg-white font-sans flex flex-col"
+          style={{ width: '8.5in', height: '11in', color: '#000', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+        >
           <div className="text-center border-4 border-black p-4 mb-6">
-            <h1 className="text-5xl font-black tracking-wider">MISSING DOG</h1>
-            <p className="text-xl font-bold mt-1">PLEASE HELP US FIND OUR FAMILY MEMBER</p>
+            <h1 className="text-5xl font-black tracking-wider" style={{ color: '#000' }}>MISSING DOG</h1>
+            <p className="text-xl font-bold mt-1" style={{ color: '#000' }}>PLEASE HELP US FIND OUR FAMILY MEMBER</p>
           </div>
 
-          {avatarUrl && (
-            <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-6">
+            {avatarUrl ? (
               <img
                 src={avatarUrl}
                 alt={dogName}
                 className="w-96 h-96 object-cover border-4 border-black rounded-lg"
               />
-            </div>
-          )}
-
-          <div className="text-center mb-4">
-            <h2 className="text-4xl font-black">{dogName}</h2>
-            {breed && <p className="text-2xl font-semibold mt-1">{breed}</p>}
+            ) : (
+              <div
+                className="w-96 h-96 border-4 border-black rounded-lg flex items-center justify-center"
+                style={{ background: '#f3f4f6' }}
+              >
+                <div className="text-center">
+                  <p style={{ fontSize: '72px', margin: 0 }}>🐕</p>
+                  <p style={{ fontSize: '28px', fontWeight: 900, margin: '8px 0 0', color: '#000' }}>{dogName}</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="bg-gray-100 border-2 border-black rounded-lg p-4 mb-4 text-center">
-            <p className="text-lg font-bold">LAST SEEN</p>
-            <p className="text-xl">{lastSeenLocation}</p>
+          <div className="text-center mb-4">
+            <h2 className="text-4xl font-black" style={{ color: '#000' }}>{dogName}</h2>
+            {breed && <p className="text-2xl font-semibold mt-1" style={{ color: '#000' }}>{breed}</p>}
+          </div>
+
+          <div className="border-2 border-black rounded-lg p-4 mb-4 text-center" style={{ background: '#f3f4f6' }}>
+            <p className="text-lg font-bold" style={{ color: '#000' }}>LAST SEEN</p>
+            <p className="text-xl" style={{ color: '#000' }}>{lastSeenLocation}</p>
           </div>
 
           {reward && (
-            <div className="bg-yellow-300 border-2 border-black rounded-lg p-4 mb-4 text-center">
-              <p className="text-2xl font-black">💰 REWARD: {reward}</p>
-              <p className="text-sm font-semibold">FOR SAFE RETURN</p>
+            <div className="border-2 border-black rounded-lg p-4 mb-4 text-center" style={{ background: '#fde047' }}>
+              <p className="text-2xl font-black" style={{ color: '#000', margin: 0 }}>💰 REWARD: {reward}</p>
+              <p className="text-sm font-semibold" style={{ color: '#000', margin: '4px 0 0' }}>FOR SAFE RETURN</p>
             </div>
           )}
 
           <div className="border-4 border-black rounded-lg p-6 text-center mb-4 flex-1 flex flex-col justify-center">
-            <p className="text-xl font-bold mb-2">CONTACT OWNER</p>
-            <p className="text-5xl font-black tracking-wider">{contactPhone}</p>
+            <p className="text-xl font-bold mb-2" style={{ color: '#000' }}>CONTACT OWNER</p>
+            <p className="text-5xl font-black tracking-wider" style={{ color: '#000' }}>{contactPhone}</p>
           </div>
 
           <div className="flex items-end justify-between mt-auto">
-            <p className="text-xs text-gray-500">Created on PawsPlayRepeat.com</p>
+            <p className="text-xs" style={{ color: '#6b7280' }}>Created on PawsPlayRepeat.com</p>
             <div className="flex flex-col items-center">
               <img
-                src={getQrCodeUrl(alertUrl)}
+                src={qrSrc}
                 alt="Scan for more info"
                 className="w-24 h-24 border-2 border-black p-1"
               />
-              <p className="text-xs font-bold mt-1 text-center max-w-[120px] leading-tight">
+              <p className="text-xs font-bold mt-1 text-center max-w-[120px] leading-tight" style={{ color: '#000' }}>
                 SCAN FOR MORE PHOTOS & LIVE UPDATES
               </p>
             </div>
@@ -74,7 +89,6 @@ const FlyerTemplate = forwardRef<HTMLDivElement, FlyerTemplateProps>(
     );
   }
 );
-
 FlyerTemplate.displayName = 'FlyerTemplate';
 
 /**

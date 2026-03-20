@@ -41,6 +41,8 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [checkedItems, setCheckedItems] = useState<boolean[]>(new Array(CHECKLIST_ITEMS.length).fill(false));
   const [printing, setPrinting] = useState(false);
+  const [preparedAvatar, setPreparedAvatar] = useState<string | null>(null);
+  const [preparedQr, setPreparedQr] = useState<string | null>(null);
   const flyerRef = useRef<HTMLDivElement>(null);
 
   const selectedDog = dogs?.find(d => d.id === selectedDogId);
