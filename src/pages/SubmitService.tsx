@@ -185,10 +185,18 @@ export default function SubmitService() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background pb-24">
       {/* Header */}
-      <div className="bg-card border-b p-4">
+      <div
+        className="bg-card border-b p-4 sticky top-0 z-50"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
+      >
         <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/services')}>
-            <ArrowLeft className="w-5 h-5" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="min-w-[44px] min-h-[44px]"
+            onClick={() => navigate('/services')}
+          >
+            <ArrowLeft className="w-6 h-6" />
           </Button>
           <div>
             <h1 className="text-xl font-bold">Add Your Service</h1>
