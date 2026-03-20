@@ -1,38 +1,28 @@
 
 
-## Plan: Fix flyer image disappearing before print
+## Problem
 
-### Changes to `src/components/lost-dog/LostDogAlertModal.tsx`
+`uploadDogAvatar` in `src/hooks/useDogs.tsx` uploads the file as-is — no HEIC-to-JPEG conversion. The flyer works for dogs with JPEG avatars but fails for dogs with HEIC/PNG/WEBP avatars that iOS WebKit may struggle to render in a print context.
 
-**1. Add 2-second delay before `print()`** (after line 202, before the print call)
+## Plan
 
-Insert a `setTimeout` or `await new Promise(r => setTimeout(r, 2000))` after `waitForImages()` resolves, giving the browser time to fully paint the loaded image.
+### 1. Add `ensureJpeg` to dog avatar uploads (`src/hooks/useDogs.tsx`)
 
-**2. Delay iframe cleanup to 10+ seconds after print** (lines 204-211)
+In `uploadDogAvatar` (~line 120), convert the file before uploading:
 
-- Remove the `afterprint` instant cleanup listener
-- Change the `setTimeout(cleanup, 60000)` to `setTimeout(cleanup, 10000)` — keeping the iframe alive for 10 seconds so the iOS print spooler can grab the rendered image
-
-**3. Add `image-rendering` CSS to flyer HTML** (in `generateFlyerHTML` in `FlyerTemplate.tsx`)
-
-Add `image-rendering: -webkit-optimize-contrast;` to the `<img>` tag style for the dog photo in the generated HTML, ensuring sharpness on WebKit-based renderers.
-
-### Specific code changes
-
-**`LostDogAlertModal.tsx` lines 202-211** — replace with:
 ```typescript
-await waitForImages();
-// Extra delay to ensure images are fully painted
-await new Promise(r => setTimeout(r, 2000));
+import { ensureJpeg } from '@/lib/heic-convert';
+import { toast } from '@/hooks/use-toast';
 
-if (iframe.contentWindow) {
-  iframe.contentWindow.print();
-  // Keep iframe alive for iOS print spooler
-  setTimeout(() => {
-    try { document.body.removeChild(iframe); } catch {}
-  }, 10000);
-}
+// Inside uploadDogAvatar, before line 124:
+file = await ensureJpeg(file, () => {
+  toast({ title: "Processing image... 📸", description: "Converting for best compatibility." });
+});
 ```
 
-**`FlyerTemplate.tsx`** — in `generateFlyerHTML`, add `image-rendering:-webkit-optimize-contrast;` to the avatar `<img>` inline style.
+This ensures every dog avatar stored in Supabase is a JPEG, matching the pattern already used in `useImageUpload`, `CreatePostForm`, `PhotoUploadSheet`, and `ChatView`.
+
+### 2. No other changes needed
+
+The flyer template and print logic are already correct. This single change ensures all future dog avatars are JPEG-compatible. Existing non-JPEG avatars from before this fix would need to be re-uploaded by the user.
 
