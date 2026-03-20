@@ -1,37 +1,91 @@
 
 
-## Plan: Fix Ask AI for iOS Native Build
+## Plan: Final flyer hardening
 
-### Problem
+### What is still wrong
 
-The `ExploreAssistant.tsx` frontend component hardcodes both the Supabase URL and the anon key. On the native iOS build (Capacitor), the origin is `capacitor://localhost`, which can cause CORS preflight failures because the edge function's `Access-Control-Allow-Headers` is missing several headers the Supabase client sends.
+I found one important gap in the current fix:
 
-Additionally, the frontend should use the logged-in user's session token (not just the anon key) so the edge function's auth check works properly.
+- **Web print** now converts the dog photo to base64 before generating the HTML flyer.
+- But the **native/share flyer path still uses raw remote image URLs** inside `FlyerTemplate`.
+- Also, `FlyerTemplate` defines `qrImageUrl` in props but the live React component **does not actually use it** yet.
+- So the flyer is still inconsistent depending on whether it is rendered through:
+  - the generated HTML print path, or
+  - the hidden React DOM → `html-to-image` path.
 
-### Changes
+That explains why the flyer can still be “stubborn” even after the first round of fixes.
 
-**1. Edge function CORS fix (`supabase/functions/explore-assistant/index.ts`)**
+### Changes to make
 
-Update the CORS headers to include all Supabase client headers:
+#### 1. Unify flyer asset handling in `LostDogAlertModal.tsx`
+I will make the flyer use **one shared asset-prep step** for both web and native:
+- Preload and convert:
+  - dog avatar
+  - QR code
+- Store them in state as prepared flyer assets
+- Reuse those same prepared assets for:
+  - `handleWebPrint`
+  - `handleNativeShare`
+  - the hidden offscreen `FlyerTemplate`
 
-```
-Access-Control-Allow-Headers: authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version
-```
+This removes the mismatch where one path is hardened and the other is not.
 
-No other edge function changes needed — it already uses `LOVABLE_API_KEY` correctly.
+#### 2. Fix `FlyerTemplate.tsx`
+Update the React flyer component so it matches the HTML flyer behavior:
+- Actually use `qrImageUrl` when provided
+- Always render a fixed photo area
+- Show a **visible placeholder block** when avatar conversion fails
+- Add explicit black text color / print-safe styling so text never disappears into a blank-looking box
 
-**2. Frontend fix (`src/components/explore/ExploreAssistant.tsx`)**
+#### 3. Make print/share wait for ready assets
+In `LostDogAlertModal.tsx`:
+- Prepare flyer assets before printing/sharing
+- Prevent the print/share action from running until the assets are ready
+- If image conversion fails, continue with the placeholder instead of producing a broken flyer
 
-- Replace the hardcoded URL with `import.meta.env.VITE_SUPABASE_URL` + `/functions/v1/explore-assistant`
-- Replace the hardcoded anon key with the user's actual session token from the Supabase client (falling back to the anon key if no session)
-- Import `supabase` from the client integration to get the session
+#### 4. Keep the current good parts
+I will keep the parts that are already working:
+- 15-second timeout
+- image downscaling
+- JPEG export
+- iOS-friendly delay before print
+- keeping the iframe alive for print spooler
 
-This ensures the request works from any origin (web, PWA, or Capacitor native) and sends a valid auth token.
-
-### Summary
+### Files to update
 
 | File | Change |
 |------|--------|
-| `supabase/functions/explore-assistant/index.ts` | Expand CORS `Access-Control-Allow-Headers` |
-| `src/components/explore/ExploreAssistant.tsx` | Use env var for URL, use session token for auth |
+| `src/components/lost-dog/LostDogAlertModal.tsx` | Prepare flyer avatar + QR once, store them in state, and use them in both web and native flyer flows |
+| `src/components/lost-dog/FlyerTemplate.tsx` | Use `qrImageUrl`, add placeholder rendering in the live component, and strengthen print-safe text/image styling |
+
+### Technical details
+
+```text
+Current issue:
+- web path: prepared base64 assets
+- native path: raw remote avatar + raw remote QR
+- FlyerTemplate React path ignores qrImageUrl
+
+Result:
+- flyer behaves differently by platform/path
+- remote assets can still fail in html-to-image / iOS rendering
+```
+
+```text
+Fix:
+1. prepare avatarDataUrl + qrDataUrl once
+2. pass both into generateFlyerHTML
+3. pass both into offscreen FlyerTemplate
+4. if avatar prep fails, render placeholder block instead of blank area
+5. wait until flyer assets are ready before print/share
+```
+
+### Expected outcome
+
+After this change, the flyer should behave the same way everywhere:
+- web preview print
+- iPhone/iOS build
+- native share/print flow
+
+And if a photo cannot be embedded, the flyer will still be usable with a clear placeholder instead of looking broken.
 
