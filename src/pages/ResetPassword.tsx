@@ -90,7 +90,7 @@ export default function ResetPassword() {
   if (!isRecoveryMode && !isSuccess) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-[hsl(165,35%,55%)] via-[hsl(165,30%,65%)] to-background pb-24">
-        <div className="flex flex-col items-center pt-8 pb-6">
+        <div className="flex flex-col items-center pb-6" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 32px)' }}>
           <div className="w-20 h-20 bg-[hsl(165,35%,45%)] rounded-full flex items-center justify-center mb-4">
             <Lock className="w-10 h-10 text-white" />
           </div>
