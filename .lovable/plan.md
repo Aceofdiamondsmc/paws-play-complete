@@ -1,36 +1,34 @@
 
 
-## Fix: Dog photo missing from flyer + enlarge photo
+## Assessment: The fetch/blob approach won't fix this
 
-### Changes
+The fetch/blob code you suggested is **identical to the original `toDataUrl` that was already in the file** before any changes. It was the code that wasn't working in the first place — that's why the photo was missing.
 
-**1. Fix image conversion — `src/components/lost-dog/LostDogAlertModal.tsx`**
+The core problem: both `fetch()` and canvas approaches fail when CORS blocks the request. When they fail, line 158 silently catches the error and keeps the original Supabase URL — but the iframe may also fail to render it.
 
-Replace the `toDataUrl` function (lines 87-96) with a canvas-based approach that reliably produces base64 even with cross-origin images:
+## Better Plan
+
+The simplest, most reliable fix: **skip base64 conversion for the avatar entirely**. An `<img src="https://supabase-storage-url/...">` inside the print iframe will load the image normally — `<img>` tags are **not subject to CORS** for display purposes. Only `fetch()` and canvas with `crossOrigin` care about CORS headers.
+
+### Change in `src/components/lost-dog/LostDogAlertModal.tsx`
+
+In `handleWebPrint` (~lines 156-159), remove the avatar base64 conversion attempt and pass the original URL directly:
 
 ```typescript
-const toDataUrl = (url: string): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = img.naturalWidth;
-      c.height = img.naturalHeight;
-      const ctx = c.getContext('2d');
-      if (!ctx) return reject(new Error('No canvas context'));
-      ctx.drawImage(img, 0, 0);
-      resolve(c.toDataURL('image/jpeg', 0.9));
-    };
-    img.onerror = () => reject(new Error('Image load failed'));
-    img.src = url;
-  });
+// Before (tries to convert, silently fails):
+let avatarDataUrl: string | null = selectedDog.avatar_url;
+if (avatarDataUrl) {
+  try { avatarDataUrl = await toDataUrl(avatarDataUrl); } catch { /* keep original */ }
+}
+
+// After (just use the URL directly):
+const avatarDataUrl = selectedDog.avatar_url;
 ```
 
-**2. Enlarge photo on flyer — `src/components/lost-dog/FlyerTemplate.tsx`**
+Keep the QR code conversion since that's a different API. The `toDataUrl` function stays for QR use only.
 
-- **React component** (line ~31): Change `w-72 h-72` (288px) to `w-96 h-96` (384px)
-- **Print HTML** (line ~90): Change `width:288px;height:288px` to `width:384px;height:384px`
-
-This makes the dog photo ~33% larger — prominent enough to be recognized from a distance while still fitting the letter-sized layout.
+### Why this works
+- `<img>` tags in the iframe load cross-origin images without CORS restrictions
+- The print dialog captures rendered images regardless of origin
+- No conversion = no failure point
 
