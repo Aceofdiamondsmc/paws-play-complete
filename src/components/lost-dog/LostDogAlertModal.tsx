@@ -89,8 +89,8 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
 
       const [avatarB64, qrB64] = await Promise.all([
-        dog?.avatar_url ? imageToBase64(dog.avatar_url) : Promise.resolve(null),
-        imageToBase64(qrApiUrl),
+        dog?.avatar_url ? imageUrlToBase64(dog.avatar_url) : Promise.resolve(null),
+        imageUrlToBase64(qrApiUrl),
       ]);
 
       setPreparedAvatar(avatarB64);
