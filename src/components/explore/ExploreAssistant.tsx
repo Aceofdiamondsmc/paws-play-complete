@@ -6,10 +6,11 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import ReactMarkdown from 'react-markdown';
+import { supabase } from '@/integrations/supabase/client';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
-const CHAT_URL = `https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/explore-assistant`;
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/explore-assistant`;
 
 async function streamChat({
   messages,
