@@ -468,6 +468,7 @@ export default function Social() {
         </div>
       </div>
 
+      <PullIndicator />
       <div className="p-4 space-y-4">
         {/* Birthday Banner */}
         {user && userDogs && (() => {
