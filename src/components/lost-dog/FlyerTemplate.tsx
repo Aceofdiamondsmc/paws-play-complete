@@ -29,7 +29,7 @@ const FlyerTemplate = forwardRef<HTMLDivElement, FlyerTemplateProps>(
               <img
                 src={avatarUrl}
                 alt={dogName}
-                className="w-72 h-72 object-cover border-4 border-black rounded-lg"
+                className="w-96 h-96 object-cover border-4 border-black rounded-lg"
               />
             </div>
           )}
