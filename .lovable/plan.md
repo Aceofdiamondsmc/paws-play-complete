@@ -1,22 +1,29 @@
 
 
-## Plan: Apply safe-area padding to remaining headers
+## Problem
 
-### Analysis
+In `handleWebPrint` (line 148-219 of `LostDogAlertModal.tsx`), the dog avatar URL is passed directly to the flyer HTML as a raw Supabase storage URL. The QR code is converted to base64 via `toDataUrl()`, but the avatar is not. In the iframe's print context, cross-origin images from Supabase storage fail to load — iOS Safari's print renderer is especially strict about this. The one image that worked was likely already in the browser cache.
 
-After auditing all pages and sticky headers:
+## Fix
 
-- **Already fixed**: `AdminLayout`, `SubmitService`, `SubmissionSuccess`, `Landing`, `ChatView` — all have safe-area padding
-- **Inside AppLayout** (Parks, Explore, Social, ServiceDetails, etc.) — these render below the main `Header` which already has `safe-top`, so their sub-headers are not at risk of being behind the Dynamic Island
-- **Outside AppLayout, NOT fixed**: `ForgotPassword.tsx` and `ResetPassword.tsx` — these are standalone pages with `pt-8` top padding, which may not clear the Dynamic Island on iPhone 15 Pro Max
+### File: `src/components/lost-dog/LostDogAlertModal.tsx` (~line 156)
 
-### Changes
+Convert the avatar to a base64 data URL before passing it to `generateFlyerHTML`, using the same `toDataUrl` helper already used for the QR code:
 
-#### 1. `src/pages/ForgotPassword.tsx`
-- Change the outer `<div>` from `pt-8` padding to use `paddingTop: 'max(env(safe-area-inset-top, 0px), 32px)'` inline style, ensuring the content clears the Dynamic Island while maintaining the visual spacing
+```typescript
+// Before (line 156):
+const avatarDataUrl = selectedDog.avatar_url;
 
-#### 2. `src/pages/ResetPassword.tsx`
-- Same change on both render paths (the "Invalid Link" view and the main password reset form) — replace the fixed `pt-8` with the safe-area-aware inline style
+// After:
+let avatarDataUrl = selectedDog.avatar_url;
+if (avatarDataUrl) {
+  try {
+    avatarDataUrl = await toDataUrl(avatarDataUrl);
+  } catch {
+    // Fall back to original URL if conversion fails
+  }
+}
+```
 
-These are the only two pages outside `AppLayout` that don't already have the safe-area pattern applied. All pages inside `AppLayout` are protected by the main `Header` component's `safe-top` class.
+This is a 3-line change. The `toDataUrl` function (line 87-101) already exists and handles the fetch + FileReader conversion. No other files need changes.
 
