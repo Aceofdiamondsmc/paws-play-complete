@@ -1,19 +1,36 @@
 
 
-## Fix: Downgrade @capacitor/filesystem to match Capacitor 6
+## Fix: Dog photo missing from flyer + enlarge photo
 
-### Problem
-The Appflow build failed because `@capacitor/filesystem@8.1.2` requires `@capacitor/core >= 8.0.0`, but the project runs Capacitor 6. All other Capacitor plugins in the project are pinned to `^6.0.0`.
+### Changes
 
-### Fix
-Change `@capacitor/filesystem` from `^8.1.2` to `^6.0.0` in `package.json`. The Capacitor 6 version of Filesystem has the same API (`writeFile`, `Directory.Cache`, etc.) so no code changes are needed in `LostDogAlertModal.tsx`.
+**1. Fix image conversion — `src/components/lost-dog/LostDogAlertModal.tsx`**
 
-### File Changed
-- `package.json` — Change `"@capacitor/filesystem": "^8.1.2"` to `"@capacitor/filesystem": "^6.0.0"`
+Replace the `toDataUrl` function (lines 87-96) with a canvas-based approach that reliably produces base64 even with cross-origin images:
 
-### After Implementation
-1. Pull changes
-2. Run `npm install`
-3. Run `npx cap sync`
-4. Push to GitHub and trigger Appflow build
+```typescript
+const toDataUrl = (url: string): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const ctx = c.getContext('2d');
+      if (!ctx) return reject(new Error('No canvas context'));
+      ctx.drawImage(img, 0, 0);
+      resolve(c.toDataURL('image/jpeg', 0.9));
+    };
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = url;
+  });
+```
+
+**2. Enlarge photo on flyer — `src/components/lost-dog/FlyerTemplate.tsx`**
+
+- **React component** (line ~31): Change `w-72 h-72` (288px) to `w-96 h-96` (384px)
+- **Print HTML** (line ~90): Change `width:288px;height:288px` to `width:384px;height:384px`
+
+This makes the dog photo ~33% larger — prominent enough to be recognized from a distance while still fitting the letter-sized layout.
 
