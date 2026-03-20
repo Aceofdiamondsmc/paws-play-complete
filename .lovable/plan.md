@@ -1,34 +1,38 @@
 
 
-## Assessment: The fetch/blob approach won't fix this
+## Plan: Fix flyer image disappearing before print
 
-The fetch/blob code you suggested is **identical to the original `toDataUrl` that was already in the file** before any changes. It was the code that wasn't working in the first place — that's why the photo was missing.
+### Changes to `src/components/lost-dog/LostDogAlertModal.tsx`
 
-The core problem: both `fetch()` and canvas approaches fail when CORS blocks the request. When they fail, line 158 silently catches the error and keeps the original Supabase URL — but the iframe may also fail to render it.
+**1. Add 2-second delay before `print()`** (after line 202, before the print call)
 
-## Better Plan
+Insert a `setTimeout` or `await new Promise(r => setTimeout(r, 2000))` after `waitForImages()` resolves, giving the browser time to fully paint the loaded image.
 
-The simplest, most reliable fix: **skip base64 conversion for the avatar entirely**. An `<img src="https://supabase-storage-url/...">` inside the print iframe will load the image normally — `<img>` tags are **not subject to CORS** for display purposes. Only `fetch()` and canvas with `crossOrigin` care about CORS headers.
+**2. Delay iframe cleanup to 10+ seconds after print** (lines 204-211)
 
-### Change in `src/components/lost-dog/LostDogAlertModal.tsx`
+- Remove the `afterprint` instant cleanup listener
+- Change the `setTimeout(cleanup, 60000)` to `setTimeout(cleanup, 10000)` — keeping the iframe alive for 10 seconds so the iOS print spooler can grab the rendered image
 
-In `handleWebPrint` (~lines 156-159), remove the avatar base64 conversion attempt and pass the original URL directly:
+**3. Add `image-rendering` CSS to flyer HTML** (in `generateFlyerHTML` in `FlyerTemplate.tsx`)
 
+Add `image-rendering: -webkit-optimize-contrast;` to the `<img>` tag style for the dog photo in the generated HTML, ensuring sharpness on WebKit-based renderers.
+
+### Specific code changes
+
+**`LostDogAlertModal.tsx` lines 202-211** — replace with:
 ```typescript
-// Before (tries to convert, silently fails):
-let avatarDataUrl: string | null = selectedDog.avatar_url;
-if (avatarDataUrl) {
-  try { avatarDataUrl = await toDataUrl(avatarDataUrl); } catch { /* keep original */ }
-}
+await waitForImages();
+// Extra delay to ensure images are fully painted
+await new Promise(r => setTimeout(r, 2000));
 
-// After (just use the URL directly):
-const avatarDataUrl = selectedDog.avatar_url;
+if (iframe.contentWindow) {
+  iframe.contentWindow.print();
+  // Keep iframe alive for iOS print spooler
+  setTimeout(() => {
+    try { document.body.removeChild(iframe); } catch {}
+  }, 10000);
+}
 ```
 
-Keep the QR code conversion since that's a different API. The `toDataUrl` function stays for QR use only.
-
-### Why this works
-- `<img>` tags in the iframe load cross-origin images without CORS restrictions
-- The print dialog captures rendered images regardless of origin
-- No conversion = no failure point
+**`FlyerTemplate.tsx`** — in `generateFlyerHTML`, add `image-rendering:-webkit-optimize-contrast;` to the avatar `<img>` inline style.
 
