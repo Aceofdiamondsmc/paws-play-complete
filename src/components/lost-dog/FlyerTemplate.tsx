@@ -29,7 +29,7 @@ const FlyerTemplate = forwardRef<HTMLDivElement, FlyerTemplateProps>(
               <img
                 src={avatarUrl}
                 alt={dogName}
-                className="w-72 h-72 object-cover border-4 border-black rounded-lg"
+                className="w-96 h-96 object-cover border-4 border-black rounded-lg"
               />
             </div>
           )}
@@ -87,7 +87,7 @@ export function generateFlyerHTML(props: FlyerTemplateProps & { printOnLoad?: bo
 
   const photoBlock = avatarUrl
     ? `<div style="text-align:center;margin-bottom:24px;">
-        <img src="${avatarUrl}" alt="${dogName}" style="width:288px;height:288px;object-fit:cover;border:4px solid #000;border-radius:8px;" />
+        <img src="${avatarUrl}" alt="${dogName}" style="width:384px;height:384px;object-fit:cover;border:4px solid #000;border-radius:8px;" />
       </div>`
     : '';
 
