@@ -89,7 +89,14 @@ export function generateFlyerHTML(props: FlyerTemplateProps & { printOnLoad?: bo
     ? `<div style="text-align:center;margin-bottom:24px;">
         <img src="${avatarUrl}" alt="${dogName}" style="width:384px;height:384px;object-fit:cover;border:4px solid #000;border-radius:8px;image-rendering:-webkit-optimize-contrast;" />
       </div>`
-    : '';
+    : `<div style="text-align:center;margin-bottom:24px;">
+        <div style="width:384px;height:384px;margin:0 auto;border:4px solid #000;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#f3f4f6;">
+          <div style="text-align:center;">
+            <p style="font-size:72px;margin:0;">🐕</p>
+            <p style="font-size:28px;font-weight:900;margin:8px 0 0;">${dogName}</p>
+          </div>
+        </div>
+      </div>`;
 
   const rewardBlock = reward
     ? `<div style="background:#fde047;border:2px solid #000;border-radius:8px;padding:16px;margin-bottom:16px;text-align:center;">

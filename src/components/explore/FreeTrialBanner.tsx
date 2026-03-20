@@ -134,7 +134,7 @@ export function FreeTrialBanner() {
         <Button
           onClick={handleStartTrial}
           disabled={isStarting}
-          className="w-full rounded-full font-bold"
+          className="w-full rounded-full font-bold bg-success hover:bg-success/90 text-white"
           size="lg"
         >
           {isStarting ? (
