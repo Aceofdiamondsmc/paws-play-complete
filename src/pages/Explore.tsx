@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Scissors as ScissorsIcon, Search, Dog, Scissors, Stethoscope, Home, MapPin, List, Map as MapIcon, BadgeCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { ExploreAssistant } from '@/components/explore/ExploreAssistant';
 import { AddServiceCTA } from '@/components/explore/AddServiceCTA';
 import { WeatherWidget } from '@/components/explore/WeatherWidget';
 import { FreeTrialBanner } from '@/components/explore/FreeTrialBanner';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 const serviceCategories = [
   { id: 'Dog Walkers', label: 'Dog Walkers', icon: Dog, color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]' },
@@ -56,11 +57,17 @@ export default function Explore() {
     );
   }, []);
 
-  const { data: services, isLoading } = useServices(selectedCategory);
-  const { data: nearbyServices, isLoading: nearbyLoading } = useNearbyServices(
+  const { data: services, isLoading, refetch: refetchServices } = useServices(selectedCategory);
+  const { data: nearbyServices, isLoading: nearbyLoading, refetch: refetchNearby } = useNearbyServices(
     nearMeMode ? userCoords : null,
     selectedCategory
   );
+
+  const handlePullRefresh = useCallback(async () => {
+    if (nearMeMode) { await refetchNearby(); } else { await refetchServices(); }
+  }, [nearMeMode, refetchNearby, refetchServices]);
+
+  const { containerRef: pullRefreshRef, PullIndicator } = usePullToRefresh({ onRefresh: handlePullRefresh });
 
   const handleCategoryClick = (categoryId: string) => {
     setSelectedCategory(prev => prev === categoryId ? null : categoryId);
@@ -110,7 +117,7 @@ export default function Explore() {
   );
 
   return (
-    <div className="min-h-screen pb-24">
+    <div ref={pullRefreshRef} className="min-h-screen pb-24 overflow-y-auto">
       {/* Header */}
       <div className="bg-card/95 backdrop-blur border-b border-border p-4 space-y-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
@@ -161,6 +168,7 @@ export default function Explore() {
       </div>
 
       <div className="p-4 space-y-4">
+        <PullIndicator />
         {/* Category Pills */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {serviceCategories.map(cat => {

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck, ImageOff, MessageSquare, Check, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,7 @@ import AdminEditPostModal from '@/components/social/AdminEditPostModal';
 import VideoPlayer from '@/components/social/VideoPlayer';
 import { useMessages } from '@/hooks/useMessages';
 import { useFriendships } from '@/hooks/useFriendships';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
@@ -237,6 +238,12 @@ export default function Social() {
 
   const { posts, loading, createPost, likePost, deletePost, refresh, newPostIds } = usePosts(friendAuthorFilter);
 
+  const handlePullRefresh = useCallback(async () => {
+    await refresh();
+  }, [refresh]);
+
+  const { containerRef: pullRefreshRef, PullIndicator } = usePullToRefresh({ onRefresh: handlePullRefresh });
+
   const handleMessageAuthor = async (authorId: string) => {
     if (!user) {
       navigate('/me');
@@ -395,7 +402,7 @@ export default function Social() {
         </div>
       </div>
     </div>
-    <div className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative">
+    <div ref={pullRefreshRef} className="min-h-screen bg-gradient-to-b from-[hsl(45,60%,92%)] via-[hsl(45,50%,95%)] to-background pb-24 relative overflow-y-auto">
       {/* Floating Action Button - Bottom Right (hidden when comments drawer is open) */}
       {!commentsPostId && <div className="fixed bottom-24 right-4 z-[100] flex flex-col items-center gap-2">
         {/* Sign in tooltip for non-logged in users */}
@@ -461,6 +468,7 @@ export default function Social() {
         </div>
       </div>
 
+      <PullIndicator />
       <div className="p-4 space-y-4">
         {/* Birthday Banner */}
         {user && userDogs && (() => {

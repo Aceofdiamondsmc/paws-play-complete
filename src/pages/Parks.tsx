@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { MapPin, List, Fence, Droplets, Dog, TreePine, Car, Dumbbell, PawPrint, Loader2, MapPinOff, Search, Plus } from 'lucide-react';
 import { SuggestParkModal } from '@/components/parks/SuggestParkModal';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,6 +12,7 @@ import { ParkPreviewSheet } from '@/components/parks/ParkPreviewSheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { Park } from '@/types';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 const filterOptions = [
   { id: 'fenced', label: 'Fully Fenced', icon: 'Fence', color: 'bg-amber-100 text-amber-600', activeColor: 'bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.5)]' },
   { id: 'water', label: 'Water Station', icon: 'Droplets', color: 'bg-blue-100 text-blue-600', activeColor: 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]' },
@@ -69,6 +70,12 @@ export default function Parks() {
     detectedCity,
     detectedState,
   } = useNearbyParks();
+
+  const handlePullRefresh = useCallback(async () => {
+    searchNearMe();
+  }, [searchNearMe]);
+
+  const { containerRef: pullRefreshRef, PullIndicator } = usePullToRefresh({ onRefresh: handlePullRefresh });
 
   return (
     <div className="h-screen flex flex-col">
@@ -153,7 +160,8 @@ export default function Parks() {
           <ParksMap parks={allParks} loading={loading} />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto">
+        <div ref={pullRefreshRef} className="flex-1 overflow-y-auto">
+          <PullIndicator />
           {/* Location Loading / Detecting spinner - BLOCKS park rendering */}
           {(locationLoading || (loading && !dataReady)) && (
             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
