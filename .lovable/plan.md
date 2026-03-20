@@ -1,29 +1,70 @@
 
 
-## Problem
+## Plan: Three Fixes (Final Revised)
 
-In `handleWebPrint` (line 148-219 of `LostDogAlertModal.tsx`), the dog avatar URL is passed directly to the flyer HTML as a raw Supabase storage URL. The QR code is converted to base64 via `toDataUrl()`, but the avatar is not. In the iframe's print context, cross-origin images from Supabase storage fail to load — iOS Safari's print renderer is especially strict about this. The one image that worked was likely already in the browser cache.
+### 1. Flyer avatar — canvas-based image conversion
 
-## Fix
+**Root cause**: The current `toDataUrl` uses `fetch()` to download images. For large cross-origin images from Supabase storage, `fetch()` fails silently due to CORS restrictions in the iframe print context (especially iOS Safari). The catch falls back to the raw URL, which also fails in the sandboxed print renderer. The one image that worked was likely small enough (48KB) to have been cached by the browser.
 
-### File: `src/components/lost-dog/LostDogAlertModal.tsx` (~line 156)
+**Fix**: Replace `toDataUrl` with a canvas-based `imageToBase64` function that:
+- Creates an `<img>` element with `crossOrigin="anonymous"`
+- Draws it onto a hidden canvas, downscaling to max 800px (keeps base64 manageable for multi-MB photos)
+- Exports as JPEG at 80% quality
+- Has a 15-second timeout for slow connections
+- If conversion fails completely, passes `null` so the flyer shows a text placeholder
 
-Convert the avatar to a base64 data URL before passing it to `generateFlyerHTML`, using the same `toDataUrl` helper already used for the QR code:
+**Files changed**:
 
-```typescript
-// Before (line 156):
-const avatarDataUrl = selectedDog.avatar_url;
+| File | Change |
+|------|--------|
+| `src/components/lost-dog/LostDogAlertModal.tsx` | Replace `toDataUrl` with canvas-based `imageToBase64`; use for both avatar and QR |
+| `src/components/lost-dog/FlyerTemplate.tsx` | Add text placeholder fallback in `generateFlyerHTML` when `avatarUrl` is null (shows dog name in bordered box instead of blank space) |
 
-// After:
-let avatarDataUrl = selectedDog.avatar_url;
-if (avatarDataUrl) {
-  try {
-    avatarDataUrl = await toDataUrl(avatarDataUrl);
-  } catch {
-    // Fall back to original URL if conversion fails
-  }
-}
+### 2. Free Trial button — green color
+
+**Only the "Start Your Free Trial" button** (line 134-153, the logged-in no-subscription CTA) changes to green. The logged-out "Sign Up to Start Free Trial" button and everything else stays exactly as-is.
+
+**File: `src/components/explore/FreeTrialBanner.tsx`**
+- Line 137 only: change className to include `bg-success hover:bg-success/90 text-white`
+
+### 3. Pull-to-refresh
+
+Create a reusable hook and apply to key pages.
+
+**New file: `src/hooks/usePullToRefresh.tsx`**
+- Custom hook detecting touch-pull gestures when `scrollTop === 0`
+- Shows a visual spinner/indicator during pull and refresh
+- Returns: a ref to attach to the scrollable container, an indicator component to render at top, and an `isRefreshing` state
+
+**Pages updated**:
+
+| Page | Refresh callback | Source |
+|------|-----------------|--------|
+| `src/pages/Social.tsx` | `refresh` (already exported from `usePosts`) | `usePosts().refresh` which calls `fetchPosts` |
+| `src/pages/Explore.tsx` | `refetch` from react-query | `useServices` / `useNearbyServices` use `useQuery`, so `.refetch()` is available |
+| `src/pages/Parks.tsx` | trigger re-mount of parks hook | Will add a `refreshKey` state to force re-fetch |
+| `src/pages/Pack.tsx` | re-fetch nearby dogs | Will add a `refreshKey` state to force re-fetch |
+
+Each page wraps its main scrollable area with the pull-to-refresh hook and renders the indicator component at the top of the content area.
+
+### Technical details
+
+**Canvas-based image conversion** (replacing `toDataUrl`):
+```text
+1. Create new Image() with crossOrigin="anonymous"
+2. Set src to the Supabase URL
+3. On load → create canvas, scale to max 800px
+4. ctx.drawImage() → canvas.toDataURL('image/jpeg', 0.8)
+5. Wrapped in Promise with 15s timeout
+6. On error → resolve(null) instead of throwing
 ```
 
-This is a 3-line change. The `toDataUrl` function (line 87-101) already exists and handles the fetch + FileReader conversion. No other files need changes.
+**Pull-to-refresh gesture detection**:
+```text
+touchstart → record Y position (only if scrollTop === 0)
+touchmove  → calculate delta, show indicator if pulling > 60px
+touchend   → if pulled far enough, call onRefresh()
+             show spinner until onRefresh() resolves
+             then hide indicator with animation
+```
 
