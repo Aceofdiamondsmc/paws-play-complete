@@ -200,15 +200,15 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
       };
 
       await waitForImages();
-
-      const cleanup = () => {
-        try { document.body.removeChild(iframe); } catch { /* already removed */ }
-      };
+      // Extra delay to ensure images are fully painted before print
+      await new Promise(r => setTimeout(r, 2000));
 
       if (iframe.contentWindow) {
-        iframe.contentWindow.addEventListener('afterprint', cleanup);
         iframe.contentWindow.print();
-        setTimeout(cleanup, 60000);
+        // Keep iframe alive for iOS print spooler
+        setTimeout(() => {
+          try { document.body.removeChild(iframe); } catch { /* already removed */ }
+        }, 10000);
       }
     } catch (err) {
       console.error('Web print failed:', err);
