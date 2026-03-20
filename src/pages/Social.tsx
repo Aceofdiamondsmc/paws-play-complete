@@ -41,6 +41,7 @@ import AdminEditPostModal from '@/components/social/AdminEditPostModal';
 import VideoPlayer from '@/components/social/VideoPlayer';
 import { useMessages } from '@/hooks/useMessages';
 import { useFriendships } from '@/hooks/useFriendships';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
