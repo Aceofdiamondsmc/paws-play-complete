@@ -123,6 +123,9 @@ export function useDogs() {
     if (!user) return { url: null, error: new Error('Not authenticated') };
 
     try {
+      file = await ensureJpeg(file, () => {
+        toast({ title: "Processing image... 📸", description: "Converting for best compatibility." });
+      });
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
       const filePath = `${user.id}/${dogId}/${fileName}`;
