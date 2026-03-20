@@ -57,11 +57,17 @@ export default function Explore() {
     );
   }, []);
 
-  const { data: services, isLoading } = useServices(selectedCategory);
-  const { data: nearbyServices, isLoading: nearbyLoading } = useNearbyServices(
+  const { data: services, isLoading, refetch: refetchServices } = useServices(selectedCategory);
+  const { data: nearbyServices, isLoading: nearbyLoading, refetch: refetchNearby } = useNearbyServices(
     nearMeMode ? userCoords : null,
     selectedCategory
   );
+
+  const handlePullRefresh = useCallback(async () => {
+    if (nearMeMode) { await refetchNearby(); } else { await refetchServices(); }
+  }, [nearMeMode, refetchNearby, refetchServices]);
+
+  const { containerRef: pullRefreshRef, PullIndicator } = usePullToRefresh({ onRefresh: handlePullRefresh });
 
   const handleCategoryClick = (categoryId: string) => {
     setSelectedCategory(prev => prev === categoryId ? null : categoryId);
