@@ -84,22 +84,21 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     }
   };
 
-  const toDataUrl = (url: string): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const c = document.createElement('canvas');
-        c.width = img.naturalWidth;
-        c.height = img.naturalHeight;
-        const ctx = c.getContext('2d');
-        if (!ctx) return reject(new Error('No canvas context'));
-        ctx.drawImage(img, 0, 0);
-        resolve(c.toDataURL('image/jpeg', 0.9));
-      };
-      img.onerror = () => reject(new Error('Image load failed'));
-      img.src = url;
-    });
+  const toDataUrl = async (url: string): Promise<string> => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Flyer image fetch failed:", error);
+      throw error;
+    }
+  };
 
   /** Native iOS/Android: render flyer to image → save to cache → open share sheet */
   const handleNativeShare = useCallback(async () => {
