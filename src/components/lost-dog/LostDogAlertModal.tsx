@@ -10,6 +10,7 @@ import { useLostDogAlerts } from '@/hooks/useLostDogAlerts';
 import { toast } from 'sonner';
 import { generateFlyerHTML } from './FlyerTemplate';
 import FlyerTemplate from './FlyerTemplate';
+import { imageUrlToBase64 } from '@/lib/image-utils';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -88,8 +89,8 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
 
       const [avatarB64, qrB64] = await Promise.all([
-        dog?.avatar_url ? imageToBase64(dog.avatar_url) : Promise.resolve(null),
-        imageToBase64(qrApiUrl),
+        dog?.avatar_url ? imageUrlToBase64(dog.avatar_url) : Promise.resolve(null),
+        imageUrlToBase64(qrApiUrl),
       ]);
 
       setPreparedAvatar(avatarB64);
@@ -98,49 +99,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     }
   };
 
-  /**
-   * Convert an image URL to a base64 data URL using canvas.
-   * Downscales large images to max 800px and exports as JPEG.
-   * Returns null if conversion fails (instead of throwing).
-   */
-  const imageToBase64 = (url: string, maxSize = 800): Promise<string | null> => {
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        console.warn('imageToBase64 timed out for:', url);
-        resolve(null);
-      }, 15000);
-
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        clearTimeout(timeout);
-        try {
-          let { width, height } = img;
-          if (width > maxSize || height > maxSize) {
-            const scale = maxSize / Math.max(width, height);
-            width = Math.round(width * scale);
-            height = Math.round(height * scale);
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) { resolve(null); return; }
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
-        } catch (e) {
-          console.warn('Canvas export failed:', e);
-          resolve(null);
-        }
-      };
-      img.onerror = () => {
-        clearTimeout(timeout);
-        console.warn('Image load failed for:', url);
-        resolve(null);
-      };
-      img.src = url;
-    });
-  };
+  // imageToBase64 moved to shared lib: src/lib/image-utils.ts
 
   /** Native iOS/Android: render flyer to image → save to cache → open share sheet */
   const handleNativeShare = useCallback(async () => {
@@ -527,7 +486,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
               ref={flyerRef}
               dogName={selectedDog.name}
               breed={selectedDog.breed}
-              avatarUrl={preparedAvatar || selectedDog.avatar_url}
+              avatarUrl={preparedAvatar}
               lastSeenLocation={lastSeenLocation}
               contactPhone={contactPhone}
               reward={reward || undefined}

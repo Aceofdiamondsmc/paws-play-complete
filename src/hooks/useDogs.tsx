@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { ensureJpeg } from '@/lib/heic-convert';
+import { normalizeToJpeg } from '@/lib/image-utils';
 import { toast } from '@/hooks/use-toast';
 
 interface DogData {
@@ -123,10 +124,12 @@ export function useDogs() {
     if (!user) return { url: null, error: new Error('Not authenticated') };
 
     try {
+      // First convert HEIC if needed, then normalize ALL images to print-safe JPEG
       file = await ensureJpeg(file, () => {
         toast({ title: "Processing image... 📸", description: "Converting for best compatibility." });
       });
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      file = await normalizeToJpeg(file, 1200, 0.85);
+      const fileExt = 'jpg'; // always JPEG after normalization
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
       const filePath = `${user.id}/${dogId}/${fileName}`;
 
