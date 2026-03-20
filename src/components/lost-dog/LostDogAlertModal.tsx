@@ -153,10 +153,7 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
       const alertUrl = window.location.origin + '/social';
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
 
-      let avatarDataUrl: string | null = selectedDog.avatar_url;
-      if (avatarDataUrl) {
-        try { avatarDataUrl = await toDataUrl(avatarDataUrl); } catch { /* keep original */ }
-      }
+      const avatarDataUrl = selectedDog.avatar_url;
 
       let qrDataUrl: string = qrApiUrl;
       try { qrDataUrl = await toDataUrl(qrApiUrl); } catch { /* keep original */ }
