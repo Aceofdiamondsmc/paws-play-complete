@@ -82,6 +82,18 @@ export function LostDogAlertModal({ open, onOpenChange }: Props) {
     if (error) {
       toast.error('Failed to create alert');
     } else {
+      // Prepare flyer assets (avatar + QR) once for both web and native paths
+      const dog = dogs?.find(d => d.id === selectedDogId);
+      const alertUrl = window.location.origin + '/social';
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(alertUrl)}`;
+
+      const [avatarB64, qrB64] = await Promise.all([
+        dog?.avatar_url ? imageToBase64(dog.avatar_url) : Promise.resolve(null),
+        imageToBase64(qrApiUrl),
+      ]);
+
+      setPreparedAvatar(avatarB64);
+      setPreparedQr(qrB64 || qrApiUrl); // fallback to raw URL for QR
       setStep(4);
     }
   };
