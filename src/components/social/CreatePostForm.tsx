@@ -211,7 +211,7 @@ export default function CreatePostForm({ onPost, isPosting, isAdmin, dogs }: Cre
               </SelectTrigger>
               <SelectContent className="max-h-64">
                 {allParks.length > 0 ? (
-                  allParks.map((park) => (
+                  [...allParks].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')).map((park) => (
                     <SelectItem key={park.id} value={park.id}>
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-primary" />
