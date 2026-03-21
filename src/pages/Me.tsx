@@ -723,18 +723,26 @@ export default function Me() {
             <DialogTitle>Privacy Policy</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm">
-            <p className="text-muted-foreground"><strong>Last Updated:</strong> January 2026</p>
+            <p className="text-muted-foreground"><strong>Last Updated:</strong> March 16, 2026</p>
             <div>
               <h3 className="font-semibold mb-2">1. Information We Collect</h3>
-              <p className="text-muted-foreground">Paws Play Repeat does not require a user account. We do not collect personal identifying information unless you contact us directly via email.</p>
+              <p className="text-muted-foreground">To provide our services, we collect limited personal information when you create an account, including your <strong>Email Address</strong> and <strong>Full Name</strong>. This is collected via third-party authentication providers (Apple and Google).</p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">2. How We Use Information</h3>
-              <p className="text-muted-foreground">Any information received via email is used solely to provide support or improve the app experience.</p>
+              <p className="text-muted-foreground">We use your information solely for account authentication, user identification within the app, and to provide support. We do not sell or share your personal data with third-party advertisers.</p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">3. Contact Us</h3>
-              <p className="text-muted-foreground">If you have questions, contact us at: <strong>info@pawsplayrepeat.app</strong></p>
+              <h3 className="font-semibold mb-2">3. Data Storage and Third Parties</h3>
+              <p className="text-muted-foreground">We use <strong>Supabase</strong> as our backend database and authentication service. Your data is stored securely according to their industry-standard security protocols. We only share data with these providers to the extent necessary to run the app's services.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">4. Account Deletion</h3>
+              <p className="text-muted-foreground">You have the right to delete your account and all associated data at any time. You can initiate this process through the "Delete Account" button in your profile settings within the app, or by contacting us directly at the email below.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">5. Contact Us</h3>
+              <p className="text-muted-foreground">If you have questions or wish to request data deletion, contact us at: <strong>info@pawsplayrepeat.app</strong></p>
             </div>
           </div>
         </DialogContent>
@@ -750,23 +758,23 @@ export default function Me() {
             <p className="text-muted-foreground"><strong>Last Updated:</strong> March 16, 2026</p>
             <div>
               <h3 className="font-semibold mb-2">1. Acceptance of Terms</h3>
-              <p className="text-muted-foreground">By accessing or using Paws Play Repeat ("the App"), you agree to be bound by these Terms of Service. If you do not agree, please do not use the App.</p>
+              <p className="text-muted-foreground">By using Paws Play Repeat, you agree to these terms. If you do not agree, please do not use the app.</p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">2. User Conduct & Content</h3>
-              <p className="text-muted-foreground">You are responsible for all content you post and interactions within the App. You agree not to post harmful, abusive, or misleading content. We reserve the right to remove content or suspend accounts that violate these terms.</p>
+              <p className="text-muted-foreground">Users are responsible for the content they contribute. You agree not to post any content that is illegal, offensive, harassing, or violates the rights of others. We reserve the right to remove any content or terminate accounts that violate these rules to maintain a safe community.</p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">3. Safety Disclaimer</h3>
-              <p className="text-muted-foreground">Paws Play Repeat provides information about dog-friendly locations and facilitates connections between dog owners. We are not responsible for the maintenance of these locations or any incidents that occur while visiting them. You are responsible for your own safety and your pet's behavior at all times.</p>
+              <p className="text-muted-foreground">Paws Play Repeat provides information about dog-friendly locations for convenience. We are not responsible for the maintenance, safety, or condition of these locations. You are solely responsible for your own safety and your pet's behavior while visiting any location found through the app.</p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">4. Account Termination</h3>
-              <p className="text-muted-foreground">You may delete your account at any time from within the App. We reserve the right to suspend or terminate accounts that violate these terms. Upon deletion, your profile, dogs, posts, and associated data will be permanently removed.</p>
+              <p className="text-muted-foreground">We reserve the right to suspend or terminate access to our services at our discretion, without notice, for conduct that we believe violates these Terms or is harmful to other users.</p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">5. Contact Us</h3>
-              <p className="text-muted-foreground">Questions about these terms? Reach out to: <strong>info@pawsplayrepeat.app</strong></p>
+              <p className="text-muted-foreground">Questions? Reach out to: <strong>info@pawsplayrepeat.app</strong></p>
             </div>
           </div>
         </DialogContent>
@@ -789,8 +797,8 @@ export default function Me() {
               <h3 className="font-semibold mb-2">Common Issues</h3>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
                 <li><strong>Location not showing?</strong> Ensure you have granted location permissions in your phone settings.</li>
-                <li><strong>Missing a park?</strong> Send us the details and we'll add it to the map!</li>
                 <li><strong>Account Questions?</strong> If you need help with your profile or wish to request data deletion, please email us from your registered account email.</li>
+                <li><strong>Missing a park?</strong> Send us the details and we'll add it to the map!</li>
               </ul>
             </div>
           </div>
