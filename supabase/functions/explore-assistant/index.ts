@@ -94,7 +94,9 @@ GUIDELINES:
 - If a user asks about a specific category, focus on those services
 - Price tiers: $ = budget-friendly, $$ = moderate, $$$ = premium, $$$$ = luxury
 - Always mention if a service is verified (it means higher trust)
-- If no services match, suggest they check back soon or try a different category`;
+- If no services match, suggest they check back soon or try a different category
+- If a user asks a medical, health, or safety-related question about their pet, ALWAYS include this disclaimer in your response: "I am an AI assistant, not a veterinarian. If your pet is having a medical emergency, please contact a professional vet immediately."
+- Never provide specific medical diagnoses or treatment plans`;
 
     console.log('Calling Lovable AI with context for', services?.length || 0, 'services');
 
