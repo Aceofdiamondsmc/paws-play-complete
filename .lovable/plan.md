@@ -1,19 +1,23 @@
 
 
-## Plan: Add medical/safety disclaimer to Explore Assistant system prompt
+## Plan: Add App Store Badge to Landing Page
 
-### Change
+### Summary
+Add the Apple Smart App Banner meta tag to `index.html` and a "Coming Soon" App Store badge to the Landing page footer, ready to be activated when the app goes live.
 
-**File: `supabase/functions/explore-assistant/index.ts`**
+### Changes
 
-Update the `systemPrompt` string (around line 83) to add a new guideline instructing the AI to include a medical/safety disclaimer when users ask health or emergency questions.
+**1. `index.html`** — Add Smart App Banner meta tag
+- Add `<meta name="apple-itunes-app" content="app-id=6760650358">` in the `<head>` section (after the existing viewport meta tag)
 
-Add to the GUIDELINES section:
-```
-- If a user asks a medical, health, or safety-related question about their pet, ALWAYS include this disclaimer in your response: "I am an AI assistant, not a veterinarian. If your pet is having a medical emergency, please contact a professional vet immediately."
-- Never provide specific medical diagnoses or treatment plans
-```
+**2. `src/pages/Landing.tsx`** — Add App Store badge in the footer
+- Insert a "Coming Soon" App Store badge between the legal links and the copyright line
+- Badge links to `https://apps.apple.com/app/id6760650358` but is visually dimmed (`opacity-60`) with `pointer-events-none` to indicate it's not yet available
+- Uses the official Apple badge image from `tools.applemediaservices.com`
+- Styled with Tailwind classes to match the existing footer design
+- When the app goes live on the App Store, simply remove the opacity and pointer-events classes to activate it
 
-### Files changed
-- `supabase/functions/explore-assistant/index.ts` — system prompt update only
+### Technical details
+- The badge section will be a centered `div` with the "Coming Soon" label in `text-xs text-muted-foreground` and the Apple badge image at 40px height
+- No new dependencies required — just an `<img>` tag pointing to Apple's hosted badge URL
 
