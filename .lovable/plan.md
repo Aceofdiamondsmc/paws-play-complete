@@ -1,126 +1,45 @@
 
-## Diagnosis
 
-This is probably **not Appflow**, and not simply “your phone is bad.”
+## Plan: Park review alphabetical sort + native sound prebuild script
 
-What the code shows right now is:
+### Part 1: Sort parks alphabetically in review picker
 
-1. **New dog avatar uploads are now normalized** to JPEG in `useDogs.tsx`.
-2. But that only helps **photos uploaded after that change**.
-3. The flyer on native iPhone/Appflow still uses `html-to-image` in `LostDogAlertModal.tsx`.
-4. That native path does **not wait for the offscreen flyer `<img>` to fully decode/render** before taking the JPEG snapshot.
+**File**: `src/components/social/CreatePostForm.tsx` (line 214)
 
-So the likely reality is:
-
-```text
-old upload or hard-to-decode image
-+ iPhone WebKit timing
-+ html-to-image snapshots too early
-= blank photo box
+Replace:
+```tsx
+allParks.map((park) => (
+```
+With:
+```tsx
+[...allParks].sort((a, b) => a.name.localeCompare(b.name)).map((park) => (
 ```
 
-## Direct answers
+This only affects the review picker dropdown. The Parks tab list/map remains sorted by rating/proximity.
 
-### Is it your phone?
-Not mainly.  
-It is much more likely an **iPhone WebKit rendering/timing issue** in the flyer generation flow.
+### Part 2: Add prebuild script to package.json
 
-### Is Appflow the issue?
-No.  
-Appflow is just how the Capacitor app is built. This is a **runtime rendering problem**, not a build pipeline problem.
+**File**: `package.json` (line 13, after `"test:watch"`)
 
-### Should you use all new uploads?
-For any dog photo uploaded **before** the JPEG-normalization change: **yes, re-uploading can help**.
-
-But re-uploading alone is **not enough** if the app still snapshots the flyer before the image is ready.
-
-### Why does one Google-image account work?
-Most likely because that specific image is:
-- smaller
-- easier for iPhone to decode
-- cached differently
-- loaded fast enough before the snapshot happens
-
-So it is not that Google is “supported” and your other photos are not. It is more likely that one image wins the timing race and others do not.
-
-## What is still missing in the code
-
-The current native share code does this:
-
-```text
-prepare base64 image
-render offscreen flyer
-immediately call html-to-image
+Add:
+```json
+"prebuild": "node scripts/generate-sounds.js"
 ```
 
-What it does **not** do is:
+The `scripts/generate-sounds.js` file already exists and generates 4 `.wav` files (`paws_reminder`, `paws_urgent`, `paws_alert`, `paws_happy`), copying them to both `ios/App/App/` and `android/app/src/main/res/raw/`.
 
-```text
-wait until the offscreen flyer image is actually loaded and decoded
-then capture it
+### After code changes -- terminal steps
+
+```bash
+git pull origin main
+npm run prebuild
+npx cap sync ios
 ```
 
-That is the strongest remaining gap.
+Then rebuild via Appflow. The edge functions already reference the correct sound filenames -- they just need the files to exist in the native bundle.
 
-## Best interpretation of the problem
+### Risk assessment
 
-You likely have **two overlapping causes**:
+- Part 1: Zero risk. Read-only sort on a shallow copy. No other component uses this dropdown.
+- Part 2: Zero risk to existing logic. Only adds a new npm script entry. The generate script creates files in native directories that are currently empty.
 
-1. **Older dog photos** are still problematic because they were uploaded before normalization.
-2. **Even with prepared base64**, the flyer capture can still happen too early on iPhone.
-
-## What I would change next
-
-### 1. Add an explicit “flyer image ready” check
-In `LostDogAlertModal.tsx`:
-- wait for the offscreen flyer image element to report complete
-- use `img.decode()` when available
-- only allow native share/print after that finishes
-
-### 2. Block capture until assets are actually painted
-Before calling `toJpeg(...)`:
-- verify the image exists
-- verify it has non-zero natural width/height
-- add a short post-decode delay for iOS paint stability
-
-### 3. Keep re-upload guidance for existing dogs
-Because `useDogs.tsx` now normalizes uploads, **re-uploading older dog photos is worthwhile** for accounts still using old files.
-
-### 4. Add temporary logging/toasts
-So we can tell which of these is happening:
-- base64 prep failed
-- offscreen image never loaded
-- `html-to-image` captured before paint
-- capture succeeded but image area was empty
-
-## Expected outcome
-
-After that next fix:
-
-```text
-old photos -> better if re-uploaded
-new photos -> already safer
-native flyer -> waits until image is truly ready before capture
-```
-
-That is the most likely path to finally stop the blank box behavior.
-
-## Recommended next implementation
-
-| Priority | Change | Why |
-|---|---|---|
-| 1 | Wait for offscreen flyer image readiness before `toJpeg` | Most likely remaining bug |
-| 2 | Add readiness state and disable Share/Print until ready | Prevents premature capture |
-| 3 | Re-upload older dog photos | Helps affected existing accounts |
-| 4 | Add debug logging around prep/capture | Confirms exact failure point |
-
-## Bottom line
-
-The most likely answer is:
-
-```text
-Not Appflow
-Not just your phone
-Partly old uploads
-Mostly the native flyer snapshot happening before the image is fully ready
-```
