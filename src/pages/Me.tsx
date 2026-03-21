@@ -797,8 +797,8 @@ export default function Me() {
               <h3 className="font-semibold mb-2">Common Issues</h3>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
                 <li><strong>Location not showing?</strong> Ensure you have granted location permissions in your phone settings.</li>
-                <li><strong>Missing a park?</strong> Send us the details and we'll add it to the map!</li>
                 <li><strong>Account Questions?</strong> If you need help with your profile or wish to request data deletion, please email us from your registered account email.</li>
+                <li><strong>Missing a park?</strong> Send us the details and we'll add it to the map!</li>
               </ul>
             </div>
           </div>
