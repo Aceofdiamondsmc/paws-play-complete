@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prebuild": "node scripts/generate-sounds.js"
+    "prebuild": "node scripts/generate-sounds.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
