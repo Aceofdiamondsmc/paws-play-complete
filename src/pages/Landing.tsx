@@ -85,7 +85,7 @@ export default function Landing() {
         <div className="flex-1" />
         
         {/* Let's Play Button - Smaller size */}
-        <button onClick={handleLetsPlay} className="flex items-center justify-center gap-2 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-base px-8 py-3 rounded-full shadow-xl transition-all duration-200 active:scale-95 mb-32">
+        <button onClick={handleLetsPlay} className="flex items-center justify-center gap-2 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-base px-8 py-3 rounded-full shadow-xl transition-all duration-200 active:scale-95 mb-48">
           <Play className="w-4 h-4 fill-current" />
           Let's Play
         </button>
