@@ -1,45 +1,24 @@
 
 
-## Plan: Park review alphabetical sort + native sound prebuild script
+## Plan: Sync all legal/support dialogs across Me.tsx and Landing.tsx
 
-### Part 1: Sort parks alphabetically in review picker
+### Context
+The `public/` HTML files are the canonical source of truth. The in-app dialogs in both `src/pages/Me.tsx` and `src/pages/Landing.tsx` contain outdated text that needs to match.
 
-**File**: `src/components/social/CreatePostForm.tsx` (line 214)
+Regarding the external `Paws-Play_Repeat_Legal` GitHub repo: Lovable cannot sync to a second repo. After this update, you can manually copy the three `public/*.html` files into that repo.
 
-Replace:
-```tsx
-allParks.map((park) => (
-```
-With:
-```tsx
-[...allParks].sort((a, b) => a.name.localeCompare(b.name)).map((park) => (
-```
+### Changes (2 files)
 
-This only affects the review picker dropdown. The Parks tab list/map remains sorted by rating/proximity.
+**`src/pages/Me.tsx`** — Update three dialog content blocks:
+- **Privacy**: Date → March 16, 2026. Add PII collection details (Email/Name via Apple/Google), Supabase storage, account deletion section.
+- **ToS**: Simplify acceptance, update conduct (illegal/offensive/harassing), update safety (maintenance/safety/condition), update termination (our discretion, without notice).
+- **Support**: Reorder list to Location → Account Questions → Missing a park.
 
-### Part 2: Add prebuild script to package.json
+**`src/pages/Landing.tsx`** — Same three dialog updates, identical content to Me.tsx.
 
-**File**: `package.json` (line 13, after `"test:watch"`)
-
-Add:
-```json
-"prebuild": "node scripts/generate-sounds.js"
-```
-
-The `scripts/generate-sounds.js` file already exists and generates 4 `.wav` files (`paws_reminder`, `paws_urgent`, `paws_alert`, `paws_happy`), copying them to both `ios/App/App/` and `android/app/src/main/res/raw/`.
-
-### After code changes -- terminal steps
-
-```bash
-git pull origin main
-npm run prebuild
-npx cap sync ios
-```
-
-Then rebuild via Appflow. The edge functions already reference the correct sound filenames -- they just need the files to exist in the native bundle.
-
-### Risk assessment
-
-- Part 1: Zero risk. Read-only sort on a shallow copy. No other component uses this dropdown.
-- Part 2: Zero risk to existing logic. Only adds a new npm script entry. The generate script creates files in native directories that are currently empty.
+### Not in scope
+- No logic changes
+- No new dependencies
+- Cross-navigation links in Landing.tsx footer remain intact
+- Contact email already consistent (`info@pawsplayrepeat.app`)
 
