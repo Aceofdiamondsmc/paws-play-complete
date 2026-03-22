@@ -89,8 +89,6 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
         zoom: 15,
         interactive: false,
       });
-        interactive: false,
-      });
 
       const markerEl = document.createElement('div');
       markerEl.innerHTML = `
