@@ -131,7 +131,7 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
       map.current?.remove();
       map.current = null;
     };
-  }, [mapToken, latitude, longitude, isVerified, mapLoaded]);
+  }, [mapToken, resolvedCoords.lat, resolvedCoords.lng, isVerified, mapLoaded]);
 
   const handleGetDirections = () => {
     if (address) {
