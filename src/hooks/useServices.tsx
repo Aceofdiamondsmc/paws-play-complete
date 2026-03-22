@@ -19,6 +19,7 @@ export interface Service {
   verified_latitude: number | null;
   verified_longitude: number | null;
   enrichment_status: 'pending' | 'processing' | 'completed' | 'failed';
+  verified_address: string | null;
   phone: string | null;
   website: string | null;
   photo_reference: string | null;

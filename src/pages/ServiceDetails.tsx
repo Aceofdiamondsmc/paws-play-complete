@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Star, Phone, Globe, Clock, DollarSign, BadgeCheck, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, Star, Phone, Globe, Clock, BadgeCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -108,16 +108,17 @@ export default function ServiceDetails() {
 
         {/* Quick Info */}
         <div className="grid grid-cols-2 gap-3">
-          <Card className="p-3 flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary/10">
-              <DollarSign className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Price</p>
-              <p className="font-semibold">{service.price}</p>
-            </div>
-          </Card>
-          {service.distance && (
+          {service.verified_address ? (
+            <Card className="p-3 flex items-center gap-3 col-span-2">
+              <div className="p-2 rounded-full bg-primary/10">
+                <MapPin className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Address</p>
+                <p className="font-semibold text-sm truncate">{service.verified_address}</p>
+              </div>
+            </Card>
+          ) : service.distance ? (
             <Card className="p-3 flex items-center gap-3">
               <div className="p-2 rounded-full bg-accent/10">
                 <MapPin className="w-5 h-5 text-accent" />
@@ -127,7 +128,7 @@ export default function ServiceDetails() {
                 <p className="font-semibold">{service.distance}</p>
               </div>
             </Card>
-          )}
+          ) : null}
         </div>
 
         {/* Description */}
@@ -163,6 +164,7 @@ export default function ServiceDetails() {
                 longitude={lng}
                 name={service.name}
                 isVerified={service.is_verified}
+                address={service.verified_address || undefined}
               />
             </Card>
           );
