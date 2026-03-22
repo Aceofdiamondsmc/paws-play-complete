@@ -210,7 +210,7 @@ export function ServicesMap({ services, selectedCategory, onServiceClick }: Serv
         ${service.enriched_description ? `
           <p style="font-size: 12px; color: #6B7280; margin: 8px 0; line-height: 1.4;">${service.enriched_description.slice(0, 100)}${service.enriched_description.length > 100 ? '...' : ''}</p>
         ` : ''}
-        <p style="font-size: 13px; font-weight: 600; color: #228B22; margin: 8px 0;">${service.price}</p>
+        ${service.verified_address ? `<p style="font-size: 12px; color: #6B7280; margin: 8px 0; display: flex; align-items: center; gap: 4px;">📍 ${service.verified_address}</p>` : ''}
         
         ${distanceText ? `
           <p style="font-size: 12px; color: #3b82f6; font-weight: 500; margin: 8px 0;">📍 ${distanceText} away</p>
