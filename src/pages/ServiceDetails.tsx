@@ -164,6 +164,7 @@ export default function ServiceDetails() {
                 longitude={lng}
                 name={service.name}
                 isVerified={service.is_verified}
+                address={service.verified_address || undefined}
               />
             </Card>
           );
