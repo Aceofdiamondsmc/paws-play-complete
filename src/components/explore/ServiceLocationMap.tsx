@@ -146,7 +146,11 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
     }
   };
 
-  if (error) {
+  const staticMapUrl = mapToken
+    ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+228B22(${longitude},${latitude})/${longitude},${latitude},15,0/400x200@2x?access_token=${mapToken}`
+    : null;
+
+  if (error && !staticMapUrl) {
     return (
       <div className="h-40 bg-muted rounded-lg flex flex-col items-center justify-center gap-3 p-4">
         <MapPin className="w-8 h-8 text-muted-foreground" />
@@ -162,18 +166,28 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
 
   return (
     <div>
-      <div className="relative">
-        <div ref={mapContainer} className="h-40 rounded-lg overflow-hidden" />
+      <div className="relative h-40 rounded-lg overflow-hidden">
+        {/* Static map image as instant fallback */}
+        {staticMapUrl && (
+          <img
+            src={staticMapUrl}
+            alt={`Map showing ${name}`}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
+
+        {/* Interactive map on top */}
+        <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
         
-        {isLoading && (
-          <div className="absolute inset-0 bg-muted rounded-lg flex items-center justify-center">
+        {isLoading && !staticMapUrl && (
+          <div className="absolute inset-0 bg-muted flex items-center justify-center">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         )}
 
         <Button
           size="sm"
-          className="absolute bottom-2 right-2 rounded-full shadow-lg"
+          className="absolute bottom-2 right-2 rounded-full shadow-lg z-10"
           onClick={handleGetDirections}
         >
           <Navigation2 className="w-4 h-4 mr-1" />
@@ -181,7 +195,7 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
         </Button>
       </div>
 
-      {showFallbackInfo && address && (
+      {address && (
         <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
           <MapPin className="w-3 h-3" /> {address}
         </p>
