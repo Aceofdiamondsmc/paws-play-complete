@@ -85,8 +85,10 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/streets-v12',
-        center: [longitude, latitude],
+        center: [resolvedCoords.lng, resolvedCoords.lat],
         zoom: 15,
+        interactive: false,
+      });
         interactive: false,
       });
 
