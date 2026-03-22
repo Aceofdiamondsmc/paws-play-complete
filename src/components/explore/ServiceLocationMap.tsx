@@ -33,24 +33,40 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
   const [error, setError] = useState<string | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showFallbackInfo, setShowFallbackInfo] = useState(false);
+  const [resolvedCoords, setResolvedCoords] = useState<{ lat: number; lng: number }>({ lat: latitude, lng: longitude });
 
   useEffect(() => {
-    async function fetchToken() {
+    async function fetchTokenAndGeocode() {
       try {
         const { data, error } = await supabase.functions.invoke('mapbox-token');
         if (error) throw error;
-        if (data?.token) {
-          setMapToken(data.token);
-        } else {
-          throw new Error('No token received');
+        if (!data?.token) throw new Error('No token received');
+        
+        const token = data.token;
+        setMapToken(token);
+
+        // Geocode address for precise marker placement
+        if (address) {
+          try {
+            const res = await fetch(
+              `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${token}&limit=1`
+            );
+            const geo = await res.json();
+            if (geo.features?.length > 0) {
+              const [lng, lat] = geo.features[0].center;
+              setResolvedCoords({ lat, lng });
+            }
+          } catch (geoErr) {
+            console.warn('Geocoding failed, using original coords:', geoErr);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch Mapbox token:', err);
         setError('Failed to load map');
       }
     }
-    fetchToken();
-  }, []);
+    fetchTokenAndGeocode();
+  }, [address]);
 
   useEffect(() => {
     if (!mapToken || !mapContainer.current || map.current) return;
