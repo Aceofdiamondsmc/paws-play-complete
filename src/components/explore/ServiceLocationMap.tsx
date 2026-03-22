@@ -165,7 +165,7 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
   };
 
   const staticMapUrl = mapToken
-    ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+228B22(${longitude},${latitude})/${longitude},${latitude},15,0/400x200@2x?access_token=${mapToken}`
+    ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+228B22(${resolvedCoords.lng},${resolvedCoords.lat})/${resolvedCoords.lng},${resolvedCoords.lat},15,0/400x200@2x?access_token=${mapToken}`
     : null;
 
   if (error && !staticMapUrl) {
