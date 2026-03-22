@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Star, Phone, Globe, Clock, DollarSign, BadgeCheck, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, Star, Phone, Globe, Clock, BadgeCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
