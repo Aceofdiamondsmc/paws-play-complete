@@ -1,27 +1,26 @@
 
 
-## Fix: Restore Map Preview + Replace Price with Address in Service List
+## Fix: Map Marker Should Match Physical Address
 
-### Problems
-1. **Map not rendering on WebApp** — The Mapbox map fails silently (likely token fetch error or auth issue). Need a robust fallback: use a **Mapbox Static Images API** as an `<img>` tag while the interactive map loads. If the interactive map fails entirely, the static image still shows a location preview.
-2. **Price (`$`) still showing in Explore service list cards** (line 323 in `Explore.tsx`) — needs to be replaced with `verified_address` or removed.
-3. **Price in ServicesMap popup** (line ~213 in `ServicesMap.tsx`) — same replacement.
+### Problem
+The map marker is positioned using `verified_latitude`/`verified_longitude` coordinates, but these may not precisely match the `verified_address`. When a physical address exists, the marker should be geocoded from that address for accuracy.
 
 ### Changes
 
-**1. `src/components/explore/ServiceLocationMap.tsx`** — Add static map image fallback
-- Add a Mapbox Static Images API URL as a background/fallback `<img>` rendered behind the interactive map container. URL format: `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+228B22(${lng},${lat})/${lng},${lat},15,0/400x200@2x?access_token=${token}`
-- The static image loads instantly and shows the location even if the GL JS map fails.
-- Keep the interactive map on top — if it loads, it covers the static image. If it doesn't, the user still sees a map preview.
-- Keep the paw marker, Directions button (bottom-right), and address fallback text below.
+**`src/components/explore/ServiceLocationMap.tsx`**
 
-**2. `src/pages/Explore.tsx` (line 323)** — Replace price with address
-- Replace `service.price` with `service.verified_address` shown with a MapPin icon. If no address, hide the line.
-
-**3. `src/components/explore/ServicesMap.tsx` (line ~213)** — Replace price in popup
-- Replace `service.price` display with `service.verified_address`. If no address, omit the line.
+- When an `address` prop is provided and `mapToken` is available, use the **Mapbox Geocoding API** to forward-geocode the address into precise coordinates before placing the marker.
+- API call: `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${token}&limit=1`
+- If geocoding succeeds, use the returned coordinates for:
+  - The interactive map center
+  - The interactive map marker position
+  - The static map fallback image URL (pin + center)
+- If geocoding fails (no results or network error), fall back to the original `latitude`/`longitude` props as before.
+- The geocoding runs once on mount (alongside token fetch), so it doesn't slow down the experience — the static map image updates once coordinates are resolved.
 
 ### Technical Detail
-- Static map image uses the same token fetched from the edge function — no additional API calls needed.
-- The static image URL is constructed once `mapToken` is available, providing an immediate visual while GL JS initializes.
+- New state: `resolvedCoords` storing the geocoded lat/lng (defaults to the passed props).
+- Geocoding happens in the existing `fetchToken` useEffect, right after getting the token — single network roundtrip before map init.
+- Both the static image URL and interactive map use `resolvedCoords` instead of raw props.
+- No new dependencies or edge functions needed — uses Mapbox Geocoding API directly with the existing token.
 
