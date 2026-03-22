@@ -33,24 +33,40 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
   const [error, setError] = useState<string | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showFallbackInfo, setShowFallbackInfo] = useState(false);
+  const [resolvedCoords, setResolvedCoords] = useState<{ lat: number; lng: number }>({ lat: latitude, lng: longitude });
 
   useEffect(() => {
-    async function fetchToken() {
+    async function fetchTokenAndGeocode() {
       try {
         const { data, error } = await supabase.functions.invoke('mapbox-token');
         if (error) throw error;
-        if (data?.token) {
-          setMapToken(data.token);
-        } else {
-          throw new Error('No token received');
+        if (!data?.token) throw new Error('No token received');
+        
+        const token = data.token;
+        setMapToken(token);
+
+        // Geocode address for precise marker placement
+        if (address) {
+          try {
+            const res = await fetch(
+              `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${token}&limit=1`
+            );
+            const geo = await res.json();
+            if (geo.features?.length > 0) {
+              const [lng, lat] = geo.features[0].center;
+              setResolvedCoords({ lat, lng });
+            }
+          } catch (geoErr) {
+            console.warn('Geocoding failed, using original coords:', geoErr);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch Mapbox token:', err);
         setError('Failed to load map');
       }
     }
-    fetchToken();
-  }, []);
+    fetchTokenAndGeocode();
+  }, [address]);
 
   useEffect(() => {
     if (!mapToken || !mapContainer.current || map.current) return;
@@ -69,7 +85,7 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/streets-v12',
-        center: [longitude, latitude],
+        center: [resolvedCoords.lng, resolvedCoords.lat],
         zoom: 15,
         interactive: false,
       });
@@ -92,7 +108,7 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
       `;
 
       new mapboxgl.Marker({ element: markerEl })
-        .setLngLat([longitude, latitude])
+        .setLngLat([resolvedCoords.lng, resolvedCoords.lat])
         .addTo(map.current);
 
       map.current.on('load', () => {
@@ -113,7 +129,7 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
       map.current?.remove();
       map.current = null;
     };
-  }, [mapToken, latitude, longitude, isVerified, mapLoaded]);
+  }, [mapToken, resolvedCoords.lat, resolvedCoords.lng, isVerified, mapLoaded]);
 
   const handleGetDirections = () => {
     if (address) {
@@ -147,7 +163,7 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
   };
 
   const staticMapUrl = mapToken
-    ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+228B22(${longitude},${latitude})/${longitude},${latitude},15,0/400x200@2x?access_token=${mapToken}`
+    ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+228B22(${resolvedCoords.lng},${resolvedCoords.lat})/${resolvedCoords.lng},${resolvedCoords.lat},15,0/400x200@2x?access_token=${mapToken}`
     : null;
 
   if (error && !staticMapUrl) {
