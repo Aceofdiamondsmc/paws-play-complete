@@ -110,7 +110,7 @@ export function ServiceLocationMap({ latitude, longitude, name, isVerified, addr
       `;
 
       new mapboxgl.Marker({ element: markerEl })
-        .setLngLat([longitude, latitude])
+        .setLngLat([resolvedCoords.lng, resolvedCoords.lat])
         .addTo(map.current);
 
       map.current.on('load', () => {
