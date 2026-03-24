@@ -18,12 +18,17 @@ export function useProfile() {
     if (!user) return { error: new Error('Not authenticated') };
 
     try {
+      // Filter out undefined values to avoid overwriting existing data with null
+      const cleanData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined) {
+          cleanData[key] = value;
+        }
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          ...data,
-          updated_at: new Date().toISOString()
-        })
+        .update(cleanData)
         .eq('id', user.id);
 
       if (error) throw error;

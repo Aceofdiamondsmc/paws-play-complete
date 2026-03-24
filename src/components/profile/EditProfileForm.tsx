@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,19 @@ export function EditProfileForm({ open, onClose, profile }: EditProfileFormProps
   const [isUploading, setIsUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Re-sync form state when profile data loads or dialog re-opens
+  useEffect(() => {
+    if (open && profile) {
+      setDisplayName(profile.display_name || '');
+      setUsername(profile.username || '');
+      setBio(profile.bio || '');
+      setCity(profile.city || '');
+      setState(profile.state || '');
+      setAvatarUrl(profile.avatar_url || '');
+      setLocationPublic(profile.location_public !== false);
+    }
+  }, [profile, open]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
