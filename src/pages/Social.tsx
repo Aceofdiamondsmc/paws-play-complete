@@ -830,6 +830,23 @@ export default function Social() {
         onPostUpdated={refresh}
       />
 
+      {/* TOS Acceptance Dialog */}
+      {user && tosAccepted === false && (
+        <TOSAcceptanceDialog
+          open={true}
+          userId={user.id}
+          onAccepted={() => setTosAccepted(true)}
+        />
+      )}
+
+      {/* Report Post Dialog */}
+      <ReportPostDialog
+        open={!!reportingPostId}
+        onOpenChange={(open) => !open && setReportingPostId(null)}
+        postId={reportingPostId}
+        reporterId={user?.id || ''}
+      />
+
       <AlertDialog open={!!deletingPostId} onOpenChange={(open) => !open && setDeletingPostId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
