@@ -1,31 +1,19 @@
 
 
-## Fix: Edit Profile Form Not Pre-filling with Existing Data
+## Apple Review Fixes - Completed
 
-### Root Cause
-`EditProfileForm` uses `useState(profile?.display_name || '')` etc. React's `useState` only uses the initial value on **first mount**. If `profile` is `null` when the dialog mounts (common due to async fetch timing), all fields initialize as empty strings and never update when profile data arrives.
+### Issue 1: Guideline 1.2 - UGC Safety ✅
+- Added `tos_accepted_at` column to `profiles` table
+- Created `content_reports` table with RLS
+- Built `TOSAcceptanceDialog` — shown on first visit to Social after login
+- Built `ReportPostDialog` — accessible via post dropdown menu
+- Added Report + Block options on all non-author posts in Social feed
 
-### Changes
+### Issue 5: Guideline 5.1.1(v) - Guest Browsing ✅
+- Added "Explore Without an Account" button on Landing page → navigates to /parks
 
-**`src/components/profile/EditProfileForm.tsx`**
-
-- Add a `useEffect` that watches the `profile` prop and syncs all form state whenever it changes:
-  ```typescript
-  useEffect(() => {
-    if (profile) {
-      setDisplayName(profile.display_name || '');
-      setUsername(profile.username || '');
-      setBio(profile.bio || '');
-      setCity(profile.city || '');
-      setState(profile.state || '');
-      setAvatarUrl(profile.avatar_url || '');
-      setLocationPublic(profile.location_public !== false);
-    }
-  }, [profile]);
-  ```
-- Also re-sync when `open` changes to `true`, so re-opening the dialog always shows current data (not stale edits from a previous open).
-
-**`src/hooks/useProfileManagement.tsx`** — Update `updateProfile` to filter out `undefined` values before sending to Supabase, ensuring only changed fields are written (partial update). Currently it spreads `...data` which can include `undefined` keys — Supabase treats those as `null`, wiping data.
-
-No database or migration changes needed.
-
+### Issues 2, 3, 4, 6 — User Action Required
+- **Issue 2**: Replace app icon in `ios/App/App/Assets.xcassets/AppIcon.appiconset/`
+- **Issue 3**: Answer business model questions in App Store Connect
+- **Issue 4**: Create demo account and provide credentials in App Review Information
+- **Issue 6**: Account deletion already exists — reviewer needs demo credentials to find it
