@@ -1,26 +1,69 @@
 
 
-## Fix: Map Marker Should Match Physical Address
+## Fix: In-App OAuth Sign-In Using Safari View Controller
 
 ### Problem
-The map marker is positioned using `verified_latitude`/`verified_longitude` coordinates, but these may not precisely match the `verified_address`. When a physical address exists, the marker should be geocoded from that address for accuracy.
+Apple rejected the app because OAuth sign-in (Google/Apple) opens the **default Safari browser**, taking users out of the app. Apple requires the sign-in to happen **within the app** — either natively or via `SFSafariViewController` (Safari View Controller).
+
+### Solution
+Use `@capacitor/browser` (already installed) which renders `SFSafariViewController` on iOS. Instead of letting Supabase's `signInWithOAuth()` redirect to the default browser, we manually construct the OAuth URL using `supabase.auth.signInWithOAuth({ skipBrowserRedirect: true })` and open it with `Browser.open()`.
+
+When the OAuth callback fires (via the custom URL scheme `com.pawsplayrepeat.app://callback`), the existing `appUrlOpen` listener in `App.tsx` will capture the tokens, set the session, and we close the in-app browser.
 
 ### Changes
 
-**`src/components/explore/ServiceLocationMap.tsx`**
+**1. `src/hooks/useAuth.tsx`** — Update `signInWithGoogle` and `signInWithApple`
 
-- When an `address` prop is provided and `mapToken` is available, use the **Mapbox Geocoding API** to forward-geocode the address into precise coordinates before placing the marker.
-- API call: `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${token}&limit=1`
-- If geocoding succeeds, use the returned coordinates for:
-  - The interactive map center
-  - The interactive map marker position
-  - The static map fallback image URL (pin + center)
-- If geocoding fails (no results or network error), fall back to the original `latitude`/`longitude` props as before.
-- The geocoding runs once on mount (alongside token fetch), so it doesn't slow down the experience — the static map image updates once coordinates are resolved.
+For native platforms only:
+- Add `skipBrowserRedirect: true` to `signInWithOAuth()` options — this returns the OAuth URL without opening a browser.
+- Use `Browser.open({ url })` from `@capacitor/browser` to open it in `SFSafariViewController`.
+- Web flow remains unchanged (standard redirect).
 
-### Technical Detail
-- New state: `resolvedCoords` storing the geocoded lat/lng (defaults to the passed props).
-- Geocoding happens in the existing `fetchToken` useEffect, right after getting the token — single network roundtrip before map init.
-- Both the static image URL and interactive map use `resolvedCoords` instead of raw props.
-- No new dependencies or edge functions needed — uses Mapbox Geocoding API directly with the existing token.
+```typescript
+const signInWithGoogle = async () => {
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+  const redirectUrl = isNative
+    ? 'com.pawsplayrepeat.app://callback'
+    : `${window.location.origin}/me`;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectUrl,
+      queryParams: { prompt: 'select_account' },
+      skipBrowserRedirect: isNative, // Don't auto-open browser on native
+    }
+  });
+
+  if (isNative && data?.url) {
+    const { Browser } = await import('@capacitor/browser');
+    await Browser.open({ url: data.url, presentationStyle: 'popover' });
+  }
+
+  return { error };
+};
+```
+
+Same pattern for `signInWithApple`.
+
+**2. `src/App.tsx`** — Close in-app browser after OAuth callback
+
+In the existing `appUrlOpen` listener, after successfully setting the session, close the Safari View Controller:
+
+```typescript
+if (accessToken && refreshToken) {
+  const { error } = await supabase.auth.setSession({ ... });
+  if (!error) {
+    const { Browser } = await import('@capacitor/browser');
+    await Browser.close();
+  }
+}
+```
+
+### Why This Works
+- `@capacitor/browser` uses `SFSafariViewController` on iOS — Apple's recommended approach
+- Users see the URL bar and SSL certificate (Apple's requirement)
+- Users stay "in the app" — no context switch to Safari
+- The existing deep link listener handles the callback seamlessly
+- Web users are unaffected — `skipBrowserRedirect` is only `true` on native
 
