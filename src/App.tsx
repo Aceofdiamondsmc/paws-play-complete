@@ -57,7 +57,15 @@ const App = () => {
               access_token: accessToken,
               refresh_token: refreshToken,
             });
-            if (!error) console.log("Native session synced!");
+            if (!error) {
+              console.log("Native session synced!");
+              try {
+                const { Browser } = await import('@capacitor/browser');
+                await Browser.close();
+              } catch (e) {
+                console.warn("Browser.close() not available:", e);
+              }
+            }
           }
         });
       } catch (e) {
