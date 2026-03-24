@@ -85,9 +85,19 @@ export default function Landing() {
         <div className="flex-1" />
         
         {/* Let's Play Button - Smaller size */}
-        <button onClick={handleLetsPlay} className="flex items-center justify-center gap-2 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-base px-8 py-3 rounded-full shadow-xl transition-all duration-200 active:scale-95 mb-48">
+        <button onClick={handleLetsPlay} className="flex items-center justify-center gap-2 bg-[#F5D547] hover:bg-[#E5C537] active:bg-[#D5B527] text-black font-bold text-base px-8 py-3 rounded-full shadow-xl transition-all duration-200 active:scale-95 mb-4">
           <Play className="w-4 h-4 fill-current" />
           Let's Play
+        </button>
+
+        {/* Browse as Guest */}
+        <button
+          onClick={() => navigate('/parks')}
+          className="flex items-center justify-center gap-2 bg-white/30 hover:bg-white/40 active:bg-white/50 backdrop-blur-sm text-white font-semibold text-sm px-6 py-2.5 rounded-full shadow-lg transition-all duration-200 active:scale-95 mb-44"
+          style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.3)' }}
+        >
+          <PawPrint className="w-4 h-4" />
+          Explore Without an Account
         </button>
       </div>
 
