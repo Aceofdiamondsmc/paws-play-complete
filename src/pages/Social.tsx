@@ -217,7 +217,20 @@ export default function Social() {
   const { activeAlerts, resolveAlert } = useLostDogAlerts();
   const { allParks } = useParks();
   const { isAdmin } = useAdmin();
+  const { blockUser } = useBlockedUsers();
   const [isPosting, setIsPosting] = useState(false);
+
+  // TOS acceptance state
+  const [tosAccepted, setTosAccepted] = useState<boolean | null>(null);
+  const [reportingPostId, setReportingPostId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) { setTosAccepted(null); return; }
+    supabase.from('profiles').select('tos_accepted_at').eq('id', user.id).single()
+      .then(({ data }) => {
+        setTosAccepted(!!(data as any)?.tos_accepted_at);
+      });
+  }, [user]);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
