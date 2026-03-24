@@ -621,8 +621,8 @@ export default function Social() {
                         </button>
                       )}
 
-                      {/* Owner Actions Menu */}
-                      {user && post.author_id === user.id && (
+                      {/* Post Actions Menu */}
+                      {user && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
@@ -632,21 +632,47 @@ export default function Social() {
                               <MoreHorizontal className="w-5 h-5" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem
-                              onClick={() => setEditingPost({ id: post.id, content: post.content })}
-                              className="cursor-pointer"
-                            >
-                              <Pencil className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeletingPostId(post.id)}
-                              className="cursor-pointer text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {post.author_id === user.id && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => setEditingPost({ id: post.id, content: post.content })}
+                                  className="cursor-pointer"
+                                >
+                                  <Pencil className="w-4 h-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setDeletingPostId(post.id)}
+                                  className="cursor-pointer text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {post.author_id !== user.id && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => setReportingPostId(post.id)}
+                                  className="cursor-pointer"
+                                >
+                                  <Flag className="w-4 h-4 mr-2" />
+                                  Report Post
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    await blockUser(post.author_id);
+                                    toast.success('User blocked');
+                                    refresh();
+                                  }}
+                                  className="cursor-pointer text-destructive focus:text-destructive"
+                                >
+                                  <Ban className="w-4 h-4 mr-2" />
+                                  Block User
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
