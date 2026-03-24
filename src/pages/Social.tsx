@@ -42,6 +42,10 @@ import VideoPlayer from '@/components/social/VideoPlayer';
 import { useMessages } from '@/hooks/useMessages';
 import { useFriendships } from '@/hooks/useFriendships';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
+import { supabase } from '@/integrations/supabase/client';
+import TOSAcceptanceDialog from '@/components/social/TOSAcceptanceDialog';
+import ReportPostDialog from '@/components/social/ReportPostDialog';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
