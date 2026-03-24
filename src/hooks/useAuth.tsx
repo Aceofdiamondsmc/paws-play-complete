@@ -158,13 +158,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const redirectUrl = isNative
       ? 'com.pawsplayrepeat.app://callback'
       : `${window.location.origin}/me`;
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        queryParams: { prompt: 'select_account' }
+        queryParams: { prompt: 'select_account' },
+        skipBrowserRedirect: isNative,
       }
     });
+
+    if (isNative && data?.url) {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url: data.url, presentationStyle: 'popover' });
+    }
+
     return { error };
   };
 
