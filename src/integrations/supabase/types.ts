@@ -178,6 +178,52 @@ export type Database = {
         }
         Relationships: []
       }
+      content_reports: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reason: string
+          reporter_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reason: string
+          reporter_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reason?: string
+          reporter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "public_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string | null
@@ -1219,6 +1265,7 @@ export type Database = {
           onboarding_completed: boolean | null
           onesignal_player_id: string | null
           state: string | null
+          tos_accepted_at: string | null
           updated_at: string | null
           username: string | null
         }
@@ -1237,6 +1284,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           onesignal_player_id?: string | null
           state?: string | null
+          tos_accepted_at?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -1255,6 +1303,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           onesignal_player_id?: string | null
           state?: string | null
+          tos_accepted_at?: string | null
           updated_at?: string | null
           username?: string | null
         }
