@@ -1,19 +1,51 @@
 
 
-## Add Show/Hide Password Toggle on Login Page
+## Delete Account Bug — Root Cause & Fix
 
-The login/signup form in `Me.tsx` currently has a plain `type="password"` input with no visibility toggle. The Reset Password page already has this pattern implemented (Eye/EyeOff icons) — we'll replicate it.
+### The Problem
 
-### Changes
+The edge function logs show: `"Database error deleting user"` with `code: "unexpected_failure"`.
 
-**File: `src/pages/Me.tsx`**
+When `auth.admin.deleteUser()` runs, Postgres tries to delete the row from `auth.users`. But two foreign key constraints **don't have `ON DELETE CASCADE` or `ON DELETE SET NULL`**, so they default to `RESTRICT` — blocking the deletion entirely.
 
-1. Import `Eye` and `EyeOff` from `lucide-react`
-2. Add `const [showPassword, setShowPassword] = useState(false)` state
-3. Wrap the password Input in a `relative` div and add the toggle button (same pattern as `ResetPassword.tsx`):
-   - Change `type="password"` to `type={showPassword ? 'text' : 'password'}`
-   - Add `pr-10` to the Input className
-   - Add the eye icon button positioned `absolute right-3 top-1/2`
+The blocking foreign keys:
+1. **`app_settings.updated_by`** → `REFERENCES auth.users(id)` — no ON DELETE action
+2. **`service_submissions.approved_by`** → `REFERENCES auth.users(id)` — no ON DELETE action
 
-This is a small, self-contained change (~10 lines).
+### Fix
+
+**Option A (recommended): Migration to fix the foreign keys**
+
+Run a migration that drops and re-creates the two FK constraints with `ON DELETE SET NULL`:
+
+```sql
+-- Fix app_settings.updated_by FK
+ALTER TABLE public.app_settings 
+  DROP CONSTRAINT IF EXISTS app_settings_updated_by_fkey;
+ALTER TABLE public.app_settings 
+  ADD CONSTRAINT app_settings_updated_by_fkey 
+  FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+-- Fix service_submissions.approved_by FK
+ALTER TABLE public.service_submissions 
+  DROP CONSTRAINT IF EXISTS service_submissions_approved_by_fkey;
+ALTER TABLE public.service_submissions 
+  ADD CONSTRAINT service_submissions_approved_by_fkey 
+  FOREIGN KEY (approved_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+```
+
+This lets the user be deleted while preserving the submission/settings records (just nullifying the reference).
+
+**Option B (belt-and-suspenders): Also update the edge function**
+
+Update `delete-account/index.ts` to manually clean up data before calling `deleteUser()`, as a safety net against any future FK issues. This involves deleting rows from tables that reference the user but lack cascade. However, with Option A applied, this is optional.
+
+### Summary
+
+| Change | File |
+|---|---|
+| Migration: fix 2 FK constraints to `ON DELETE SET NULL` | New migration SQL |
+| (Optional) Edge function: pre-delete cleanup | `supabase/functions/delete-account/index.ts` |
+
+One migration fixes the issue. No code changes needed unless you want extra safety.
 
