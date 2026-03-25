@@ -271,13 +271,22 @@ export default function Me() {
                   <Lock className="w-4 h-4" />
                   Password
                 </label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-xl border-[hsl(45,25%,80%)] bg-white h-12"
-                />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="rounded-xl border-[hsl(45,25%,80%)] bg-white h-12 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
 
               {isLogin && (
