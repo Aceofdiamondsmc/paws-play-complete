@@ -94,6 +94,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   const [touched, setTouched] = useState<{ name?: boolean }>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingFileRef = useRef<File | null>(null);
 
   // Reset form when editingDog changes
   useEffect(() => {
