@@ -94,6 +94,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   const [touched, setTouched] = useState<{ name?: boolean }>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingFileRef = useRef<File | null>(null);
 
   // Reset form when editingDog changes
   useEffect(() => {
@@ -137,6 +138,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
       }
     } else {
       // For new dogs, show preview but upload after creation
+      pendingFileRef.current = file;
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarUrl(reader.result as string);
@@ -194,6 +196,13 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
       } else {
         const { dog, error } = await addDog(dogData);
         if (error) throw error;
+        
+        // Upload pending avatar for the newly created dog
+        if (pendingFileRef.current && dog?.id) {
+          await uploadDogAvatar(dog.id, pendingFileRef.current);
+          pendingFileRef.current = null;
+        }
+        
         toast.success('Pack member added!');
       }
 

@@ -68,7 +68,7 @@ export function EditProfileForm({ open, onClose, profile }: EditProfileFormProps
     if (error) {
       toast.error('Failed to upload photo');
     } else if (url) {
-      setAvatarUrl(url);
+      setAvatarUrl(url + '?t=' + Date.now());
       toast.success('Photo updated!');
     }
   };
