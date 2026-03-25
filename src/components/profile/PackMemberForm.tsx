@@ -196,6 +196,13 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
       } else {
         const { dog, error } = await addDog(dogData);
         if (error) throw error;
+        
+        // Upload pending avatar for the newly created dog
+        if (pendingFileRef.current && dog?.id) {
+          await uploadDogAvatar(dog.id, pendingFileRef.current);
+          pendingFileRef.current = null;
+        }
+        
         toast.success('Pack member added!');
       }
 
