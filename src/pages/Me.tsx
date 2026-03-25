@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, EyeOff, X, ChevronDown, ChevronUp, TreePine, HelpCircle, Scale, Trash2 } from 'lucide-react';
+import { User, Settings, LogOut, Mail, Lock, Plus, ShieldCheck, PawPrint, Edit2, Users, Calendar, MapPin, Camera, Shield, Share, Eye, EyeOff, X, ChevronDown, ChevronUp, TreePine, HelpCircle, Scale, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -66,6 +66,7 @@ export default function Me() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Modal states
@@ -270,13 +271,22 @@ export default function Me() {
                   <Lock className="w-4 h-4" />
                   Password
                 </label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-xl border-[hsl(45,25%,80%)] bg-white h-12"
-                />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="rounded-xl border-[hsl(45,25%,80%)] bg-white h-12 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
 
               {isLogin && (
