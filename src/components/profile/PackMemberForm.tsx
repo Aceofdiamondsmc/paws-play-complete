@@ -138,6 +138,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
       }
     } else {
       // For new dogs, show preview but upload after creation
+      pendingFileRef.current = file;
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarUrl(reader.result as string);
