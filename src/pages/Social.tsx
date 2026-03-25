@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck, ImageOff, MessageSquare, Check, Gift } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Camera, Globe, Users, MapPin, Star, PawPrint, MoreHorizontal, Pencil, Trash2, ShieldCheck, ImageOff, MessageSquare, Check, Gift, Flag, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -42,6 +42,10 @@ import VideoPlayer from '@/components/social/VideoPlayer';
 import { useMessages } from '@/hooks/useMessages';
 import { useFriendships } from '@/hooks/useFriendships';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
+import { supabase } from '@/integrations/supabase/client';
+import TOSAcceptanceDialog from '@/components/social/TOSAcceptanceDialog';
+import ReportPostDialog from '@/components/social/ReportPostDialog';
 
 type FilterTab = 'all' | 'friends' | 'reviews';
 
@@ -213,7 +217,20 @@ export default function Social() {
   const { activeAlerts, resolveAlert } = useLostDogAlerts();
   const { allParks } = useParks();
   const { isAdmin } = useAdmin();
+  const { blockUser } = useBlockedUsers();
   const [isPosting, setIsPosting] = useState(false);
+
+  // TOS acceptance state
+  const [tosAccepted, setTosAccepted] = useState<boolean | null>(null);
+  const [reportingPostId, setReportingPostId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) { setTosAccepted(null); return; }
+    supabase.from('profiles').select('tos_accepted_at').eq('id', user.id).single()
+      .then(({ data }) => {
+        setTosAccepted(!!(data as any)?.tos_accepted_at);
+      });
+  }, [user]);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
@@ -604,8 +621,8 @@ export default function Social() {
                         </button>
                       )}
 
-                      {/* Owner Actions Menu */}
-                      {user && post.author_id === user.id && (
+                      {/* Post Actions Menu */}
+                      {user && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
@@ -615,21 +632,47 @@ export default function Social() {
                               <MoreHorizontal className="w-5 h-5" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem
-                              onClick={() => setEditingPost({ id: post.id, content: post.content })}
-                              className="cursor-pointer"
-                            >
-                              <Pencil className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeletingPostId(post.id)}
-                              className="cursor-pointer text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {post.author_id === user.id && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => setEditingPost({ id: post.id, content: post.content })}
+                                  className="cursor-pointer"
+                                >
+                                  <Pencil className="w-4 h-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setDeletingPostId(post.id)}
+                                  className="cursor-pointer text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {post.author_id !== user.id && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => setReportingPostId(post.id)}
+                                  className="cursor-pointer"
+                                >
+                                  <Flag className="w-4 h-4 mr-2" />
+                                  Report Post
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    await blockUser(post.author_id);
+                                    toast.success('User blocked');
+                                    refresh();
+                                  }}
+                                  className="cursor-pointer text-destructive focus:text-destructive"
+                                >
+                                  <Ban className="w-4 h-4 mr-2" />
+                                  Block User
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
@@ -785,6 +828,23 @@ export default function Social() {
         initialCommentsCount={adminEditingPost?.comments_count || 0}
         initialAuthorAvatarUrl={adminEditingPost?.author_avatar_url || ''}
         onPostUpdated={refresh}
+      />
+
+      {/* TOS Acceptance Dialog */}
+      {user && tosAccepted === false && (
+        <TOSAcceptanceDialog
+          open={true}
+          userId={user.id}
+          onAccepted={() => setTosAccepted(true)}
+        />
+      )}
+
+      {/* Report Post Dialog */}
+      <ReportPostDialog
+        open={!!reportingPostId}
+        onOpenChange={(open) => !open && setReportingPostId(null)}
+        postId={reportingPostId}
+        reporterId={user?.id || ''}
       />
 
       <AlertDialog open={!!deletingPostId} onOpenChange={(open) => !open && setDeletingPostId(null)}>
