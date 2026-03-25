@@ -145,21 +145,18 @@ export function ParksMap({ parks, loading, onParkSelect }: ParksMapProps) {
 
     const initMap = async () => {
       try {
-        // Fetch token from edge function (requires auth)
+        // Fetch token from edge function (works for both guests and authenticated users)
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-          throw new Error('Please sign in to view the map');
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhhc2Jna2dnd25rdnJjZXppYWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MDU0NjYsImV4cCI6MjA4MzM4MTQ2Nn0.r3QfznSxZRokZHZAojxD4APUDE9q7pk3asR0V8e0rMg',
+        };
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
         }
         const response = await fetch(
           'https://xasbgkggwnkvrceziaix.supabase.co/functions/v1/mapbox-token',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhhc2Jna2dnd25rdnJjZXppYWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MDU0NjYsImV4cCI6MjA4MzM4MTQ2Nn0.r3QfznSxZRokZHZAojxD4APUDE9q7pk3asR0V8e0rMg',
-            }
-          }
+          { method: 'POST', headers }
         );
 
         if (!response.ok) {
