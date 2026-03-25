@@ -1,46 +1,37 @@
 
 
-## Answers & Fix Plan
+## Bug: Avatar Not Displaying on First Upload
 
-### 1. Account Deletion Confirmation — Already Exists
-The `Me.tsx` page already has an `AlertDialog` confirmation step (lines 629-648) before deleting. It shows "Delete Your Account?" with a description about permanent data loss, plus Cancel / Delete My Account buttons. The Delete button is styled red (`bg-destructive`). No code changes needed here.
+### Root Cause
 
-### 2. "Expired Free Trial" — Yes, Subscription Related
-Yes, Apple is likely referring to the Stripe-based free trial for the Services subscription. When the trial expires and the user hasn't converted, the `check-subscription` edge function returns `status: 'canceled'` or similar. This is handled correctly. No code change needed — just explain this to Apple in your business model answers (Issue 3).
+**Dog Profile (PackMemberForm - new dog creation)**: This is the primary bug. When adding a **new** dog:
+1. User picks a photo → the file is read as a local data URL for preview (line 138-145)
+2. User submits the form → `addDog()` creates the dog record **without** the avatar
+3. The actual file is **never uploaded** to Supabase Storage — the data URL preview is discarded
+4. Result: the dog is created with no avatar. User has to edit the dog and re-upload.
 
-### 3. Guest Map Access — Requires Edge Function Change
-The `mapbox-token` edge function **requires authentication** (checks `Authorization` header and validates user). The `ParksMap` component also checks for a session and throws "Please sign in to view the map" if none exists. For guest browsing to work on Parks, both need updating:
+**Dog Profile (editing)**: Works correctly — `uploadDogAvatar` uploads immediately.
 
-**Changes:**
+**User Profile**: Works correctly — `uploadAvatar` uploads immediately and persists to DB. However, the Supabase Storage URL may hit browser cache if the same image path is reused. This is mitigated by the timestamp in filenames, but could still occur on slow connections where the CDN hasn't propagated yet.
 
-**A. `supabase/functions/mapbox-token/index.ts`**
-- Allow unauthenticated requests by making the auth check optional. If a valid user token is present, proceed as before. If not, still return the Mapbox token (the token is a restricted/public token anyway — it's just hidden from source code).
+### Fix
 
-**B. `src/components/parks/ParksMap.tsx`**
-- Remove the session check that throws an error. Instead, call the edge function without the `Authorization` header when no session exists, or use `supabase.functions.invoke('mapbox-token')` which auto-includes the anon key.
+**File: `src/components/profile/PackMemberForm.tsx`**
 
-### 4. Demo Account Created — Noted
-You've created John Apple (@JohnnyApple) with subscription access. Use these credentials in App Store Connect's "App Review Information" section.
+1. Store the pending `File` object in a `useRef` (not just the data URL preview)
+2. After `addDog()` succeeds and returns the new dog ID, call `uploadDogAvatar(newDogId, pendingFile)` to upload and persist the avatar
+3. Clear the ref after successful upload
 
-### 5. Social Page Header Too High — Safe Area Fix
-The sticky header in `Social.tsx` (line 459) uses `pt-12` which is a fixed value. On iOS devices with the Dynamic Island / notch, this doesn't account for the safe area inset, causing the "Pack Community" title and filter tabs to sit too high, overlapping with the status bar / address bar.
+Changes:
+- Add `const pendingFileRef = useRef<File | null>(null)` 
+- In `handleAvatarUpload` (new dog branch, line 138-145): also set `pendingFileRef.current = file`
+- In `handleSubmit` after `addDog` succeeds (line 195-197): if `pendingFileRef.current && dog?.id`, call `await uploadDogAvatar(dog.id, pendingFileRef.current)` then clear the ref
 
-**Fix: `src/pages/Social.tsx`**
-- Replace the fixed `pt-12` on the sticky header with dynamic safe-area padding, matching the pattern used on other pages:
-  ```
-  style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 48px)' }}
-  ```
-- Remove the `pt-12` class and use inline style instead.
+**File: `src/components/profile/EditProfileForm.tsx`** (minor improvement)
 
----
+- Add a cache-busting query param (`?t=timestamp`) to the avatar URL after upload to force the browser to re-fetch, preventing stale cached images from displaying.
 
-### Summary of Code Changes
+### Technical Details
 
-| File | Change |
-|---|---|
-| `supabase/functions/mapbox-token/index.ts` | Make auth optional — return token for both authenticated and anonymous requests |
-| `src/components/parks/ParksMap.tsx` | Remove session requirement, allow map init without auth |
-| `src/pages/Social.tsx` | Fix sticky header padding to use safe-area-inset-top instead of fixed `pt-12` |
-
-No changes needed for questions 1, 2, or 4.
+The fix is ~10 lines of code in PackMemberForm. The core change is bridging the gap between "preview selected" and "actually upload" for the new-dog flow. For existing dogs, the upload-on-select pattern already works correctly.
 
