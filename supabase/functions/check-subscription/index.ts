@@ -40,6 +40,16 @@ serve(async (req) => {
     if (!user.email) throw new Error("User email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Demo: expired trial for Apple reviewer
+    if (user.email === 'apple-expired@pawsplayrepeat.app') {
+      logStep("Demo expired trial override for Apple reviewer");
+      return new Response(JSON.stringify({
+        subscribed: false,
+        status: 'expired_trial',
+        trial_end: new Date(Date.now() - 86400000).toISOString(),
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Find Stripe customer by email
