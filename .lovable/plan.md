@@ -1,55 +1,45 @@
 
 
-## Provide Apple an Expired Trial Demo Account
+## Fix QR Code Getting Cropped on Lost Dog Flyer
 
-### What Apple Wants
-They need to see what happens when a user's free trial has expired — that the app degrades gracefully and the user can still access free features.
+### Problem
+The large 384px dog photo plus all the content sections push the footer (with the QR code) past the bottom of the 11-inch page.
 
-### Recommended Approach: Demo Override in Edge Function
+### Solution
+Move the QR code from the bottom footer into the **contact section**, placing it inline next to the phone number. This keeps it visible, scannable, and within the page bounds regardless of photo size.
 
-Add a special case in the `check-subscription` edge function for a dedicated Apple reviewer email. When that email is detected, return an "expired trial" response. This is reliable and doesn't depend on Stripe state.
+**Layout change for the contact/footer area:**
 
-### Steps
+```text
+Before:
+┌─────────────────────────┐
+│     CONTACT OWNER       │
+│    555-123-4567          │
+└─────────────────────────┘
+┌─────────────────────────┐
+│ PawsPlayRepeat.com  [QR]│
+└─────────────────────────┘
 
-**1. Create a new Supabase Auth user**
-- Go to Supabase Dashboard > Auth > Users
-- Create: `apple-expired@pawsplayrepeat.app` / password: `PawsTest2026!`
-- Set up a basic profile and dog (same as your existing reviewer account)
-
-**2. Update `check-subscription` edge function**
-Add a check near the top (after user authentication) for the demo email:
-
-```typescript
-// Demo: expired trial for Apple reviewer
-if (user.email === 'apple-expired@pawsplayrepeat.app') {
-  return new Response(JSON.stringify({
-    subscribed: false,
-    status: 'expired_trial',
-    trial_end: new Date(Date.now() - 86400000).toISOString(), // expired yesterday
-  }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-}
+After:
+┌─────────────────────────┐
+│     CONTACT OWNER       │
+│  555-123-4567     [QR]  │
+│                 SCAN ME │
+└─────────────────────────┘
+  PawsPlayRepeat.com
 ```
 
-No other code changes needed — the `FreeTrialBanner` component already shows the "Start Your Free Trial" CTA when `isSubscribed` is false, which is the correct expired-trial experience.
-
-**3. Provide Apple both accounts in the review notes**
-
-| Account | Email | Password | Purpose |
-|---|---|---|---|
-| Active trial | apple-tester@pawsplayrepeat.app | PawsTest2026! | Full premium access |
-| Expired trial | apple-expired@pawsplayrepeat.app | PawsTest2026! | Shows post-trial experience |
-
-### What the Reviewer Will See (Expired Account)
-- All free features work normally (Parks, Social, Pack, S.O.S.)
-- Services tab shows the "1st Month Free" trial banner instead of premium status
-- "Add Your Service" flow still accessible (payment required at checkout)
-- No content is locked or broken
-
 ### Changes
-| Change | Type |
-|---|---|
-| Add demo email check in `check-subscription` | Edge function update (auto-deployed) |
-| Create `apple-expired@pawsplayrepeat.app` user | Manual in Supabase dashboard |
-| No frontend code changes | — |
-| No iOS build needed | — |
+
+**File: `src/components/lost-dog/FlyerTemplate.tsx`**
+
+1. **React component** (lines 129-152): Replace the separate contact box + footer with a single contact box that has the phone number on the left and QR code on the right, then a small "Created on PawsPlayRepeat.com" line below it
+2. **`generateFlyerHTML` function** (lines 230-245): Same layout change in the standalone HTML version — merge QR into the contact section, move branding text below
+
+### What stays the same
+- Dog photo size unchanged (384px)
+- Header, dog info, last seen, reward sections all unchanged
+- QR code size unchanged (96px)
+- All image readiness logic unchanged
+- No iOS build needed
 
