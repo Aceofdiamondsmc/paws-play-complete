@@ -1,27 +1,27 @@
 
 
-## Fix Comments Drawer — Input Too High / Hard to See What You're Typing
+## Hide App Store Badge on Native iOS App (Keep on Web)
 
 ### Problem
-The `CommentsDrawer` uses a bottom-up `Drawer` with `max-h-[85vh]`. On mobile, when the keyboard opens, the drawer doesn't adapt — the input stays high up and the user can barely see what they're typing. This is the same issue previously fixed in ChatView and other pages.
+The Landing page footer shows a "Coming Soon" App Store badge. This should not appear when the user is running the app on an actual Apple device (native Capacitor app), but should remain visible on the web version.
 
 ### Solution
-Apply the same `100dvh`-aware pattern used in ChatView:
 
-**File: `src/components/social/CommentsDrawer.tsx`**
+**File: `src/pages/Landing.tsx`**
 
-1. Change `DrawerContent` from `max-h-[85vh]` to `max-h-[80dvh]` — uses dynamic viewport height so the drawer shrinks when the mobile keyboard opens
-2. Add safe-area bottom padding to the input area: `pb-[env(safe-area-inset-bottom)]` so it clears the home indicator
-3. Keep the existing `scrollIntoView` on focus (line 239) which already handles scrolling the input into view after 300ms
+Wrap the App Store badge block (lines 128-144) in a conditional that hides it when running as a native Capacitor app. Use the existing detection pattern from the codebase:
 
-This is a single-line class change — same pattern as every other keyboard-aware fix in the app.
+```tsx
+const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+```
+
+If `isNative` is true, skip rendering the badge entirely. Web users (including PWA) will still see it.
 
 ### Changes
 
 | What | Where |
 |---|---|
-| `max-h-[85vh]` → `max-h-[80dvh]` | Line 110, DrawerContent className |
-| Add `pb-[env(safe-area-inset-bottom)]` to input container | Line 188 |
+| Add `isNative` check, conditionally render badge | `src/pages/Landing.tsx` ~line 128 |
 
-No other files affected. No iOS build needed.
+Single file, ~3 lines added. No iOS build needed — the native app loads this code dynamically.
 
