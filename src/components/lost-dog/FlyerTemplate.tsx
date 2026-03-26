@@ -227,22 +227,21 @@ export function generateFlyerHTML(props: FlyerTemplateProps & { printOnLoad?: bo
 
     ${rewardBlock}
 
-    <!-- Contact -->
-    <div style="border:4px solid #000;border-radius:8px;padding:24px;text-align:center;margin-bottom:16px;flex:1;display:flex;flex-direction:column;justify-content:center;">
-      <p style="font-size:20px;font-weight:700;margin-bottom:8px;">CONTACT OWNER</p>
-      <p style="font-size:48px;font-weight:900;letter-spacing:2px;">${contactPhone}</p>
-    </div>
-
-    <!-- Footer with QR -->
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:auto;">
-      <p style="font-size:11px;color:#6b7280;">Created on PawsPlayRepeat.com</p>
-      <div style="display:flex;flex-direction:column;align-items:center;">
+    <!-- Contact + QR -->
+    <div style="border:4px solid #000;border-radius:8px;padding:24px;margin-bottom:8px;flex:1;display:flex;align-items:center;justify-content:space-between;">
+      <div style="flex:1;text-align:center;">
+        <p style="font-size:20px;font-weight:700;margin-bottom:8px;">CONTACT OWNER</p>
+        <p style="font-size:48px;font-weight:900;letter-spacing:2px;">${contactPhone}</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;margin-left:24px;flex-shrink:0;">
         <img src="${qrUrl}" alt="QR Code" style="width:96px;height:96px;border:2px solid #000;padding:4px;" />
         <p style="font-size:11px;font-weight:700;margin-top:4px;text-align:center;max-width:120px;line-height:1.3;">
           SCAN FOR MORE PHOTOS & LIVE UPDATES
         </p>
       </div>
     </div>
+
+    <p style="font-size:11px;color:#6b7280;margin-top:auto;">Created on PawsPlayRepeat.com</p>
   </div>
 
   ${printScript}
