@@ -126,14 +126,12 @@ const FlyerTemplate = forwardRef<HTMLDivElement, FlyerTemplateProps>(
             </div>
           )}
 
-          <div className="border-4 border-black rounded-lg p-6 text-center mb-4 flex-1 flex flex-col justify-center">
-            <p className="text-xl font-bold mb-2" style={{ color: '#000' }}>CONTACT OWNER</p>
-            <p className="text-5xl font-black tracking-wider" style={{ color: '#000' }}>{contactPhone}</p>
-          </div>
-
-          <div className="flex items-end justify-between mt-auto">
-            <p className="text-xs" style={{ color: '#6b7280' }}>Created on PawsPlayRepeat.com</p>
-            <div className="flex flex-col items-center">
+          <div className="border-4 border-black rounded-lg p-6 mb-2 flex-1 flex items-center justify-between">
+            <div className="flex-1 text-center">
+              <p className="text-xl font-bold mb-2" style={{ color: '#000' }}>CONTACT OWNER</p>
+              <p className="text-5xl font-black tracking-wider" style={{ color: '#000' }}>{contactPhone}</p>
+            </div>
+            <div className="flex flex-col items-center ml-6 flex-shrink-0">
               <img
                 ref={qrRef}
                 src={qrSrc}
@@ -150,6 +148,8 @@ const FlyerTemplate = forwardRef<HTMLDivElement, FlyerTemplateProps>(
               </p>
             </div>
           </div>
+
+          <p className="text-xs mt-auto" style={{ color: '#6b7280' }}>Created on PawsPlayRepeat.com</p>
         </div>
       </div>
     );
