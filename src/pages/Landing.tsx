@@ -18,6 +18,7 @@ export default function Landing() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTos, setShowTos] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
 
   // Redirect authenticated users to /me
   useEffect(() => {
@@ -125,23 +126,25 @@ export default function Landing() {
             Support
           </button>
         </div>
-        <div className="flex justify-center items-center my-2">
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Coming Soon</p>
-            <a
-              href="https://apps.apple.com/app/id6760650358"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block opacity-60 pointer-events-none transition-opacity duration-300"
-            >
-              <img
-                src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
-                alt="Download on the App Store"
-                className="h-10"
-              />
-            </a>
+        {!isNative && (
+          <div className="flex justify-center items-center my-2">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-1">Coming Soon</p>
+              <a
+                href="https://apps.apple.com/app/id6760650358"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block opacity-60 pointer-events-none transition-opacity duration-300"
+              >
+                <img
+                  src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
+                  alt="Download on the App Store"
+                  className="h-10"
+                />
+              </a>
+            </div>
           </div>
-        </div>
+        )}
         <p className="text-center text-muted-foreground text-xs">
           © 2026 Paws Play Repeat. All rights reserved.
         </p>
