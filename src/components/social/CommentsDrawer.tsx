@@ -185,7 +185,7 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
           </div>
 
           {/* Sticky Comment Input */}
-          <div className="p-4 border-t border-border bg-background shrink-0">
+          <div className="p-4 border-t border-border bg-background shrink-0 pb-[env(safe-area-inset-bottom)]">
             {user ? (
               <div className="space-y-1">
                 {editingCommentId && (
