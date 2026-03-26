@@ -18,6 +18,7 @@ export default function Landing() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTos, setShowTos] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
 
   // Redirect authenticated users to /me
   useEffect(() => {
