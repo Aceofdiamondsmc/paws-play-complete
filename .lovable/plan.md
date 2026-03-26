@@ -1,45 +1,27 @@
 
 
-## Fix QR Code Getting Cropped on Lost Dog Flyer
+## Fix Comments Drawer — Input Too High / Hard to See What You're Typing
 
 ### Problem
-The large 384px dog photo plus all the content sections push the footer (with the QR code) past the bottom of the 11-inch page.
+The `CommentsDrawer` uses a bottom-up `Drawer` with `max-h-[85vh]`. On mobile, when the keyboard opens, the drawer doesn't adapt — the input stays high up and the user can barely see what they're typing. This is the same issue previously fixed in ChatView and other pages.
 
 ### Solution
-Move the QR code from the bottom footer into the **contact section**, placing it inline next to the phone number. This keeps it visible, scannable, and within the page bounds regardless of photo size.
+Apply the same `100dvh`-aware pattern used in ChatView:
 
-**Layout change for the contact/footer area:**
+**File: `src/components/social/CommentsDrawer.tsx`**
 
-```text
-Before:
-┌─────────────────────────┐
-│     CONTACT OWNER       │
-│    555-123-4567          │
-└─────────────────────────┘
-┌─────────────────────────┐
-│ PawsPlayRepeat.com  [QR]│
-└─────────────────────────┘
+1. Change `DrawerContent` from `max-h-[85vh]` to `max-h-[80dvh]` — uses dynamic viewport height so the drawer shrinks when the mobile keyboard opens
+2. Add safe-area bottom padding to the input area: `pb-[env(safe-area-inset-bottom)]` so it clears the home indicator
+3. Keep the existing `scrollIntoView` on focus (line 239) which already handles scrolling the input into view after 300ms
 
-After:
-┌─────────────────────────┐
-│     CONTACT OWNER       │
-│  555-123-4567     [QR]  │
-│                 SCAN ME │
-└─────────────────────────┘
-  PawsPlayRepeat.com
-```
+This is a single-line class change — same pattern as every other keyboard-aware fix in the app.
 
 ### Changes
 
-**File: `src/components/lost-dog/FlyerTemplate.tsx`**
+| What | Where |
+|---|---|
+| `max-h-[85vh]` → `max-h-[80dvh]` | Line 110, DrawerContent className |
+| Add `pb-[env(safe-area-inset-bottom)]` to input container | Line 188 |
 
-1. **React component** (lines 129-152): Replace the separate contact box + footer with a single contact box that has the phone number on the left and QR code on the right, then a small "Created on PawsPlayRepeat.com" line below it
-2. **`generateFlyerHTML` function** (lines 230-245): Same layout change in the standalone HTML version — merge QR into the contact section, move branding text below
-
-### What stays the same
-- Dog photo size unchanged (384px)
-- Header, dog info, last seen, reward sections all unchanged
-- QR code size unchanged (96px)
-- All image readiness logic unchanged
-- No iOS build needed
+No other files affected. No iOS build needed.
 
