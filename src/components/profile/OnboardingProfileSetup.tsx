@@ -55,11 +55,7 @@ export function OnboardingProfileSetup({ profile, user, onNext }: OnboardingProf
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!displayName.trim()) {
-      toast.error('Please enter your display name');
-      return;
-    }
-
+    // Display name is optional — Apple provides it via Sign in with Apple metadata
     setIsSubmitting(true);
     try {
       const { error } = await updateProfile({
