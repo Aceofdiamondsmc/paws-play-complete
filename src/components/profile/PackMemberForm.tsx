@@ -124,7 +124,21 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
     setSize(editingDog?.size || 'Medium');
     setEnergy(editingDog?.energy_level || 'Medium');
     setBio(editingDog?.bio || '');
-    setAgeYears(editingDog?.age_years?.toString() || '');
+    if (editingDog?.age_years === 0 && editingDog?.date_of_birth) {
+      const dob = new Date(editingDog.date_of_birth + 'T00:00:00');
+      const now = new Date();
+      const months = (now.getFullYear() - dob.getFullYear()) * 12 + (now.getMonth() - dob.getMonth());
+      if (months >= 0 && months < 12) {
+        setAgeValue(months.toString());
+        setAgeUnit('months');
+      } else {
+        setAgeValue(editingDog.age_years.toString());
+        setAgeUnit('years');
+      }
+    } else {
+      setAgeValue(editingDog?.age_years?.toString() || '');
+      setAgeUnit('years');
+    }
     setWeightLbs(editingDog?.weight_lbs?.toString() || '');
     setHealthInfo(editingDog?.health_notes || '');
     setAvatarUrl(editingDog?.avatar_url || '');
