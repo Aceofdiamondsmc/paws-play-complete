@@ -3,6 +3,8 @@ import { Store, BadgeCheck, Star, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
+const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+
 export function AddServiceCTA() {
   const navigate = useNavigate();
 
