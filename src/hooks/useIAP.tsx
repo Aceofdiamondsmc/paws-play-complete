@@ -6,8 +6,7 @@ import { toast } from 'sonner';
 const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
 
 // RevenueCat public API key — safe to store in code (publishable)
-// TODO: Replace with your actual RevenueCat API key after setup
-const REVENUECAT_API_KEY = 'appl_REPLACE_WITH_YOUR_KEY';
+const REVENUECAT_API_KEY = 'appl_VwKCwgyesJPBdIJoFPzlvxwZowm';
 
 interface IAPState {
   isPremium: boolean;
