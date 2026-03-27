@@ -26,6 +26,8 @@ const NOTIFICATION_TEMPLATES: Record<string, { title: string; body: string }> = 
 };
 
 export default function AdminTools() {
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+
   // -- Geocode Backfill --
   const [geocoding, setGeocoding] = useState(false);
 
