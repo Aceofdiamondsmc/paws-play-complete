@@ -20,6 +20,7 @@ import Dates from "./pages/Dates";
 import Pack from "./pages/Pack";
 import Me from "./pages/Me";
 import Shop from "./pages/Shop";
+import Plans from "./pages/Plans";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -139,6 +140,7 @@ const App = () => {
                   <Route path="/pack" element={<Pack />} />
                   <Route path="/me" element={<Me />} />
                   <Route path="/shop" element={<Shop />} />
+                  <Route path="/plans" element={<Plans />} />
                 </Route>
 
                 <Route
