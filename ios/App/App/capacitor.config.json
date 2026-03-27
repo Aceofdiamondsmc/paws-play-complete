@@ -21,6 +21,7 @@
 		"FilesystemPlugin",
 		"LocalNotificationsPlugin",
 		"PushNotificationsPlugin",
-		"SharePlugin"
+		"SharePlugin",
+		"PurchasesPlugin"
 	]
 }
