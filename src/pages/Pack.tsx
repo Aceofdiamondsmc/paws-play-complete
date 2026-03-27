@@ -594,8 +594,8 @@ export default function Pack() {
             </p>
           </div>
 
-          {/* Size / Energy / Breed Cards */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Size / Energy / Breed / Age Cards */}
+          <div className="grid grid-cols-2 gap-3">
             {/* Size Card */}
             <div className="bg-[#252b3b] rounded-2xl p-4 text-center">
               <div className="w-12 h-12 mx-auto mb-2 bg-[#a855f7]/20 rounded-full flex items-center justify-center">
@@ -621,6 +621,31 @@ export default function Pack() {
               </div>
               <span className="text-xs text-gray-400 font-bold tracking-wider uppercase block">Breed</span>
               <span className="font-bold text-white text-sm">{currentDog.breed || 'Golden Retriever'}</span>
+            </div>
+
+            {/* Age Card */}
+            <div className="bg-[#252b3b] rounded-2xl p-4 text-center">
+              <div className="w-12 h-12 mx-auto mb-2 bg-[#ec4899]/20 rounded-full flex items-center justify-center">
+                <Heart className="w-6 h-6 text-[#ec4899]" />
+              </div>
+              <span className="text-xs text-gray-400 font-bold tracking-wider uppercase block">Age</span>
+              <span className="font-bold text-white">
+                {(() => {
+                  if (currentDog.date_of_birth) {
+                    const dob = new Date(currentDog.date_of_birth + 'T00:00:00');
+                    const now = new Date();
+                    const totalMonths = (now.getFullYear() - dob.getFullYear()) * 12 + (now.getMonth() - dob.getMonth());
+                    if (totalMonths < 12) return `${Math.max(0, totalMonths)} mos`;
+                    const years = Math.floor(totalMonths / 12);
+                    return `${years} yr${years !== 1 ? 's' : ''}`;
+                  }
+                  if (currentDog.age_years != null) {
+                    if (currentDog.age_years === 0) return '< 1 yr';
+                    return `${currentDog.age_years} yr${currentDog.age_years !== 1 ? 's' : ''}`;
+                  }
+                  return '—';
+                })()}
+              </span>
             </div>
           </div>
 
