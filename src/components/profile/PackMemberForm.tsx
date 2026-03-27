@@ -209,7 +209,7 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
         size,
         energy_level: energy,
         bio: bio.trim(),
-        age_years: ageYears ? parseInt(ageYears) : undefined,
+        age_years: ageValue ? (ageUnit === 'months' ? 0 : parseInt(ageValue)) : undefined,
         weight_lbs: weightLbs ? parseFloat(weightLbs) : undefined,
         health_notes: healthInfo.trim(),
         play_style: selectedPlayStyles,
