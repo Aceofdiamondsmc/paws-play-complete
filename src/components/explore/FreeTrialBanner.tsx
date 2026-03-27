@@ -152,6 +152,21 @@ export function FreeTrialBanner() {
             </>
           )}
         </Button>
+        {isNative && restorePurchases && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground"
+            disabled={isRestoring}
+            onClick={async () => {
+              setIsRestoring(true);
+              try { await restorePurchases(); } finally { setIsRestoring(false); }
+            }}
+          >
+            {isRestoring ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            Restore Purchases
+          </Button>
+        )}
       </div>
     </Card>
   );
