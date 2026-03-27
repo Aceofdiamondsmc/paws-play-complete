@@ -1,27 +1,24 @@
 
 
-## Hide App Store Badge on Native iOS App (Keep on Web)
+## Replace Web/PWA Icons with New App Icon
 
-### Problem
-The Landing page footer shows a "Coming Soon" App Store badge. This should not appear when the user is running the app on an actual Apple device (native Capacitor app), but should remain visible on the web version.
-
-### Solution
-
-**File: `src/pages/Landing.tsx`**
-
-Wrap the App Store badge block (lines 128-144) in a conditional that hides it when running as a native Capacitor app. Use the existing detection pattern from the codebase:
-
-```tsx
-const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
-```
-
-If `isNative` is true, skip rendering the badge entirely. Web users (including PWA) will still see it.
+### What
+Copy the uploaded paw print icon to the `public/` directory and generate the required sizes for favicon, PWA icons, and Apple touch icon — so web notifications, PWA installs, and browser tabs all show the new branding.
 
 ### Changes
 
-| What | Where |
+| File | Action |
 |---|---|
-| Add `isNative` check, conditionally render badge | `src/pages/Landing.tsx` ~line 128 |
+| `public/favicon.png` | Replace with uploaded icon |
+| `public/icon-192.png` | Replace with uploaded icon |
+| `public/icon-512.png` | Replace with uploaded icon |
+| `public/apple-touch-icon.png` | Replace with uploaded icon |
+| `index.html` | Confirm favicon link points to `/favicon.png` (likely already correct) |
 
-Single file, ~3 lines added. No iOS build needed — the native app loads this code dynamically.
+The uploaded image is 1024x1024 which is perfect — it will be copied as-is for the larger sizes and the browser handles scaling. For best results at small sizes (favicon), a resized version would be ideal, but browsers handle downscaling well from a clean 1024px source.
+
+### No other changes needed
+- Native iOS already uses the icon from `AppIcon.appiconset` (separate Xcode asset)
+- `manifest.json` already references `/icon-192.png` and `/icon-512.png`
+- No iOS build needed
 
