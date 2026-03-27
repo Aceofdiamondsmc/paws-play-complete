@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useIAP } from '@/hooks/useIAP';
 import { toast } from 'sonner';
 
 interface SubscriptionState {
@@ -14,6 +15,8 @@ interface SubscriptionState {
 
 export function useSubscription() {
   const { user } = useAuth();
+  const iap = useIAP();
+  
   const [state, setState] = useState<SubscriptionState>({
     isSubscribed: false,
     isTrialing: false,
@@ -23,7 +26,23 @@ export function useSubscription() {
     isLoading: true,
   });
 
+  // On native iOS, delegate to useIAP
+  useEffect(() => {
+    if (iap.isNative) {
+      setState({
+        isSubscribed: iap.isPremium,
+        isTrialing: iap.isTrialing,
+        status: iap.isPremium ? (iap.isTrialing ? 'trialing' : 'active') : null,
+        trialEnd: null,
+        subscriptionEnd: null,
+        isLoading: iap.isLoading,
+      });
+    }
+  }, [iap.isNative, iap.isPremium, iap.isTrialing, iap.isLoading]);
+
+  // On web, use Stripe check-subscription
   const checkSubscription = useCallback(async () => {
+    if (iap.isNative) return; // Skip on native
     if (!user) {
       setState(prev => ({ ...prev, isLoading: false, isSubscribed: false, isTrialing: false, status: null }));
       return;
@@ -45,15 +64,23 @@ export function useSubscription() {
       console.error('Failed to check subscription:', err);
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [user]);
+  }, [user, iap.isNative]);
 
   useEffect(() => {
-    checkSubscription();
-    const interval = setInterval(checkSubscription, 60_000);
-    return () => clearInterval(interval);
-  }, [checkSubscription]);
+    if (!iap.isNative) {
+      checkSubscription();
+      const interval = setInterval(checkSubscription, 60_000);
+      return () => clearInterval(interval);
+    }
+  }, [checkSubscription, iap.isNative]);
 
+  // Start trial: native uses IAP, web uses Stripe
   const startTrial = async () => {
+    if (iap.isNative) {
+      await iap.purchase();
+      return;
+    }
+
     if (!user) {
       toast.error('Please sign in first');
       return;
@@ -71,11 +98,19 @@ export function useSubscription() {
     }
   };
 
-  const trialDaysLeft = state.trialEnd
-    ? Math.max(0, Math.ceil((new Date(state.trialEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : null;
+  const trialDaysLeft = iap.isNative
+    ? iap.trialDaysLeft
+    : state.trialEnd
+      ? Math.max(0, Math.ceil((new Date(state.trialEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : null;
 
+  // Manage subscription: native opens App Store, web opens Stripe portal
   const manageSubscription = async () => {
+    if (iap.isNative) {
+      await iap.manageSubscription();
+      return;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
@@ -87,11 +122,15 @@ export function useSubscription() {
     }
   };
 
+  // Restore purchases (native only)
+  const restorePurchases = iap.isNative ? iap.restore : undefined;
+
   return {
     ...state,
     trialDaysLeft,
     startTrial,
     manageSubscription,
-    refreshSubscription: checkSubscription,
+    restorePurchases,
+    refreshSubscription: iap.isNative ? iap.refreshEntitlements : checkSubscription,
   };
 }
