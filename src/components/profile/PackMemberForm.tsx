@@ -77,7 +77,28 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
   const [size, setSize] = useState(editingDog?.size || 'Medium');
   const [energy, setEnergy] = useState(editingDog?.energy_level || 'Medium');
   const [bio, setBio] = useState(editingDog?.bio || '');
-  const [ageYears, setAgeYears] = useState(editingDog?.age_years?.toString() || '');
+  const [ageValue, setAgeValue] = useState(() => {
+    if (editingDog?.age_years != null) {
+      if (editingDog.age_years === 0 && editingDog.date_of_birth) {
+        // Calculate months from DOB for puppies
+        const dob = new Date(editingDog.date_of_birth + 'T00:00:00');
+        const now = new Date();
+        const months = (now.getFullYear() - dob.getFullYear()) * 12 + (now.getMonth() - dob.getMonth());
+        return months > 0 && months < 12 ? months.toString() : editingDog.age_years.toString();
+      }
+      return editingDog.age_years.toString();
+    }
+    return '';
+  });
+  const [ageUnit, setAgeUnit] = useState<'years' | 'months'>(() => {
+    if (editingDog?.age_years === 0 && editingDog?.date_of_birth) {
+      const dob = new Date(editingDog.date_of_birth + 'T00:00:00');
+      const now = new Date();
+      const months = (now.getFullYear() - dob.getFullYear()) * 12 + (now.getMonth() - dob.getMonth());
+      if (months >= 0 && months < 12) return 'months';
+    }
+    return 'years';
+  });
   const [weightLbs, setWeightLbs] = useState(editingDog?.weight_lbs?.toString() || '');
   const [healthInfo, setHealthInfo] = useState(editingDog?.health_notes || '');
   const [avatarUrl, setAvatarUrl] = useState(editingDog?.avatar_url || '');
