@@ -1,16 +1,32 @@
 
 
-## Update Header Logo to New App Icon
+## Fix Appflow Build: RevenueCat Version Conflict
 
 ### Problem
-The header still uses the old `pawsplay-logo.png` text-style logo (1.6MB). The new app icon (`public/favicon.png` / `public/icon-192.png`) was added but never swapped into the header.
+The build fails because `@revenuecat/purchases-capacitor@12.3.0` requires `capacitor-swift-pm` **8.x**, but all other Capacitor plugins (`@capacitor/share`, `@capacitor/app`, etc.) are on Capacitor **6.x**. These two version ranges are incompatible, so SPM cannot resolve dependencies.
 
-### Change
+### Solution
+Downgrade `@revenuecat/purchases-capacitor` to the latest version that supports Capacitor 6. That is **v11.x** (specifically `^11.1.1`), which targets `capacitor-swift-pm` 6.x.
+
+### Changes
 
 | File | Change |
 |---|---|
-| `src/components/layout/Header.tsx` | Replace `pawsplay-logo.png` import with `/icon-192.png` from public directory. Adjust sizing to `h-9 w-9 rounded-xl` for a clean icon look, optionally add the app name text next to it. |
+| `package.json` | Change `"@revenuecat/purchases-capacitor": "^12.3.0"` to `"@revenuecat/purchases-capacitor": "^11.1.1"` |
 
-### Result
-The header will show the new round app icon instead of the old text logo, matching the native iOS/Android app icon.
+### After Implementation
+Run locally:
+```bash
+cd ~/Development/paws-play-complete/paws-play-complete
+git pull
+rm -rf node_modules package-lock.json
+npm install
+npm run build
+npx cap sync
+git add . && git commit -m "Downgrade RevenueCat to v11 for Capacitor 6 compat" && git push origin main
+```
+Then trigger a new Appflow build.
+
+### Alternative
+If you want to stay on RevenueCat v12, you'd need to upgrade **all** Capacitor packages to v8 — a much larger migration. Downgrading RevenueCat is the simpler fix.
 
