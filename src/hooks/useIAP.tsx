@@ -98,9 +98,9 @@ export function useIAP() {
 
     try {
       const { Purchases } = await import('@revenuecat/purchases-capacitor');
-      const offeringsResult = await Purchases.getOfferings();
-      
-      const currentOffering = offeringsResult.offerings?.current;
+      // Note: getOfferings() has a known type mismatch — runtime returns { offerings: PurchasesOfferings }
+      const offeringsResult: any = await Purchases.getOfferings();
+      const currentOffering = offeringsResult?.current || offeringsResult?.offerings?.current;
       if (!currentOffering) {
         toast.error('No subscription packages available');
         return;
