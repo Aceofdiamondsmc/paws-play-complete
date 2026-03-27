@@ -1,54 +1,29 @@
 
 
-## Create a Subscription Plans Page for App Store Screenshots
+## Replace Services Tab CTAs with /plans Navigation
 
-### What
-A new `/plans` page that displays the two IAP subscription tiers (Starter Monthly $9.99/mo, Starter Yearly $99.99/yr) in a clean, App Store screenshot-ready layout. This page will be accessible from a route so you can navigate to it and take a screenshot for the App Store review submission.
+### Problem
+The "Free Trial" banner and "Add Your Service" CTA on the Services tab reference Stripe-based pricing ($9.99/month) and a web checkout flow. On native iOS, Apple requires all digital subscription purchases go through IAP. These CTAs could confuse the Apple reviewer and conflict with the new `/plans` page.
 
-### Design
-- Full-screen page with the app's branding colors
-- Two plan cards side by side (or stacked on mobile) showing:
-  - **Starter Monthly** — $9.99/month with monthly billing details
-  - **Starter Yearly** — $99.99/year with "Save 17%" badge
-- Each card lists included features (directory listing, searchable, contact info, cancel anytime)
-- A "Start Free Trial" CTA button on each card
-- "Restore Purchases" link at the bottom (required by Apple)
-- Clean header with back navigation
-- No actual purchase logic needed — this is primarily for the screenshot, but buttons will wire into the existing `useSubscription` hook
+### Solution
+On **native iOS**, both components should route users to `/plans` instead of triggering Stripe flows or showing Stripe pricing. On **web**, keep existing behavior.
 
 ### Changes
 
 | File | Change |
 |---|---|
-| `src/pages/Plans.tsx` | **New file** — Subscription plans page with two tier cards |
-| `src/App.tsx` | Add `/plans` route |
+| `src/components/explore/FreeTrialBanner.tsx` | When `isNative` and user has no subscription: replace "Start Your Free Trial" button to navigate to `/plans` instead of calling `startTrial()` (which triggers Stripe). Same for the logged-out CTA — navigate to `/plans`. Keep the trial-active and subscribed states as-is since those are display-only. |
+| `src/components/explore/AddServiceCTA.tsx` | On native: change the "Add Your Service" button to navigate to `/plans` instead of `/submit-service`. Update the "$9.99/month" text to say "See Plans" on native. On web: keep current behavior. |
 
-### Layout sketch
-```text
-┌─────────────────────────────┐
-│  ← Choose Your Plan         │
-├─────────────────────────────┤
-│  🐾 Paws Play Repeat Pro    │
-│  "Boost your pet business"  │
-│                             │
-│  ┌───────────┐ ┌───────────┐│
-│  │  Monthly  │ │  Yearly   ││
-│  │  $9.99/mo │ │ $99.99/yr ││
-│  │           │ │ SAVE 17%  ││
-│  │  • Listed │ │ • Listed  ││
-│  │  • Search │ │ • Search  ││
-│  │  • Contact│ │ • Contact ││
-│  │  • Cancel │ │ • Cancel  ││
-│  │           │ │ • Best    ││
-│  │ [Start    │ │   Value   ││
-│  │  Trial]   │ │ [Start    ││
-│  │           │ │  Trial]   ││
-│  └───────────┘ └───────────┘│
-│                             │
-│  30-day free trial included │
-│  Restore Purchases          │
-└─────────────────────────────┘
-```
+### Detail
 
-The page will use the existing `useSubscription` hook so the buttons actually work on native iOS. On web preview, you can navigate to `/plans` to take the screenshot.
+**FreeTrialBanner** (lines 122-171, no-subscription state):
+- If `isNative`: button navigates to `/plans` instead of calling `handleStartTrial()`
+- Logged-out CTA (lines 22-47): same — navigate to `/plans` on native
+
+**AddServiceCTA**:
+- Add `isNative` check at top
+- If native: button navigates to `/plans`, bottom text says "See Plans" instead of "$9.99/month"
+
+Two files, minimal changes. No new dependencies.
 
