@@ -1,42 +1,54 @@
 
 
-## Three Changes for Paws Play Repeat
+## Create a Subscription Plans Page for App Store Screenshots
 
-### 1. Replace Header Logo with New App Icon
+### What
+A new `/plans` page that displays the two IAP subscription tiers (Starter Monthly $9.99/mo, Starter Yearly $99.99/yr) in a clean, App Store screenshot-ready layout. This page will be accessible from a route so you can navigate to it and take a screenshot for the App Store review submission.
 
-**Current**: Header uses `src/assets/pawsplay-logo.png` (a text-style logo).
-**Change**: Also display the new app icon from `public/favicon.png` (or `public/icon-192.png`) in the header, or replace the logo entirely with the new icon. Since the logo is a branded text image, the best approach is to keep the logo but ensure the favicon/tab icon references are correct.
+### Design
+- Full-screen page with the app's branding colors
+- Two plan cards side by side (or stacked on mobile) showing:
+  - **Starter Monthly** — $9.99/month with monthly billing details
+  - **Starter Yearly** — $99.99/year with "Save 17%" badge
+- Each card lists included features (directory listing, searchable, contact info, cancel anytime)
+- A "Start Free Trial" CTA button on each card
+- "Restore Purchases" link at the bottom (required by Apple)
+- Clean header with back navigation
+- No actual purchase logic needed — this is primarily for the screenshot, but buttons will wire into the existing `useSubscription` hook
 
-**Clarification needed**: By "icon on the top of my tabs," do you mean the browser tab favicon, or the header bar logo inside the app? The favicon references in `index.html` already point to `public/favicon.png`. If you mean the in-app header, I'll swap or add the new icon there.
-
-**Assumption**: You mean the browser tab / PWA icon. I'll verify `index.html` has correct favicon references to the updated `public/favicon.png`.
-
-### 2. Add Months Option for Puppy Age in Dog Profile Form
-
-**File**: `src/components/profile/PackMemberForm.tsx`
-
-- Add a new state `ageUnit` (`'years'` | `'months'`) defaulting to `'years'`
-- Replace the single "Age (years)" input with a row containing the number input + a toggle/select for years vs months
-- On save, convert months to fractional years for storage (e.g., 6 months = 0.5 years) since `age_years` is a numeric column, OR store months as-is if under 1 year
-- When editing, detect if `age_years < 1` and auto-set unit to months with the converted value
-
-**Storage approach**: Store as decimal in `age_years` (e.g., 0.5 for 6 months). Display logic will convert back.
-
-### 3. Show Dog's Age on Pack Tab Card
-
-**File**: `src/pages/Pack.tsx`
-
-- Add an age display in the dog profile card, in the 3-column grid (Size / Energy / Breed) — either replace one or add a 4th card
-- Best approach: add an "Age" card to the grid, making it a 2x2 grid of 4 cards
-- Calculate age from `date_of_birth` if available, otherwise use `age_years`
-- Display as "X yrs" or "X mos" for puppies under 1 year
-
-### Changes Summary
+### Changes
 
 | File | Change |
 |---|---|
-| `index.html` | Verify favicon links point to updated icons |
-| `src/components/profile/PackMemberForm.tsx` | Add years/months toggle for age input; convert on save/load |
-| `src/pages/Pack.tsx` | Add Age card to the stats grid; compute from DOB or age_years |
-| `src/types/index.ts` | No changes needed (age_years already numeric) |
+| `src/pages/Plans.tsx` | **New file** — Subscription plans page with two tier cards |
+| `src/App.tsx` | Add `/plans` route |
+
+### Layout sketch
+```text
+┌─────────────────────────────┐
+│  ← Choose Your Plan         │
+├─────────────────────────────┤
+│  🐾 Paws Play Repeat Pro    │
+│  "Boost your pet business"  │
+│                             │
+│  ┌───────────┐ ┌───────────┐│
+│  │  Monthly  │ │  Yearly   ││
+│  │  $9.99/mo │ │ $99.99/yr ││
+│  │           │ │ SAVE 17%  ││
+│  │  • Listed │ │ • Listed  ││
+│  │  • Search │ │ • Search  ││
+│  │  • Contact│ │ • Contact ││
+│  │  • Cancel │ │ • Cancel  ││
+│  │           │ │ • Best    ││
+│  │ [Start    │ │   Value   ││
+│  │  Trial]   │ │ [Start    ││
+│  │           │ │  Trial]   ││
+│  └───────────┘ └───────────┘│
+│                             │
+│  30-day free trial included │
+│  Restore Purchases          │
+└─────────────────────────────┘
+```
+
+The page will use the existing `useSubscription` hook so the buttons actually work on native iOS. On web preview, you can navigate to `/plans` to take the screenshot.
 
