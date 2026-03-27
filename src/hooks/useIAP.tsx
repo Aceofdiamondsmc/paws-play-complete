@@ -98,9 +98,9 @@ export function useIAP() {
 
     try {
       const { Purchases } = await import('@revenuecat/purchases-capacitor');
-      const { offerings } = await Purchases.getOfferings();
+      const offeringsResult = await Purchases.getOfferings();
       
-      const currentOffering = offerings.current;
+      const currentOffering = offeringsResult.offerings?.current;
       if (!currentOffering) {
         toast.error('No subscription packages available');
         return;
