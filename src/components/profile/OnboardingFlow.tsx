@@ -68,7 +68,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {/* Content */}
       <main className="flex-1">
         {step === 1 ? (
-          <OnboardingProfileSetup profile={profile} onNext={() => setStep(2)} />
+          <OnboardingProfileSetup profile={profile} user={user} onNext={() => setStep(2)} />
         ) : (
           <OnboardingAddDogStep isSubmitting={isSubmitting} onAddDog={handleAddDog} onSkip={handleSkipDog} />
         )}

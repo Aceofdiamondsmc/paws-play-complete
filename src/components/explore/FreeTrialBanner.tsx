@@ -8,11 +8,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+
 export function FreeTrialBanner() {
   const { user } = useAuth();
-  const { isSubscribed, isTrialing, trialDaysLeft, isLoading, startTrial, manageSubscription } = useSubscription();
+  const { isSubscribed, isTrialing, trialDaysLeft, isLoading, startTrial, manageSubscription, restorePurchases } = useSubscription();
   const [isStarting, setIsStarting] = useState(false);
   const [isManaging, setIsManaging] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const navigate = useNavigate();
 
   // Show sign-up CTA for logged-out users
@@ -149,6 +152,21 @@ export function FreeTrialBanner() {
             </>
           )}
         </Button>
+        {isNative && restorePurchases && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground"
+            disabled={isRestoring}
+            onClick={async () => {
+              setIsRestoring(true);
+              try { await restorePurchases(); } finally { setIsRestoring(false); }
+            }}
+          >
+            {isRestoring ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            Restore Purchases
+          </Button>
+        )}
       </div>
     </Card>
   );
