@@ -329,17 +329,31 @@ export function PackMemberForm({ open, onClose, onSuccess, editingDog }: PackMem
             </div>
 
             <div>
-              <Label htmlFor="age">Age (years)</Label>
-              <Input
-                id="age"
-                type="number"
-                min="0"
-                max="30"
-                value={ageYears}
-                onChange={(e) => setAgeYears(e.target.value)}
-                placeholder="e.g., 3"
-                className="mt-1"
-              />
+              <Label htmlFor="age">Age</Label>
+              <div className="flex gap-1.5 mt-1">
+                <Input
+                  id="age"
+                  type="number"
+                  min="0"
+                  max={ageUnit === 'months' ? 11 : 30}
+                  value={ageValue}
+                  onChange={(e) => setAgeValue(e.target.value)}
+                  placeholder={ageUnit === 'months' ? 'e.g., 6' : 'e.g., 3'}
+                  className="flex-1"
+                />
+                <Select value={ageUnit} onValueChange={(v) => {
+                  setAgeUnit(v as 'years' | 'months');
+                  setAgeValue('');
+                }}>
+                  <SelectTrigger className="w-[90px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="years">Years</SelectItem>
+                    <SelectItem value="months">Months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="col-span-2">
