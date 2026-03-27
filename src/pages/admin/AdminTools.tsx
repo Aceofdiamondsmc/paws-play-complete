@@ -49,9 +49,21 @@ export default function AdminTools() {
   const [showInstallPreview, setShowInstallPreview] = useState(false);
 
   useEffect(() => {
-    if ('Notification' in window) {
-      setPermissionStatus(Notification.permission);
-    }
+    const checkPermissions = async () => {
+      if (isNative) {
+        try {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          const result = await LocalNotifications.checkPermissions();
+          setPermissionStatus(result.display === 'granted' ? 'granted' : result.display === 'denied' ? 'denied' : 'default');
+        } catch {
+          setPermissionStatus('unknown');
+        }
+      } else if ('Notification' in window) {
+        setPermissionStatus(Notification.permission);
+      }
+    };
+    checkPermissions();
+
     if (window.OneSignalDeferred) {
       setOneSignalLoaded(true);
       window.OneSignalDeferred.push(async (OneSignal: any) => {
