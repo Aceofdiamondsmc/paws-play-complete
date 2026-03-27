@@ -35,12 +35,12 @@ export function FreeTrialBanner() {
           </ul>
           <p className="text-xs text-muted-foreground">Then $9.99/month</p>
           <Button
-            onClick={() => navigate('/me')}
+            onClick={() => navigate(isNative ? '/plans' : '/me')}
             className="w-full rounded-full font-bold"
             size="lg"
           >
             <UserPlus className="w-4 h-4 mr-2" />
-            Sign Up to Start Free Trial
+            {isNative ? 'View Plans' : 'Sign Up to Start Free Trial'}
           </Button>
         </div>
       </Card>
