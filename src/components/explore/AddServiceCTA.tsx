@@ -3,6 +3,8 @@ import { Store, BadgeCheck, Star, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
+const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+
 export function AddServiceCTA() {
   const navigate = useNavigate();
 
@@ -35,16 +37,16 @@ export function AddServiceCTA() {
         </div>
 
         <Button 
-          onClick={() => navigate('/submit-service')}
+          onClick={() => navigate(isNative ? '/plans' : '/submit-service')}
           className="w-full group"
         >
           <Store className="w-4 h-4 mr-2" />
-          Add Your Service
+          {isNative ? 'See Plans' : 'Add Your Service'}
           <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
         </Button>
 
         <p className="text-xs text-center text-muted-foreground">
-          Starting at $9.99/month
+          {isNative ? 'View subscription options' : 'Starting at $9.99/month'}
         </p>
       </div>
     </Card>
