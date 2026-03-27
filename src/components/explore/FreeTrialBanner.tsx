@@ -8,11 +8,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+
 export function FreeTrialBanner() {
   const { user } = useAuth();
-  const { isSubscribed, isTrialing, trialDaysLeft, isLoading, startTrial, manageSubscription } = useSubscription();
+  const { isSubscribed, isTrialing, trialDaysLeft, isLoading, startTrial, manageSubscription, restorePurchases } = useSubscription();
   const [isStarting, setIsStarting] = useState(false);
   const [isManaging, setIsManaging] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const navigate = useNavigate();
 
   // Show sign-up CTA for logged-out users
