@@ -7,17 +7,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useProfile } from '@/hooks/useProfileManagement';
 import type { Profile } from '@/types';
+import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
 interface OnboardingProfileSetupProps {
   profile: Profile | null;
+  user: User | null;
   onNext: () => void;
 }
 
-export function OnboardingProfileSetup({ profile, onNext }: OnboardingProfileSetupProps) {
+export function OnboardingProfileSetup({ profile, user, onNext }: OnboardingProfileSetupProps) {
   const { updateProfile, uploadAvatar } = useProfile();
 
-  const [displayName, setDisplayName] = useState(profile?.display_name || '');
+  // Pre-fill from Apple Sign-In metadata if available
+  const appleProvidedName = user?.user_metadata?.full_name || user?.user_metadata?.name || '';
+  const [displayName, setDisplayName] = useState(profile?.display_name || appleProvidedName || '');
   const [username, setUsername] = useState(profile?.username || '');
   const [bio, setBio] = useState(profile?.bio || '');
   const [city, setCity] = useState(profile?.city || '');
