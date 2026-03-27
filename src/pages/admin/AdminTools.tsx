@@ -26,6 +26,8 @@ const NOTIFICATION_TEMPLATES: Record<string, { title: string; body: string }> = 
 };
 
 export default function AdminTools() {
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+
   // -- Geocode Backfill --
   const [geocoding, setGeocoding] = useState(false);
 
@@ -47,9 +49,21 @@ export default function AdminTools() {
   const [showInstallPreview, setShowInstallPreview] = useState(false);
 
   useEffect(() => {
-    if ('Notification' in window) {
-      setPermissionStatus(Notification.permission);
-    }
+    const checkPermissions = async () => {
+      if (isNative) {
+        try {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          const result = await LocalNotifications.checkPermissions();
+          setPermissionStatus(result.display === 'granted' ? 'granted' : result.display === 'denied' ? 'denied' : 'default');
+        } catch {
+          setPermissionStatus('unknown');
+        }
+      } else if ('Notification' in window) {
+        setPermissionStatus(Notification.permission);
+      }
+    };
+    checkPermissions();
+
     if (window.OneSignalDeferred) {
       setOneSignalLoaded(true);
       window.OneSignalDeferred.push(async (OneSignal: any) => {
@@ -61,19 +75,50 @@ export default function AdminTools() {
     }
   }, []);
 
-  const handleTestLocal = () => {
-    if (Notification.permission === 'granted') {
-      new Notification('PawsPlay Test', { body: 'Local notification working! 🎉', icon: '/favicon.png' });
-      toast.success('Local notification fired');
-    } else if (Notification.permission === 'default') {
-      Notification.requestPermission().then((result) => {
-        setPermissionStatus(result);
-        if (result === 'granted') {
-          new Notification('PawsPlay Test', { body: 'Notifications enabled! 🎉', icon: '/favicon.png' });
+  const handleTestLocal = async () => {
+    if (isNative) {
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        const permResult = await LocalNotifications.checkPermissions();
+        if (permResult.display !== 'granted') {
+          const reqResult = await LocalNotifications.requestPermissions();
+          setPermissionStatus(reqResult.display === 'granted' ? 'granted' : 'denied');
+          if (reqResult.display !== 'granted') {
+            toast.error('Notification permission denied');
+            return;
+          }
         }
-      });
+        await LocalNotifications.schedule({
+          notifications: [{
+            title: '🐾 PawsPlay Test',
+            body: 'Local notification working! 🎉',
+            id: Date.now(),
+            schedule: { at: new Date(Date.now() + 1000) },
+            sound: undefined,
+          }],
+        });
+        toast.success('Local notification scheduled (1 second)');
+      } catch (err) {
+        toast.error(`Native notification failed: ${err}`);
+      }
     } else {
-      toast.error('Notifications are blocked. Reset in browser settings.');
+      if (!('Notification' in window)) {
+        toast.error('Notifications not supported in this browser');
+        return;
+      }
+      if (Notification.permission === 'granted') {
+        new Notification('PawsPlay Test', { body: 'Local notification working! 🎉', icon: '/favicon.png' });
+        toast.success('Local notification fired');
+      } else if (Notification.permission === 'default') {
+        Notification.requestPermission().then((result) => {
+          setPermissionStatus(result);
+          if (result === 'granted') {
+            new Notification('PawsPlay Test', { body: 'Notifications enabled! 🎉', icon: '/favicon.png' });
+          }
+        });
+      } else {
+        toast.error('Notifications are blocked. Reset in browser settings.');
+      }
     }
   };
 
