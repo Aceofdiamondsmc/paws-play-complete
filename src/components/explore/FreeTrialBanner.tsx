@@ -135,12 +135,12 @@ export function FreeTrialBanner() {
         </ul>
         <p className="text-xs text-muted-foreground">Then $9.99/month</p>
         <Button
-          onClick={handleStartTrial}
-          disabled={isStarting}
+          onClick={isNative ? () => navigate('/plans') : handleStartTrial}
+          disabled={!isNative && isStarting}
           className="w-full rounded-full font-bold bg-success hover:bg-success/90 text-white"
           size="lg"
         >
-          {isStarting ? (
+          {!isNative && isStarting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Setting up...
@@ -148,7 +148,7 @@ export function FreeTrialBanner() {
           ) : (
             <>
               <Sparkles className="w-4 h-4 mr-2" />
-              Start Your Free Trial
+              {isNative ? 'View Plans' : 'Start Your Free Trial'}
             </>
           )}
         </Button>
