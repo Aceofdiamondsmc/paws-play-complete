@@ -1,24 +1,28 @@
 
 
-## Replace Web/PWA Icons with New App Icon
+## Fix "Test Local Notification" Button on Native iOS
 
-### What
-Copy the uploaded paw print icon to the `public/` directory and generate the required sizes for favicon, PWA icons, and Apple touch icon — so web notifications, PWA installs, and browser tabs all show the new branding.
+### Problem
+The `handleTestLocal` function in `AdminTools.tsx` uses the **browser `Notification` API** (`new Notification(...)`), which is not available inside a native iOS Capacitor WebView. The permission also shows "unknown" because it checks `window.Notification` which doesn't exist on native.
+
+### Solution
+Update the test button and the permission diagnostics to detect native vs web and use the correct API:
+
+**File: `src/pages/admin/AdminTools.tsx`**
+
+1. **Permission detection (lines 49-62)**: Add a native branch that checks permissions via `@capacitor/local-notifications` and `@capacitor/push-notifications` using dynamic imports, same pattern used elsewhere in the codebase.
+
+2. **`handleTestLocal` function (lines 64-78)**: On native, use `LocalNotifications.schedule()` from `@capacitor/local-notifications` to fire a test notification. On web, keep existing `new Notification()` logic.
+
+3. **Add `isNative` detection**: Use the same `!!(window as any).Capacitor?.isNativePlatform?.()` pattern already used in `useCareNotifications.tsx`.
 
 ### Changes
 
-| File | Action |
+| What | Where |
 |---|---|
-| `public/favicon.png` | Replace with uploaded icon |
-| `public/icon-192.png` | Replace with uploaded icon |
-| `public/icon-512.png` | Replace with uploaded icon |
-| `public/apple-touch-icon.png` | Replace with uploaded icon |
-| `index.html` | Confirm favicon link points to `/favicon.png` (likely already correct) |
+| Add `isNative` constant | Top of component |
+| Update permission check `useEffect` to handle native | Lines 49-62 |
+| Update `handleTestLocal` to use Capacitor LocalNotifications on native | Lines 64-78 |
 
-The uploaded image is 1024x1024 which is perfect — it will be copied as-is for the larger sizes and the browser handles scaling. For best results at small sizes (favicon), a resized version would be ideal, but browsers handle downscaling well from a clean 1024px source.
-
-### No other changes needed
-- Native iOS already uses the icon from `AppIcon.appiconset` (separate Xcode asset)
-- `manifest.json` already references `/icon-192.png` and `/icon-512.png`
-- No iOS build needed
+Single file change. No new dependencies needed — `@capacitor/local-notifications` is already installed.
 
