@@ -81,6 +81,8 @@ export function useLostDogAlerts() {
           content: postContent,
           image_url: dog?.avatar_url || null,
           visibility: 'public',
+          dog_id: data.dog_id,
+          pup_name: dog?.name || null,
         })
         .select()
         .single();
