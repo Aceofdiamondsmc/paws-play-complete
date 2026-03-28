@@ -657,8 +657,8 @@ export default function Me() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Install Prompt */}
-        {!installDismissed && (
+        {/* Install Prompt - hidden on native apps per Apple Guideline 2.5.6 */}
+        {!installDismissed && !(window as any).Capacitor?.isNativePlatform?.() && (
           <Card className="p-4 relative">
             <button
               onClick={dismissInstall}
