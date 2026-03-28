@@ -23,7 +23,7 @@ const serviceCategories = [
   { id: 'Groomers', label: 'Groomers', icon: Scissors, color: 'bg-purple-100 text-purple-600', activeColor: 'bg-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.5)]' },
 ];
 
-export default function Explore() {
+export default function Services() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
