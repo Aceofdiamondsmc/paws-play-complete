@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input';
 import { useServices, useNearbyServices, getServiceImage, Service } from '@/hooks/useServices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { ServicesMap } from '@/components/explore/ServicesMap';
-import { ExploreAssistant } from '@/components/explore/ExploreAssistant';
+import { ServicesMap } from '@/components/services/ServicesMap';
+import { ServicesAssistant } from '@/components/services/ServicesAssistant';
 
-import { WeatherWidget } from '@/components/explore/WeatherWidget';
-import { FreeTrialBanner } from '@/components/explore/FreeTrialBanner';
+import { WeatherWidget } from '@/components/services/WeatherWidget';
+import { FreeTrialBanner } from '@/components/services/FreeTrialBanner';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 const serviceCategories = [
