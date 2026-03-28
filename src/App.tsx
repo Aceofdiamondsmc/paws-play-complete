@@ -13,7 +13,7 @@ import { AdminRoute } from "@/components/admin/AdminRoute";
 import { NotificationPrompt } from "@/components/notifications/NotificationPrompt";
 import Landing from "./pages/Landing";
 import Parks from "./pages/Parks";
-import Explore from "./pages/Explore";
+import Services from "./pages/Services";
 import ServiceDetails from "./pages/ServiceDetails";
 import Social from "./pages/Social";
 import Dates from "./pages/Dates";
@@ -132,7 +132,7 @@ const App = () => {
                 
                 <Route element={<AppLayout />}>
                   <Route path="/parks" element={<Parks />} />
-                  <Route path="/services" element={<Explore />} />
+                  <Route path="/services" element={<Services />} />
                   <Route path="/services/:id" element={<ServiceDetails />} />
                   <Route path="/social" element={<Social />} />
                   <Route path="/social/post/:id" element={<Social />} />

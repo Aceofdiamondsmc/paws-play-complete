@@ -111,7 +111,7 @@ async function streamChat({
   }
 }
 
-export function ExploreAssistant() {
+export function ServicesAssistant() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');

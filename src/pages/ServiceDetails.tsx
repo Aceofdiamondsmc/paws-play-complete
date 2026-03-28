@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useService, getServiceImage } from '@/hooks/useServices';
-import { ServiceLocationMap } from '@/components/explore/ServiceLocationMap';
+import { ServiceLocationMap } from '@/components/services/ServiceLocationMap';
 
 export default function ServiceDetails() {
   const { id } = useParams<{ id: string }>();

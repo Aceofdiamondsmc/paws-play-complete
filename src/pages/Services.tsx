@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input';
 import { useServices, useNearbyServices, getServiceImage, Service } from '@/hooks/useServices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { ServicesMap } from '@/components/explore/ServicesMap';
-import { ExploreAssistant } from '@/components/explore/ExploreAssistant';
+import { ServicesMap } from '@/components/services/ServicesMap';
+import { ServicesAssistant } from '@/components/services/ServicesAssistant';
 
-import { WeatherWidget } from '@/components/explore/WeatherWidget';
-import { FreeTrialBanner } from '@/components/explore/FreeTrialBanner';
+import { WeatherWidget } from '@/components/services/WeatherWidget';
+import { FreeTrialBanner } from '@/components/services/FreeTrialBanner';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 const serviceCategories = [
@@ -23,7 +23,7 @@ const serviceCategories = [
   { id: 'Groomers', label: 'Groomers', icon: Scissors, color: 'bg-purple-100 text-purple-600', activeColor: 'bg-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.5)]' },
 ];
 
-export default function Explore() {
+export default function Services() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
@@ -254,7 +254,7 @@ export default function Explore() {
       </div>
       
       {/* AI Assistant FAB */}
-      <ExploreAssistant />
+      <ServicesAssistant />
     </div>
   );
 }

@@ -146,7 +146,7 @@ export interface FilterOption {
   icon: string;
 }
 
-export type TabName = 'parks' | 'explore' | 'social' | 'dates' | 'pack' | 'me' | 'shop';
+export type TabName = 'parks' | 'services' | 'social' | 'dates' | 'pack' | 'me' | 'shop';
 
 // Discovery dog with distance info for Pack tab
 export interface DogWithDistance {
