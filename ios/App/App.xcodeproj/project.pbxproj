@@ -234,11 +234,12 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-			};
-			name = Debug;
+			SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			DEVELOPMENT_TEAM = P8J757FA7F;
 		};
-		504EC3151FED79650016851F /* Release */ = {
+		name = Debug;
+	};
+	504EC3151FED79650016851F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -285,10 +286,11 @@
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
+			VALIDATE_PRODUCT = YES;
+			DEVELOPMENT_TEAM = P8J757FA7F;
 		};
+		name = Release;
+	};
 		504EC3171FED79650016851F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
