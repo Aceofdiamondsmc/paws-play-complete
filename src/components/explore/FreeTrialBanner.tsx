@@ -25,13 +25,17 @@ export function FreeTrialBanner() {
         <div className="absolute top-0 right-0 w-24 h-24 bg-success/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative space-y-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-success" />
-            <h3 className="font-bold text-lg">1st Month Free</h3>
+            <Store className="w-5 h-5 text-success" />
+            <div>
+              <h3 className="font-bold text-lg">Promote Your Pet Business</h3>
+              <p className="text-sm font-semibold text-success">1st Month Free</p>
+            </div>
           </div>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>✓ Full access to all premium features</li>
-            <li>✓ Priority service listings</li>
-            <li>✓ Cancel anytime — no charge if cancelled within 30 days</li>
+            <li>✓ Get listed in our local pet services directory</li>
+            <li>✓ Searchable by thousands of nearby pet owners</li>
+            <li>✓ Your contact info & business profile displayed</li>
+            <li>✓ Cancel anytime — no charge within 30 days</li>
           </ul>
           <p className="text-xs text-muted-foreground">Then $9.99/month</p>
           <Button
