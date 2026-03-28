@@ -75,9 +75,9 @@ export function useSubscription() {
   }, [checkSubscription, iap.isNative]);
 
   // Start trial: native uses IAP, web uses Stripe
-  const startTrial = async () => {
+  const startTrial = async (type: 'monthly' | 'annual' = 'monthly') => {
     if (iap.isNative) {
-      await iap.purchase();
+      await iap.purchaseByType(type);
       return;
     }
 

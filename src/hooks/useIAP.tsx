@@ -91,27 +91,41 @@ export function useIAP() {
     }
   }, [rcInitialized, checkEntitlements]);
 
-  // Purchase
-  const purchase = async () => {
+  // Purchase by package type
+  const purchaseByType = async (type: 'monthly' | 'annual' = 'monthly') => {
     if (!isNative) return;
 
     try {
       const { Purchases } = await import('@revenuecat/purchases-capacitor');
-      // Note: getOfferings() has a known type mismatch — runtime returns { offerings: PurchasesOfferings }
       const offeringsResult: any = await Purchases.getOfferings();
       const currentOffering = offeringsResult?.current || offeringsResult?.offerings?.current;
+      
+      console.log('[IAP] Offerings result:', JSON.stringify(offeringsResult, null, 2));
+      
       if (!currentOffering) {
         toast.error('No subscription packages available');
         return;
       }
 
-      // Get the monthly package (or the first available)
-      const pkg = currentOffering.monthly || currentOffering.availablePackages[0];
+      // Select the correct package based on type
+      let pkg;
+      if (type === 'annual') {
+        pkg = currentOffering.annual || currentOffering.availablePackages?.find((p: any) => 
+          p.identifier === '$rc_annual' || p.packageType === 'ANNUAL'
+        );
+      } else {
+        pkg = currentOffering.monthly || currentOffering.availablePackages?.find((p: any) => 
+          p.identifier === '$rc_monthly' || p.packageType === 'MONTHLY'
+        );
+      }
+
       if (!pkg) {
-        toast.error('No subscription package found');
+        console.error('[IAP] No package found for type:', type, 'Available:', currentOffering.availablePackages?.map((p: any) => p.identifier));
+        toast.error(`No ${type} package found. Please try the other option.`);
         return;
       }
 
+      console.log('[IAP] Purchasing package:', pkg.identifier, 'type:', type);
       const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
       
       if (customerInfo.entitlements.active['premium']) {
@@ -120,13 +134,15 @@ export function useIAP() {
       }
     } catch (err: any) {
       if (err?.code === 1 || err?.message?.includes('cancelled')) {
-        // User cancelled — not an error
         return;
       }
       console.error('[IAP] Purchase failed:', err);
       toast.error('Purchase failed. Please try again.');
     }
   };
+
+  // Legacy purchase (defaults to monthly)
+  const purchase = () => purchaseByType('monthly');
 
   // Restore purchases
   const restore = async () => {
@@ -190,6 +206,7 @@ export function useIAP() {
   return {
     ...state,
     purchase,
+    purchaseByType,
     restore,
     manageSubscription,
     refreshEntitlements: checkEntitlements,

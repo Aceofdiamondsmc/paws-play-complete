@@ -19,7 +19,7 @@ const Plans = () => {
   const { startTrial, restorePurchases, isSubscribed, isTrialing } = useSubscription();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -28,12 +28,12 @@ const Plans = () => {
         <h1 className="text-lg font-bold text-foreground">Choose Your Plan</h1>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-8 space-y-8">
+      <div className="max-w-lg mx-auto px-4 py-4 space-y-4 flex-1">
         {/* Hero */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-1">
           <div className="inline-flex items-center gap-2 text-primary">
-            <Crown className="h-8 w-8" />
-            <span className="text-2xl font-extrabold tracking-tight">Paws Play Repeat Pro</span>
+            <Crown className="h-7 w-7" />
+            <span className="text-xl font-extrabold tracking-tight">Paws Play Repeat Pro</span>
           </div>
           <p className="text-muted-foreground text-sm">
             Boost your pet business with a premium listing
@@ -44,25 +44,26 @@ const Plans = () => {
         <div className="grid grid-cols-2 gap-3">
           {/* Monthly */}
           <Card className="relative border-2 border-border hover:border-primary/40 transition-colors">
-            <CardHeader className="pb-2 pt-5 px-4 text-center">
+            <CardHeader className="pb-2 pt-4 px-3 text-center">
               <CardTitle className="text-base font-bold text-foreground">Monthly</CardTitle>
-              <div className="mt-2">
-                <span className="text-3xl font-extrabold text-foreground">$9.99</span>
+              <div className="mt-1">
+                <span className="text-2xl font-extrabold text-foreground">$9.99</span>
                 <span className="text-muted-foreground text-sm">/mo</span>
               </div>
             </CardHeader>
-            <CardContent className="px-4 pb-5 space-y-4">
-              <ul className="space-y-2">
+            <CardContent className="px-3 pb-4 space-y-3">
+              <ul className="space-y-1.5">
                 {features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-foreground">
-                    <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                  <li key={f} className="flex items-start gap-1.5 text-xs text-foreground">
+                    <Check className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
                     <span>{f}</span>
                   </li>
                 ))}
               </ul>
               <Button
                 className="w-full"
-                onClick={startTrial}
+                size="sm"
+                onClick={() => startTrial('monthly')}
                 disabled={isSubscribed}
               >
                 {isSubscribed ? 'Subscribed' : 'Start Free Trial'}
@@ -76,26 +77,27 @@ const Plans = () => {
               <Sparkles className="h-3 w-3 mr-1" />
               SAVE 17%
             </Badge>
-            <CardHeader className="pb-2 pt-5 px-4 text-center">
+            <CardHeader className="pb-2 pt-4 px-3 text-center">
               <CardTitle className="text-base font-bold text-foreground">Yearly</CardTitle>
-              <div className="mt-2">
-                <span className="text-3xl font-extrabold text-foreground">$99.99</span>
+              <div className="mt-1">
+                <span className="text-2xl font-extrabold text-foreground">$99.99</span>
                 <span className="text-muted-foreground text-sm">/yr</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">~$8.33/mo • Best value</p>
+              <p className="text-xs text-muted-foreground mt-0.5">~$8.33/mo • Best value</p>
             </CardHeader>
-            <CardContent className="px-4 pb-5 space-y-4">
-              <ul className="space-y-2">
+            <CardContent className="px-3 pb-4 space-y-3">
+              <ul className="space-y-1.5">
                 {features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-foreground">
-                    <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                  <li key={f} className="flex items-start gap-1.5 text-xs text-foreground">
+                    <Check className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
                     <span>{f}</span>
                   </li>
                 ))}
               </ul>
               <Button
                 className="w-full"
-                onClick={startTrial}
+                size="sm"
+                onClick={() => startTrial('annual')}
                 disabled={isSubscribed}
               >
                 {isSubscribed ? 'Subscribed' : 'Start Free Trial'}
@@ -105,7 +107,7 @@ const Plans = () => {
         </div>
 
         {/* Footer */}
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-2 pb-8">
           <p className="text-sm text-muted-foreground">
             🎉 Includes a <span className="font-semibold text-foreground">30-day free trial</span>
           </p>
