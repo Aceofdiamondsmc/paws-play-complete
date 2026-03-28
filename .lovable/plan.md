@@ -1,30 +1,31 @@
 
 
-## Fix: Pack Alert Posts Missing Dog Name in "Meet" Button
+## Cleanup: Rename Explore → Services in Files and Code
 
-### Problem
-When a Pack Alert is created, the post inserted into the `posts` table (in `useLostDogAlerts.tsx` line 77-86) does not include `dog_id` or `pup_name`. This means the social feed's "Meet" button shows generic "Meet a Friend" instead of "Meet [Dog Name]", preventing users from quickly navigating to the dog's owner profile.
+The URL routing is already correct (`/services`), and the redirects from `/explore` are kept as safety nets. This is a pure code/file cleanup to align internal naming with the "Services" branding.
 
-### Fix
+### Changes
 
-**File: `src/hooks/useLostDogAlerts.tsx`** (lines 77-86)
+**1. Rename file: `src/pages/Explore.tsx` → `src/pages/Services.tsx`**
+- Rename the default export function from `Explore` to `Services`
 
-Add `dog_id` and `pup_name` to the post insert so the social feed can resolve the dog and display the correct name:
+**2. Rename folder: `src/components/explore/` → `src/components/services/`**
+- All files inside move with it: `ExploreAssistant.tsx`, `FreeTrialBanner.tsx`, `ServicesMap.tsx`, `ServiceLocationMap.tsx`, `WeatherWidget.tsx`
+- Rename `ExploreAssistant.tsx` → `ServicesAssistant.tsx` and update the component name
 
-```tsx
-const { data: post, error: postError } = await supabase
-  .from('posts')
-  .insert({
-    author_id: user.id,
-    content: postContent,
-    image_url: dog?.avatar_url || null,
-    visibility: 'public',
-    dog_id: data.dog_id,
-    pup_name: dog?.name || null,
-  })
-  .select()
-  .single();
-```
+**3. Update imports in affected files:**
 
-That's it. One file, two added fields. Existing alert posts without `dog_id` will continue to fall back to "Meet a Friend" via the existing resolution logic in `usePosts`.
+| File | What changes |
+|---|---|
+| `src/App.tsx` | `import Services from "./pages/Services"` + update route element, keep `ExploreIdRedirect` helper for legacy URLs |
+| `src/pages/Services.tsx` (was Explore) | Update all `@/components/explore/...` → `@/components/services/...` |
+| `src/pages/ServiceDetails.tsx` | `@/components/explore/ServiceLocationMap` → `@/components/services/ServiceLocationMap` |
+| `src/components/services/ServicesAssistant.tsx` | Rename component function |
+
+**4. Update type: `src/types/index.ts`**
+- Change `'explore'` to `'services'` in the `TabName` union type
+
+**5. Keep the redirect routes** in `App.tsx` (`/explore` → `/services`) so any old bookmarks or links still work.
+
+No routing, navigation logic, or edge function URLs change. This is purely internal naming alignment.
 
