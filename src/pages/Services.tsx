@@ -254,7 +254,7 @@ export default function Services() {
       </div>
       
       {/* AI Assistant FAB */}
-      <ExploreAssistant />
+      <ServicesAssistant />
     </div>
   );
 }
