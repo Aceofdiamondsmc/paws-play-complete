@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ServicesMap } from '@/components/explore/ServicesMap';
 import { ExploreAssistant } from '@/components/explore/ExploreAssistant';
-import { AddServiceCTA } from '@/components/explore/AddServiceCTA';
+
 import { WeatherWidget } from '@/components/explore/WeatherWidget';
 import { FreeTrialBanner } from '@/components/explore/FreeTrialBanner';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
