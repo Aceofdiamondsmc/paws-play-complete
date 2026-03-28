@@ -199,8 +199,6 @@ export default function Explore() {
         {/* Free Trial / Subscription Status */}
         <FreeTrialBanner />
 
-        {/* Add Service CTA */}
-        <AddServiceCTA />
 
 {/* Map View */}
         {viewMode === 'map' && (
