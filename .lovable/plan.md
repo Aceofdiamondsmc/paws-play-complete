@@ -1,29 +1,29 @@
 
 
-## Fix Build: Add Development Team for SPM Package Signing (Xcode 26)
+## Fix: Hide iOS Install Prompt on Native App
 
-### Progress
-- Build #90: SPM conflict (capacitor-swift-pm 6.x vs 7.x) -- fixed by upgrading Capacitor to v7
-- Build #91: SPM conflict (capacitor-swift-pm 7.x vs 8.x) -- fixed by downgrading RevenueCat to v11
-- Build #92: SPM dependencies **resolved successfully**, but new error: Xcode 26 requires a development team for SPM package targets during archive
+### Risk
+Apple Review Guideline 2.5.6 prohibits native apps from instructing users to install via Safari/"Add to Home Screen." Showing this prompt inside the native app shell could trigger a rejection.
 
-### Root Cause
-Xcode 26 enforces code signing on all targets, including SPM package dependencies. The project-level build settings (Debug and Release) lack a `DEVELOPMENT_TEAM` entry, so RevenueCat's SPM target fails with "requires a development team."
+### What Changes
 
-### Changes
+**File: `src/pages/Me.tsx`**
 
-| File | Change |
-|---|---|
-| `ios/App/App.xcodeproj/project.pbxproj` | Add `DEVELOPMENT_TEAM = P8J757FA7F;` to **both** project-level build configurations (Debug on line ~237, Release on line ~293) |
-| `ios/App/App/Info.plist` | Bump `CFBundleVersion` to `93` |
-
-### After Implementation
-Run locally:
-```bash
-cd ~/Development/paws-play-complete/paws-play-complete && git pull && npm run build && npx cap sync && git add . && git commit -m "Add dev team to project build settings for Xcode 26 SPM signing" && git push origin main
+1. Add a native platform check near the top of the component:
+```tsx
+const isNativePlatform = !!(window as any).Capacitor?.isNativePlatform?.();
 ```
-Then trigger Appflow Build #93.
 
-### Why This Works
-Setting `DEVELOPMENT_TEAM` at the project level allows Xcode to sign all targets -- including SPM package dependencies like RevenueCat -- during the archive step.
+2. Update line 661 to include the guard:
+```tsx
+{!installDismissed && !isNativePlatform && (
+```
+
+That is the only change. One file, two lines.
+
+### Why This Is Safe
+- Uses the same detection pattern already proven in `NotificationPrompt.tsx`
+- No native build required for the web/PWA version to update immediately
+- The native app will get this fix in the next successful Appflow build (which we are already working on)
+- No risk of breaking existing behavior -- the prompt simply stops rendering when `Capacitor.isNativePlatform()` returns true
 
