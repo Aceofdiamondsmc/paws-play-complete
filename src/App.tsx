@@ -13,7 +13,7 @@ import { AdminRoute } from "@/components/admin/AdminRoute";
 import { NotificationPrompt } from "@/components/notifications/NotificationPrompt";
 import Landing from "./pages/Landing";
 import Parks from "./pages/Parks";
-import Explore from "./pages/Explore";
+import Services from "./pages/Services";
 import ServiceDetails from "./pages/ServiceDetails";
 import Social from "./pages/Social";
 import Dates from "./pages/Dates";
