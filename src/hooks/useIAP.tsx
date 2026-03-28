@@ -206,6 +206,7 @@ export function useIAP() {
   return {
     ...state,
     purchase,
+    purchaseByType,
     restore,
     manageSubscription,
     refreshEntitlements: checkEntitlements,
