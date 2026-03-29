@@ -74,16 +74,18 @@ export function useSubscription() {
     }
   }, [checkSubscription, iap.isNative]);
 
-  // Start trial: native uses IAP, web uses Stripe
+  // Start trial: native uses IAP with Stripe fallback, web uses Stripe
   const startTrial = async (type: 'monthly' | 'annual' = 'monthly') => {
-    if (iap.isNative) {
-      await iap.purchaseByType(type);
-      return;
-    }
-
     if (!user) {
       toast.error('Please sign in first');
       return;
+    }
+
+    if (iap.isNative) {
+      const result = await iap.purchaseByType(type);
+      if (result === 'success' || result === 'cancelled') return;
+      // IAP failed — fall through to Stripe web checkout
+      console.log('[Subscription] IAP failed, falling back to Stripe checkout');
     }
 
     try {
@@ -91,7 +93,17 @@ export function useSubscription() {
       if (error) throw error;
 
       if (data?.url) {
-        window.location.href = data.url;
+        if (iap.isNative) {
+          // On native, open Stripe in in-app browser
+          try {
+            const { Browser } = await import('@capacitor/browser');
+            await Browser.open({ url: data.url });
+          } catch {
+            window.location.href = data.url;
+          }
+        } else {
+          window.location.href = data.url;
+        }
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to start trial');

@@ -92,8 +92,8 @@ export function useIAP() {
   }, [rcInitialized, checkEntitlements]);
 
   // Purchase by package type
-  const purchaseByType = async (type: 'monthly' | 'annual' = 'monthly') => {
-    if (!isNative) return;
+  const purchaseByType = async (type: 'monthly' | 'annual' = 'monthly'): Promise<'success' | 'cancelled' | 'error'> => {
+    if (!isNative) return 'error';
 
     try {
       const { Purchases } = await import('@revenuecat/purchases-capacitor');
@@ -103,8 +103,9 @@ export function useIAP() {
       console.log('[IAP] Offerings result:', JSON.stringify(offeringsResult, null, 2));
       
       if (!currentOffering) {
-        toast.error('No subscription packages available');
-        return;
+        console.error('[IAP] No current offering found. Check RevenueCat dashboard.');
+        toast.error('Store not available. Redirecting to web checkout...');
+        return 'error';
       }
 
       // Select the correct package based on type
@@ -121,8 +122,8 @@ export function useIAP() {
 
       if (!pkg) {
         console.error('[IAP] No package found for type:', type, 'Available:', currentOffering.availablePackages?.map((p: any) => p.identifier));
-        toast.error(`No ${type} package found. Please try the other option.`);
-        return;
+        toast.error(`No ${type} package found. Redirecting to web checkout...`);
+        return 'error';
       }
 
       console.log('[IAP] Purchasing package:', pkg.identifier, 'type:', type);
@@ -131,13 +132,16 @@ export function useIAP() {
       if (customerInfo.entitlements.active['premium']) {
         toast.success('Welcome to Premium! 🎉');
         await checkEntitlements();
+        return 'success';
       }
+      return 'error';
     } catch (err: any) {
-      if (err?.code === 1 || err?.message?.includes('cancelled')) {
-        return;
+      if (err?.code === 1 || err?.message?.includes('cancelled') || err?.userCancelled) {
+        return 'cancelled';
       }
-      console.error('[IAP] Purchase failed:', err);
-      toast.error('Purchase failed. Please try again.');
+      console.error('[IAP] Purchase failed:', JSON.stringify(err, null, 2));
+      toast.error('In-app purchase unavailable. Redirecting to web checkout...');
+      return 'error';
     }
   };
 
