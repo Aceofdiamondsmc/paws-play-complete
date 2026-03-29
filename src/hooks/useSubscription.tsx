@@ -83,27 +83,18 @@ export function useSubscription() {
 
     if (iap.isNative) {
       const result = await iap.purchaseByType(type);
-      if (result === 'success' || result === 'cancelled') return;
-      // IAP failed — fall through to Stripe web checkout
-      console.log('[Subscription] IAP failed, falling back to Stripe checkout');
+      if (result === 'error') {
+        toast.error('Purchase failed. Please try again.');
+      }
+      return; // Never fall through to Stripe on native
     }
 
+    // Web only — Stripe checkout
     try {
       const { data, error } = await supabase.functions.invoke('create-trial-checkout');
       if (error) throw error;
-
       if (data?.url) {
-        if (iap.isNative) {
-          // On native, open Stripe in in-app browser
-          try {
-            const { Browser } = await import('@capacitor/browser');
-            await Browser.open({ url: data.url });
-          } catch {
-            window.location.href = data.url;
-          }
-        } else {
-          window.location.href = data.url;
-        }
+        window.location.href = data.url;
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to start trial');
