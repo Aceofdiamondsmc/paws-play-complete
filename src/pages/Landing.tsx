@@ -129,12 +129,11 @@ export default function Landing() {
         {!isNative && (
           <div className="flex justify-center items-center my-2">
             <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">Coming Soon</p>
               <a
                 href="https://apps.apple.com/app/id6760650358"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block opacity-60 pointer-events-none transition-opacity duration-300"
+                className="inline-block transition-opacity duration-300"
               >
                 <img
                   src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
