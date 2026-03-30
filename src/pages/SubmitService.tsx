@@ -419,7 +419,8 @@ export default function SubmitService() {
                 </CardContent>
               </Card>
 
-              {/* Tier Selection */}
+              {/* Tier Selection — hidden for subscribed users */}
+              {!skipPayment && (
               <Card>
                 <CardHeader>
                   <CardTitle>Choose Your Plan</CardTitle>
@@ -482,6 +483,7 @@ export default function SubmitService() {
                   })}
                 </CardContent>
               </Card>
+              )}
 
               <Button 
                 type="submit" 
