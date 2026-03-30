@@ -71,11 +71,13 @@ const Plans = () => {
               <Button
                 className="w-full"
                 size="sm"
-                onClick={() => startTrial('monthly')}
+                onClick={() => storeError ? iap.retryInit() : startTrial('monthly')}
                 disabled={buttonsDisabled}
               >
                 {storeLoading ? (
                   <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Loading...</>
+                ) : storeError ? (
+                  'Store unavailable — Tap to retry'
                 ) : isSubscribed ? 'Subscribed' : 'Start Free Trial'}
               </Button>
             </CardContent>
