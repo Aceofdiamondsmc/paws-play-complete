@@ -107,9 +107,11 @@ const Plans = () => {
                 className="w-full"
                 size="sm"
                 onClick={() => startTrial('annual')}
-                disabled={isSubscribed}
+                disabled={buttonsDisabled}
               >
-                {isSubscribed ? 'Subscribed' : 'Start Free Trial'}
+                {storeLoading ? (
+                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Loading...</>
+                ) : isSubscribed ? 'Subscribed' : 'Start Free Trial'}
               </Button>
             </CardContent>
           </Card>
