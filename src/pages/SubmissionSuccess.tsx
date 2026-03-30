@@ -53,9 +53,9 @@ export default function SubmissionSuccess() {
           <div className="mx-auto w-16 h-16 rounded-full bg-success/20 flex items-center justify-center mb-4">
             <CheckCircle className="w-8 h-8 text-success" />
           </div>
-          <CardTitle className="text-2xl">Payment Successful!</CardTitle>
+          <CardTitle className="text-2xl">{isIapSubmission ? 'Submission Received!' : 'Payment Successful!'}</CardTitle>
           <CardDescription>
-            Thank you for submitting your business
+            {isIapSubmission ? 'Your listing is included with your subscription' : 'Thank you for submitting your business'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
