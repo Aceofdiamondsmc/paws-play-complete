@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useIAP } from '@/hooks/useIAP';
+import { Loader2 } from 'lucide-react';
+
+const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
 
 const features = [
   'Priority directory listing',
