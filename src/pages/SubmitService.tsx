@@ -82,16 +82,22 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+
 export default function SubmitService() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { isSubscribed } = useSubscription();
   const [step, setStep] = useState(1);
   const [selectedTier, setSelectedTier] = useState<string>('starter');
   const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   const createSubmission = useCreateSubmission();
   const createCheckout = useCreateCheckout();
+
+  // If user has an active IAP subscription, they can skip payment
+  const skipPayment = isNative && isSubscribed;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
