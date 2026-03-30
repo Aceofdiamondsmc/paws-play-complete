@@ -1,28 +1,50 @@
 
 
-## Fix: Infinite Spinner on Plans Page (Native iOS)
+## Plan: Connect IAP Subscription to Service Submission Flow
 
-### Root Cause
+### What changes
 
-The Plans page checks `storeLoading = isNative && !iap.storeReady` to decide whether to show the spinner. But if RevenueCat initialization **fails** (e.g. offerings can't be fetched, network issue, SDK error), `storeReady` stays `false` forever while `isLoading` gets set to `false`. The buttons never stop spinning because they only check `storeReady`, not `isLoading`.
+When a user has an active IAP subscription (trial or paid), they can submit a service listing directly — skipping the tier selection and Stripe checkout entirely. Their listing is auto-tagged as "starter" tier (included with their subscription).
 
-### Fix
+### Changes
 
-**File: `src/pages/Plans.tsx`** (lines 25-26, 76-78, 112-114)
+**1. `src/pages/SubmitService.tsx`**
+- Import `useSubscription` hook
+- Detect if user `isSubscribed` (trial or paid)
+- If subscribed: hide the tier selection card and change "Continue to Checkout" to "Submit Listing"
+- If subscribed: skip Step 2 entirely — after form submission, auto-set `payment_status` to `'paid'` on the submission and navigate directly to a success page
+- If not subscribed: keep existing Stripe checkout flow (web users)
 
-1. Change the loading check to also consider `iap.isLoading` — the spinner should only show while the store is **actively loading**, not after a failure:
-   - `storeLoading = isNative && iap.isLoading` (was `!iap.storeReady`)
-   - Add a new `storeError = isNative && !iap.isLoading && !iap.storeReady` state
-2. When `storeError` is true, show "Retry" or a clear error message instead of infinite spinner
-3. Buttons remain disabled during loading but show actionable text after failure
+**2. `src/hooks/useServiceSubmissions.tsx`**
+- Add a new mutation `useCreatePaidSubmission` (or modify `useCreateSubmission`) that accepts an optional `skipPayment` flag
+- When `skipPayment` is true, insert the submission with `payment_status: 'paid'` and `subscription_tier: 'starter'` so it goes straight to the admin approval queue without needing Stripe
 
-**File: `src/hooks/useIAP.tsx`** (lines 45-70)
+**3. `src/components/services/FreeTrialBanner.tsx`**
+- For subscribed users (both trial and paid states): add a "Submit Your Business" button that navigates to `/submit-service`
+- This replaces just showing "Manage Subscription" — now shows both the manage button and the submit button
 
-4. Add a retry mechanism: expose a `retryInit` function so users can tap to re-initialize if the store failed to load
-5. Add a timeout (e.g. 15 seconds) to the init so it doesn't hang forever if `getOfferings()` never resolves
+**4. `src/pages/SubmissionSuccess.tsx`**
+- Minor: adjust copy so it doesn't always say "Payment Successful!" — for IAP subscribers it should say "Submission Received!" instead
 
-### Result
-- While store is initializing: buttons show spinner + "Loading..."
-- If init fails: buttons show "Store unavailable — Tap to retry" instead of infinite spinner
-- If init succeeds: buttons show "Start Free Trial" as expected
+### Flow summary
+
+```text
+Subscribed user (iOS IAP):
+  Services tab → FreeTrialBanner shows "Submit Your Business" button
+  → /submit-service → Fill form (no tier picker, no checkout)
+  → Insert with payment_status='paid' → Navigate to success page
+  → Admin reviews and approves
+
+Non-subscribed user (web):
+  Services tab → FreeTrialBanner shows "Start Free Trial"
+  → /submit-service → Fill form + pick tier → Stripe checkout
+  → (unchanged existing flow)
+```
+
+### Technical details
+
+- `useSubscription().isSubscribed` already returns `true` for both trial and paid states — this is what gates the flow
+- The submission row gets `payment_status: 'paid'` immediately since the user already paid via IAP
+- No database migration needed — the existing `service_submissions` table already supports `payment_status: 'paid'` and `subscription_tier: 'starter'`
+- This requires a new iOS build to take effect on device
 
