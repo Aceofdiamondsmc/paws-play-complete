@@ -10,6 +10,7 @@ export default function SubmissionSuccess() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const isIapSubmission = searchParams.get('iap') === 'true';
   const [loadingPortal, setLoadingPortal] = useState(false);
 
   const handleManageSubscription = async () => {
