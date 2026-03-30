@@ -22,7 +22,8 @@ const Plans = () => {
   const navigate = useNavigate();
   const { startTrial, restorePurchases, isSubscribed, isTrialing } = useSubscription();
   const iap = useIAP();
-  const storeLoading = isNative && !iap.storeReady;
+  const storeLoading = isNative && iap.isLoading;
+  const storeError = isNative && !iap.isLoading && !iap.storeReady;
   const buttonsDisabled = isSubscribed || storeLoading;
 
   return (
