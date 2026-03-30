@@ -21,6 +21,9 @@ const features = [
 const Plans = () => {
   const navigate = useNavigate();
   const { startTrial, restorePurchases, isSubscribed, isTrialing } = useSubscription();
+  const iap = useIAP();
+  const storeLoading = isNative && !iap.storeReady;
+  const buttonsDisabled = isSubscribed || storeLoading;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
