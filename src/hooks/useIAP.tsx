@@ -272,6 +272,7 @@ export function useIAP() {
     restore,
     manageSubscription,
     refreshEntitlements: checkEntitlements,
+    retryInit: initStore,
     isNative,
   };
 }
