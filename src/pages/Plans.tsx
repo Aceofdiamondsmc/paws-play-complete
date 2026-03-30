@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useIAP } from '@/hooks/useIAP';
+import { Loader2 } from 'lucide-react';
+
+const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
 
 const features = [
   'Priority directory listing',
@@ -17,6 +21,9 @@ const features = [
 const Plans = () => {
   const navigate = useNavigate();
   const { startTrial, restorePurchases, isSubscribed, isTrialing } = useSubscription();
+  const iap = useIAP();
+  const storeLoading = isNative && !iap.storeReady;
+  const buttonsDisabled = isSubscribed || storeLoading;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -64,9 +71,11 @@ const Plans = () => {
                 className="w-full"
                 size="sm"
                 onClick={() => startTrial('monthly')}
-                disabled={isSubscribed}
+                disabled={buttonsDisabled}
               >
-                {isSubscribed ? 'Subscribed' : 'Start Free Trial'}
+                {storeLoading ? (
+                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Loading...</>
+                ) : isSubscribed ? 'Subscribed' : 'Start Free Trial'}
               </Button>
             </CardContent>
           </Card>
@@ -98,9 +107,11 @@ const Plans = () => {
                 className="w-full"
                 size="sm"
                 onClick={() => startTrial('annual')}
-                disabled={isSubscribed}
+                disabled={buttonsDisabled}
               >
-                {isSubscribed ? 'Subscribed' : 'Start Free Trial'}
+                {storeLoading ? (
+                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Loading...</>
+                ) : isSubscribed ? 'Subscribed' : 'Start Free Trial'}
               </Button>
             </CardContent>
           </Card>

@@ -74,7 +74,7 @@ export function useSubscription() {
     }
   }, [checkSubscription, iap.isNative]);
 
-  // Start trial: native uses IAP with Stripe fallback, web uses Stripe
+  // Start trial: native uses IAP only, web uses Stripe
   const startTrial = async (type: 'monthly' | 'annual' = 'monthly') => {
     if (!user) {
       toast.error('Please sign in first');
@@ -82,10 +82,11 @@ export function useSubscription() {
     }
 
     if (iap.isNative) {
-      const result = await iap.purchaseByType(type);
-      if (result === 'error') {
-        toast.error('Purchase failed. Please try again.');
+      if (!iap.storeReady) {
+        toast.error('App Store is still loading. Please wait a moment and try again.');
+        return;
       }
+      await iap.purchaseByType(type);
       return; // Never fall through to Stripe on native
     }
 
