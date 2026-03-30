@@ -139,8 +139,17 @@ export default function SubmitService() {
         website: data.website,
         email: data.email,
         submitter_name: data.submitter_name,
-        subscription_tier: selectedTier as 'starter' | 'basic' | 'featured' | 'premium',
+        subscription_tier: skipPayment ? 'starter' : selectedTier as 'starter' | 'basic' | 'featured' | 'premium',
+        skipPayment,
       });
+
+      if (skipPayment) {
+        // Subscribed user — skip checkout, go directly to success
+        toast.success('Your listing has been submitted for review!');
+        navigate('/submission-success?iap=true');
+        return;
+      }
+
       setSubmissionId(submission.id);
       setStep(2);
     } catch (error) {
