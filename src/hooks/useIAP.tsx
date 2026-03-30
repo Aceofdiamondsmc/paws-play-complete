@@ -34,45 +34,46 @@ export function useIAP() {
   });
 
   // Initialize RevenueCat on native
-  useEffect(() => {
+  const initStore = useCallback(async () => {
     if (!isNative || !user) {
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
-    let cancelled = false;
+    setState(prev => ({ ...prev, isLoading: true, storeReady: false }));
 
-    const init = async () => {
-      try {
-        const { Purchases } = await import('@revenuecat/purchases-capacitor');
-        await Purchases.configure({
-          apiKey: REVENUECAT_API_KEY,
-          appUserID: user.id,
-        });
-        console.log('[IAP] RevenueCat configured for user:', user.id);
+    try {
+      const { Purchases } = await import('@revenuecat/purchases-capacitor');
+      await Purchases.configure({
+        apiKey: REVENUECAT_API_KEY,
+        appUserID: user.id,
+      });
+      console.log('[IAP] RevenueCat configured for user:', user.id);
 
-        // Verify we can fetch offerings to confirm store is ready
-        const offeringsResult: any = await Purchases.getOfferings();
-        const currentOffering = offeringsResult?.current || offeringsResult?.offerings?.current;
-        console.log('[IAP] Store ready. Current offering:', currentOffering?.identifier || 'none');
-        console.log('[IAP] Available packages:', currentOffering?.availablePackages?.map((p: any) => 
-          `${p.identifier} (${p.product?.identifier || 'unknown'})`
-        ) || []);
+      // Verify we can fetch offerings with a 15-second timeout
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Offerings fetch timed out after 15s')), 15000)
+      );
+      const offeringsResult: any = await Promise.race([
+        Purchases.getOfferings(),
+        timeoutPromise,
+      ]);
+      const currentOffering = offeringsResult?.current || offeringsResult?.offerings?.current;
+      console.log('[IAP] Store ready. Current offering:', currentOffering?.identifier || 'none');
+      console.log('[IAP] Available packages:', currentOffering?.availablePackages?.map((p: any) =>
+        `${p.identifier} (${p.product?.identifier || 'unknown'})`
+      ) || []);
 
-        if (!cancelled) {
-          setState(prev => ({ ...prev, storeReady: true }));
-        }
-      } catch (err) {
-        console.error('[IAP] Failed to initialize RevenueCat:', err);
-        if (!cancelled) {
-          setState(prev => ({ ...prev, isLoading: false, storeReady: false }));
-        }
-      }
-    };
-
-    init();
-    return () => { cancelled = true; };
+      setState(prev => ({ ...prev, storeReady: true }));
+    } catch (err) {
+      console.error('[IAP] Failed to initialize RevenueCat:', err);
+      setState(prev => ({ ...prev, isLoading: false, storeReady: false }));
+    }
   }, [user]);
+
+  useEffect(() => {
+    initStore();
+  }, [initStore]);
 
   // Check entitlements once store is ready
   const checkEntitlements = useCallback(async () => {
@@ -271,6 +272,7 @@ export function useIAP() {
     restore,
     manageSubscription,
     refreshEntitlements: checkEntitlements,
+    retryInit: initStore,
     isNative,
   };
 }
