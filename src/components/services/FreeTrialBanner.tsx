@@ -89,10 +89,16 @@ export function FreeTrialBanner() {
             <p className="text-xs text-muted-foreground">You have full access to all premium features</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="w-full mt-3" onClick={handleManage} disabled={isManaging}>
-          {isManaging ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Settings className="w-4 h-4 mr-2" />}
-          Manage Subscription
-        </Button>
+        <div className="flex flex-col gap-2 mt-3">
+          <Button className="w-full rounded-full font-bold" onClick={() => navigate('/submit-service')}>
+            <Store className="w-4 h-4 mr-2" />
+            Submit Your Business
+          </Button>
+          <Button variant="outline" size="sm" className="w-full" onClick={handleManage} disabled={isManaging}>
+            {isManaging ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Settings className="w-4 h-4 mr-2" />}
+            Manage Subscription
+          </Button>
+        </div>
       </Card>
     );
   }
