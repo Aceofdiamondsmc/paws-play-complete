@@ -224,16 +224,18 @@ export default function SubmitService() {
       </div>
 
       <div className="max-w-2xl mx-auto p-4 space-y-6">
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center gap-2">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-            {step > 1 ? <Check className="w-4 h-4" /> : '1'}
+        {/* Progress Steps — hide step 2 for subscribed users */}
+        {!skipPayment && (
+          <div className="flex items-center justify-center gap-2">
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+              {step > 1 ? <Check className="w-4 h-4" /> : '1'}
+            </div>
+            <div className={`w-16 h-1 rounded ${step > 1 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+              2
+            </div>
           </div>
-          <div className={`w-16 h-1 rounded ${step > 1 ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-            2
-          </div>
-        </div>
+        )}
 
         {step === 1 && (
           <Form {...form}>
