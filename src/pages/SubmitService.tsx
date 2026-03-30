@@ -217,7 +217,7 @@ export default function SubmitService() {
           <div>
             <h1 className="text-xl font-bold">Add Your Service</h1>
             <p className="text-sm text-muted-foreground">
-              Step {step} of 2
+              {skipPayment ? 'Included with your subscription' : `Step ${step} of 2`}
             </p>
           </div>
         </div>
