@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useCreateSubmission, useCreateCheckout } from '@/hooks/useServiceSubmissions';
 import { toast } from 'sonner';
 
@@ -81,16 +82,22 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
+
 export default function SubmitService() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { isSubscribed } = useSubscription();
   const [step, setStep] = useState(1);
   const [selectedTier, setSelectedTier] = useState<string>('starter');
   const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   const createSubmission = useCreateSubmission();
   const createCheckout = useCreateCheckout();
+
+  // If user has an active IAP subscription, they can skip payment
+  const skipPayment = isNative && isSubscribed;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -132,8 +139,17 @@ export default function SubmitService() {
         website: data.website,
         email: data.email,
         submitter_name: data.submitter_name,
-        subscription_tier: selectedTier as 'starter' | 'basic' | 'featured' | 'premium',
+        subscription_tier: skipPayment ? 'starter' : selectedTier as 'starter' | 'basic' | 'featured' | 'premium',
+        skipPayment,
       });
+
+      if (skipPayment) {
+        // Subscribed user — skip checkout, go directly to success
+        toast.success('Your listing has been submitted for review!');
+        navigate('/submission-success?iap=true');
+        return;
+      }
+
       setSubmissionId(submission.id);
       setStep(2);
     } catch (error) {
@@ -201,23 +217,25 @@ export default function SubmitService() {
           <div>
             <h1 className="text-xl font-bold">Add Your Service</h1>
             <p className="text-sm text-muted-foreground">
-              Step {step} of 2
+              {skipPayment ? 'Included with your subscription' : `Step ${step} of 2`}
             </p>
           </div>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto p-4 space-y-6">
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center gap-2">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-            {step > 1 ? <Check className="w-4 h-4" /> : '1'}
+        {/* Progress Steps — hide step 2 for subscribed users */}
+        {!skipPayment && (
+          <div className="flex items-center justify-center gap-2">
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+              {step > 1 ? <Check className="w-4 h-4" /> : '1'}
+            </div>
+            <div className={`w-16 h-1 rounded ${step > 1 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+              2
+            </div>
           </div>
-          <div className={`w-16 h-1 rounded ${step > 1 ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-            2
-          </div>
-        </div>
+        )}
 
         {step === 1 && (
           <Form {...form}>
@@ -401,7 +419,8 @@ export default function SubmitService() {
                 </CardContent>
               </Card>
 
-              {/* Tier Selection */}
+              {/* Tier Selection — hidden for subscribed users */}
+              {!skipPayment && (
               <Card>
                 <CardHeader>
                   <CardTitle>Choose Your Plan</CardTitle>
@@ -464,6 +483,7 @@ export default function SubmitService() {
                   })}
                 </CardContent>
               </Card>
+              )}
 
               <Button 
                 type="submit" 
@@ -473,11 +493,11 @@ export default function SubmitService() {
                 {createSubmission.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {skipPayment ? 'Submitting...' : 'Saving...'}
                   </>
                 ) : (
                   <>
-                    Continue to Checkout
+                    {skipPayment ? 'Submit Listing' : 'Continue to Checkout'}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}

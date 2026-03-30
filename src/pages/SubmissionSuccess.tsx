@@ -10,6 +10,7 @@ export default function SubmissionSuccess() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const isIapSubmission = searchParams.get('iap') === 'true';
   const [loadingPortal, setLoadingPortal] = useState(false);
 
   const handleManageSubscription = async () => {
@@ -52,9 +53,9 @@ export default function SubmissionSuccess() {
           <div className="mx-auto w-16 h-16 rounded-full bg-success/20 flex items-center justify-center mb-4">
             <CheckCircle className="w-8 h-8 text-success" />
           </div>
-          <CardTitle className="text-2xl">Payment Successful!</CardTitle>
+          <CardTitle className="text-2xl">{isIapSubmission ? 'Submission Received!' : 'Payment Successful!'}</CardTitle>
           <CardDescription>
-            Thank you for submitting your business
+            {isIapSubmission ? 'Your listing is included with your subscription' : 'Thank you for submitting your business'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -74,13 +75,15 @@ export default function SubmissionSuccess() {
           <div className="space-y-3">
             <h4 className="font-medium text-sm">While you wait:</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
+              {!isIapSubmission && (
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  Confirmation email sent
+                </li>
+              )}
               <li className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-success" />
-                Confirmation email sent
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-success" />
-                Payment processed securely
+                {isIapSubmission ? 'Subscription verified' : 'Payment processed securely'}
               </li>
               <li className="flex items-center gap-2">
                 <Store className="w-4 h-4 text-muted-foreground" />
