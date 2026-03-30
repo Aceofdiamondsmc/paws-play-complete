@@ -75,13 +75,15 @@ export default function SubmissionSuccess() {
           <div className="space-y-3">
             <h4 className="font-medium text-sm">While you wait:</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
+              {!isIapSubmission && (
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  Confirmation email sent
+                </li>
+              )}
               <li className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-success" />
-                Confirmation email sent
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-success" />
-                Payment processed securely
+                {isIapSubmission ? 'Subscription verified' : 'Payment processed securely'}
               </li>
               <li className="flex items-center gap-2">
                 <Store className="w-4 h-4 text-muted-foreground" />

@@ -493,11 +493,11 @@ export default function SubmitService() {
                 {createSubmission.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {skipPayment ? 'Submitting...' : 'Saving...'}
                   </>
                 ) : (
                   <>
-                    Continue to Checkout
+                    {skipPayment ? 'Submit Listing' : 'Continue to Checkout'}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}

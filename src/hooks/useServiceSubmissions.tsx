@@ -91,17 +91,20 @@ export function useCreateSubmission() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (formData: SubmissionFormData) => {
+    mutationFn: async (formData: SubmissionFormData & { skipPayment?: boolean }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('You must be logged in to submit a service');
+
+      const { skipPayment, ...rest } = formData;
 
       const { data, error } = await supabase
         .from('service_submissions')
         .insert({
-          ...formData,
+          ...rest,
           submitter_id: user.id,
-          payment_status: 'unpaid',
+          payment_status: skipPayment ? 'paid' : 'unpaid',
           approval_status: 'pending',
+          subscription_tier: skipPayment ? (rest.subscription_tier || 'starter') : rest.subscription_tier,
         })
         .select()
         .single();
