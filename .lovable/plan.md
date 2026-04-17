@@ -1,50 +1,55 @@
 
 
-## Plan: Connect IAP Subscription to Service Submission Flow
+## Issue: Email signup failing on iOS
 
-### What changes
+### Root cause
 
-When a user has an active IAP subscription (trial or paid), they can submit a service listing directly — skipping the tier selection and Stripe checkout entirely. Their listing is auto-tagged as "starter" tier (included with their subscription).
-
-### Changes
-
-**1. `src/pages/SubmitService.tsx`**
-- Import `useSubscription` hook
-- Detect if user `isSubscribed` (trial or paid)
-- If subscribed: hide the tier selection card and change "Continue to Checkout" to "Submit Listing"
-- If subscribed: skip Step 2 entirely — after form submission, auto-set `payment_status` to `'paid'` on the submission and navigate directly to a success page
-- If not subscribed: keep existing Stripe checkout flow (web users)
-
-**2. `src/hooks/useServiceSubmissions.tsx`**
-- Add a new mutation `useCreatePaidSubmission` (or modify `useCreateSubmission`) that accepts an optional `skipPayment` flag
-- When `skipPayment` is true, insert the submission with `payment_status: 'paid'` and `subscription_tier: 'starter'` so it goes straight to the admin approval queue without needing Stripe
-
-**3. `src/components/services/FreeTrialBanner.tsx`**
-- For subscribed users (both trial and paid states): add a "Submit Your Business" button that navigates to `/submit-service`
-- This replaces just showing "Manage Subscription" — now shows both the manage button and the submit button
-
-**4. `src/pages/SubmissionSuccess.tsx`**
-- Minor: adjust copy so it doesn't always say "Payment Successful!" — for IAP subscribers it should say "Submission Received!" instead
-
-### Flow summary
-
-```text
-Subscribed user (iOS IAP):
-  Services tab → FreeTrialBanner shows "Submit Your Business" button
-  → /submit-service → Fill form (no tier picker, no checkout)
-  → Insert with payment_status='paid' → Navigate to success page
-  → Admin reviews and approves
-
-Non-subscribed user (web):
-  Services tab → FreeTrialBanner shows "Start Free Trial"
-  → /submit-service → Fill form + pick tier → Stripe checkout
-  → (unchanged existing flow)
+From the auth logs:
+```
+"451 Authentication failed: Maximum credits exceeded"
+"500: Error sending recovery email"
 ```
 
-### Technical details
+Supabase's **built-in email service has hit its rate limit / credit cap**. This is a well-known limitation — Supabase's default SMTP is meant for development only and has a hard cap of ~3-4 emails/hour for the entire project. Once exhausted, ALL email-based auth (signup confirmation, password recovery) fails with a 500 error.
 
-- `useSubscription().isSubscribed` already returns `true` for both trial and paid states — this is what gates the flow
-- The submission row gets `payment_status: 'paid'` immediately since the user already paid via IAP
-- No database migration needed — the existing `service_submissions` table already supports `payment_status: 'paid'` and `subscription_tier: 'starter'`
-- This requires a new iOS build to take effect on device
+**Google sign-in works** because it doesn't send an email — it uses OAuth.
+**Email signup fails** because Supabase can't send the confirmation email.
+
+### Why this is biting you now
+
+Your app is live on TestFlight and real users are signing up. The default Supabase email quota was fine during development but cannot handle production traffic.
+
+### The fix: Set up Lovable Emails (custom auth email templates + custom sender domain)
+
+Lovable has a built-in managed email system that:
+- Removes the rate limit (uses Lovable's email infrastructure, not Supabase's tiny dev quota)
+- Sends from your own domain (`notify@pawsplayrepeat.app`) instead of Supabase's default
+- Includes branded templates for signup confirmation, password reset, magic link, etc.
+- Works across web AND iOS (the email send is server-side, platform doesn't matter)
+
+You already own `pawsplayrepeat.app` (it's your custom domain), so we can delegate the `notify` subdomain to Lovable's nameservers.
+
+### Plan
+
+**Step 1 — Set up email domain (you do this in a dialog)**
+I'll present a "Set up email domain" button. You click it, choose `pawsplayrepeat.app`, and confirm. The dialog handles DNS delegation automatically.
+
+**Step 2 — Scaffold branded auth email templates (I do this)**
+After the domain is set, I'll create 6 React Email templates (signup, recovery, magic-link, invite, email-change, reauthentication) styled with your Paws Play Repeat brand colors (orange `#e87b35`, cream backgrounds, paw emoji branding to match your welcome email).
+
+**Step 3 — Deploy the auth-email-hook edge function (I do this)**
+This intercepts Supabase auth emails and routes them through Lovable's email queue, so they bypass Supabase's broken quota entirely.
+
+**Step 4 — You monitor activation**
+DNS verification can take up to 72 hours but usually completes in minutes. You can watch progress in **Cloud → Emails**. Until DNS verifies, default emails will still attempt to send (still rate-limited, but no worse than today). Once verified, all auth emails route through your domain with no quota issues.
+
+### What does NOT need to change
+
+- No iOS rebuild required — this is a server-side fix. Existing TestFlight users will benefit immediately once DNS verifies.
+- No code changes to `useAuth.tsx` or the signup flow — the Supabase client call is unchanged. Only the email *delivery* mechanism changes.
+- The native redirect scheme `com.pawsplayrepeat.app://callback` continues to work as-is.
+
+### After fix
+
+New iOS users tapping "Sign Up" with email will receive a branded confirmation email from `notify@pawsplayrepeat.app` within seconds, tap the link, and land back in the app via the deep-link callback — exactly as Google sign-in works today.
 
