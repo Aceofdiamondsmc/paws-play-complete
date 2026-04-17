@@ -1,70 +1,51 @@
 project_id = "xasbgkggwnkvrceziaix"
 
-[functions.mapbox-token]
-verify_jwt = false
-
-[functions.generate-park-description]
-verify_jwt = false
-
-[functions.vet-service]
-verify_jwt = false
-
-[functions.google-places]
-verify_jwt = false
-
-[functions.import-services]
-verify_jwt = false
-
-[functions.explore-assistant]
-verify_jwt = false
-
-[functions.generate-service-images]
-verify_jwt = false
-
-[functions.create-checkout-session]
-verify_jwt = false
-
-[functions.stripe-webhook]
-verify_jwt = false
-
-[functions.comment-notification]
-verify_jwt = false
-
-[functions.og-post]
-verify_jwt = false
-
-[functions.care-reminder-push]
-verify_jwt = false
-
-[functions.like-notification]
-verify_jwt = false
-
-[functions.send-test-notification]
-verify_jwt = false
-
-[functions.friend-request-notification]
-verify_jwt = false
-
-[functions.message-notification]
-verify_jwt = false
-
-[functions.lost-dog-alert]
-verify_jwt = false
-
-[functions.get-weather]
-verify_jwt = false
-
-[functions.check-subscription]
-verify_jwt = false
-
-[functions.create-trial-checkout]
-verify_jwt = false
-
-[functions.welcome-email]
-verify_jwt = false
-
-[functions.delete-account]
-verify_jwt = false
-
-[functions.register-push-token]
-verify_jwt = false
+[functions]
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.care-reminder-push]
+    verify_jwt = false
+  [functions.check-subscription]
+    verify_jwt = false
+  [functions.comment-notification]
+    verify_jwt = false
+  [functions.create-checkout-session]
+    verify_jwt = false
+  [functions.create-trial-checkout]
+    verify_jwt = false
+  [functions.delete-account]
+    verify_jwt = false
+  [functions.explore-assistant]
+    verify_jwt = false
+  [functions.friend-request-notification]
+    verify_jwt = false
+  [functions.generate-park-description]
+    verify_jwt = false
+  [functions.generate-service-images]
+    verify_jwt = false
+  [functions.get-weather]
+    verify_jwt = false
+  [functions.google-places]
+    verify_jwt = false
+  [functions.import-services]
+    verify_jwt = false
+  [functions.like-notification]
+    verify_jwt = false
+  [functions.lost-dog-alert]
+    verify_jwt = false
+  [functions.mapbox-token]
+    verify_jwt = false
+  [functions.message-notification]
+    verify_jwt = false
+  [functions.og-post]
+    verify_jwt = false
+  [functions.register-push-token]
+    verify_jwt = false
+  [functions.send-test-notification]
+    verify_jwt = false
+  [functions.stripe-webhook]
+    verify_jwt = false
+  [functions.vet-service]
+    verify_jwt = false
+  [functions.welcome-email]
+    verify_jwt = false
