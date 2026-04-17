@@ -1,55 +1,37 @@
 
 
-## Issue: Email signup failing on iOS
+## Issue confirmed: email infrastructure tables are missing
 
-### Root cause
+I queried the database directly and there is **no `email_send_log` table** (and no related queue tables). The `auth-email-hook` edge function was deployed, but the shared queue/log infrastructure it writes to was never provisioned. So:
 
-From the auth logs:
-```
-"451 Authentication failed: Maximum credits exceeded"
-"500: Error sending recovery email"
-```
+- No signup emails have been logged (the table doesn't exist to log them)
+- The hook is likely failing silently when it tries to enqueue emails
+- Supabase is probably falling back to its default SMTP — which is still rate-limited
 
-Supabase's **built-in email service has hit its rate limit / credit cap**. This is a well-known limitation — Supabase's default SMTP is meant for development only and has a hard cap of ~3-4 emails/hour for the entire project. Once exhausted, ALL email-based auth (signup confirmation, password recovery) fails with a 500 error.
+### What needs to happen
 
-**Google sign-in works** because it doesn't send an email — it uses OAuth.
-**Email signup fails** because Supabase can't send the confirmation email.
+Run **email infrastructure setup** to create the missing pieces:
+- `email_send_log` table (for monitoring + dedup)
+- `email_send_state`, `suppressed_emails`, `email_unsubscribe_tokens` tables
+- `auth_emails` and `transactional_emails` pgmq queues
+- `enqueue_email` RPC function
+- `process-email-queue` pg_cron dispatcher job
+- Vault secret for the service role key
 
-### Why this is biting you now
+This is a one-shot setup. After it runs:
+- Auth emails will start flowing through the queue
+- DNS for `notify.pawsplayrepeat.app` is already verified, so delivery works immediately
+- I can re-query `email_send_log` to confirm signup emails are landing successfully
 
-Your app is live on TestFlight and real users are signing up. The default Supabase email quota was fine during development but cannot handle production traffic.
+### Why this got missed earlier
 
-### The fix: Set up Lovable Emails (custom auth email templates + custom sender domain)
+The previous run scaffolded templates and deployed the hook function but skipped the underlying queue/migration step. The hook can't deliver mail without the queue + dispatcher behind it.
 
-Lovable has a built-in managed email system that:
-- Removes the rate limit (uses Lovable's email infrastructure, not Supabase's tiny dev quota)
-- Sends from your own domain (`notify@pawsplayrepeat.app`) instead of Supabase's default
-- Includes branded templates for signup confirmation, password reset, magic link, etc.
-- Works across web AND iOS (the email send is server-side, platform doesn't matter)
+### After approval, I will
 
-You already own `pawsplayrepeat.app` (it's your custom domain), so we can delegate the `notify` subdomain to Lovable's nameservers.
+1. Run email infrastructure setup (creates tables, queues, cron, vault secret)
+2. Re-deploy `auth-email-hook` to ensure it's running against the new infra
+3. Query `email_send_log` and report the actual signup email status to you
 
-### Plan
-
-**Step 1 — Set up email domain (you do this in a dialog)**
-I'll present a "Set up email domain" button. You click it, choose `pawsplayrepeat.app`, and confirm. The dialog handles DNS delegation automatically.
-
-**Step 2 — Scaffold branded auth email templates (I do this)**
-After the domain is set, I'll create 6 React Email templates (signup, recovery, magic-link, invite, email-change, reauthentication) styled with your Paws Play Repeat brand colors (orange `#e87b35`, cream backgrounds, paw emoji branding to match your welcome email).
-
-**Step 3 — Deploy the auth-email-hook edge function (I do this)**
-This intercepts Supabase auth emails and routes them through Lovable's email queue, so they bypass Supabase's broken quota entirely.
-
-**Step 4 — You monitor activation**
-DNS verification can take up to 72 hours but usually completes in minutes. You can watch progress in **Cloud → Emails**. Until DNS verifies, default emails will still attempt to send (still rate-limited, but no worse than today). Once verified, all auth emails route through your domain with no quota issues.
-
-### What does NOT need to change
-
-- No iOS rebuild required — this is a server-side fix. Existing TestFlight users will benefit immediately once DNS verifies.
-- No code changes to `useAuth.tsx` or the signup flow — the Supabase client call is unchanged. Only the email *delivery* mechanism changes.
-- The native redirect scheme `com.pawsplayrepeat.app://callback` continues to work as-is.
-
-### After fix
-
-New iOS users tapping "Sign Up" with email will receive a branded confirmation email from `notify@pawsplayrepeat.app` within seconds, tap the link, and land back in the app via the deep-link callback — exactly as Google sign-in works today.
+No iOS rebuild required — this is entirely server-side.
 
