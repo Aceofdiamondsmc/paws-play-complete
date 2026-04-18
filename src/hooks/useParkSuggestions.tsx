@@ -33,6 +33,7 @@ export interface ParkSuggestionInput {
   city?: string;
   state?: string;
   zip_code?: string;
+  country?: string;
   description?: string;
   latitude?: number | null;
   longitude?: number | null;
@@ -89,6 +90,7 @@ export function useParkSuggestions() {
         city: input.city || null,
         state: input.state || null,
         zip_code: input.zip_code || null,
+        country: input.country || 'United States',
         description: input.description || null,
         latitude: input.latitude ?? null,
         longitude: input.longitude ?? null,

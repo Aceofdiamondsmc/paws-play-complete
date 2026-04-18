@@ -7,6 +7,7 @@ interface ProfileData {
   bio?: string;
   city?: string;
   state?: string;
+  country?: string;
   avatar_url?: string;
   location_public?: boolean;
 }
