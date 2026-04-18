@@ -1,2 +1,2 @@
 
-User wants regenerated step-by-step instructions for switching to Resend SMTP using their existing `system.pawsplayrepeat.app` domain. No code changes — pure instructions. Lovable Emails already disabled. Skip DNS work since domain is verified in Resend. Keep concise, numbered, actionable.
+User shows Supabase rate limits page. SendGrid is already configured. They're asking if they should check SendGrid to confirm it's active. Simple advice — yes, verify SendGrid is sending. No code changes. Pure guidance.
