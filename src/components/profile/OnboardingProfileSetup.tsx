@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CountryCombobox } from '@/components/ui/country-combobox';
 import { useProfile } from '@/hooks/useProfileManagement';
+import { detectDefaultCountry, isUSCountry } from '@/lib/countries';
 import type { Profile } from '@/types';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -26,6 +28,7 @@ export function OnboardingProfileSetup({ profile, user, onNext }: OnboardingProf
   const [bio, setBio] = useState(profile?.bio || '');
   const [city, setCity] = useState(profile?.city || '');
   const [state, setState] = useState(profile?.state || '');
+  const [country, setCountry] = useState((profile as any)?.country || detectDefaultCountry());
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,6 +67,7 @@ export function OnboardingProfileSetup({ profile, user, onNext }: OnboardingProf
         bio: bio.trim() || undefined,
         city: city.trim() || undefined,
         state: state.trim() || undefined,
+        country: country.trim() || undefined,
       });
 
       if (error) throw error;
@@ -135,6 +139,13 @@ export function OnboardingProfileSetup({ profile, user, onNext }: OnboardingProf
           />
         </div>
 
+        <div>
+          <Label htmlFor="country">Country</Label>
+          <div className="mt-1">
+            <CountryCombobox id="country" value={country} onChange={setCountry} />
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="city">City</Label>
@@ -142,17 +153,17 @@ export function OnboardingProfileSetup({ profile, user, onNext }: OnboardingProf
               id="city"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="e.g., Las Vegas"
+              placeholder={isUSCountry(country) ? 'e.g., Las Vegas' : 'e.g., Fort-de-France'}
               className="mt-1 rounded-xl h-12"
             />
           </div>
           <div>
-            <Label htmlFor="state">State</Label>
+            <Label htmlFor="state">{isUSCountry(country) ? 'State' : 'Region / Province'}</Label>
             <Input
               id="state"
               value={state}
               onChange={(e) => setState(e.target.value)}
-              placeholder="e.g., NV"
+              placeholder={isUSCountry(country) ? 'e.g., NV' : 'e.g., Martinique'}
               className="mt-1 rounded-xl h-12"
             />
           </div>
