@@ -1,2 +1,12 @@
 
-User wants clear step-by-step instructions to switch auth emails to Resend. They have a Resend account already. Lovable Emails is already disabled. I just need to give them a clear, numbered walkthrough — no code changes needed on my side. This is a documentation/instructions response, not an implementation task. Keep it concise and actionable.
+User has `system.pawsplayrepeat.app` already verified in Resend. Question: can they reuse it or need a new subdomain?
+
+Key facts:
+- Lovable Emails delegated `notify.pawsplayrepeat.app` via NS records to Lovable nameservers
+- `system.pawsplayrepeat.app` is a completely different subdomain — no NS conflict
+- Resend already verified it = SPF/DKIM already in place
+- They can use it immediately as the SMTP sender
+
+Answer: Yes, reuse it. No new domain needed. Just adjust the sender email in Supabase SMTP config to use `system.` instead of `mail.`.
+
+This is purely instructional — no code changes. Keep plan tight.
