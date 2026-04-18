@@ -53,6 +53,7 @@ export const COUNTRIES: Country[] = [
   { name: 'Paraguay', code: 'py' },
   { name: 'Costa Rica', code: 'cr' },
   { name: 'Panama', code: 'pa' },
+  { name: 'Dominica', code: 'dm' },
   { name: 'Dominican Republic', code: 'do' },
   { name: 'Puerto Rico', code: 'pr' },
   { name: 'Jamaica', code: 'jm' },
