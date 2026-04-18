@@ -65,7 +65,7 @@ serve(async (req: Request) => {
     // Fetch parks with missing coordinates but valid addresses
     const { data: parks, error: fetchError } = await supabase
       .from("parks")
-      .select("Id, name, address, latitude, longitude")
+      .select("Id, name, address, latitude, longitude, country")
       .not("address", "is", null)
       .or("latitude.is.null,longitude.is.null");
 
@@ -94,9 +94,14 @@ serve(async (req: Request) => {
 
     for (const park of parksToGeocode.slice(0, 50)) {
       try {
-        const query = encodeURIComponent(park.address);
+        // Include country in the geocoding query for better international accuracy.
+        // No `country=` filter — Mapbox can resolve any country worldwide.
+        const fullAddress = [park.address, (park as any).country]
+          .filter(Boolean)
+          .join(', ');
+        const query = encodeURIComponent(fullAddress);
         const response = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${MAPBOX_TOKEN}&limit=1&country=US`
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${MAPBOX_TOKEN}&limit=1`
         );
 
         if (!response.ok) {
