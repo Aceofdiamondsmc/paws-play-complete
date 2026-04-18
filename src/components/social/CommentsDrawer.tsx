@@ -107,7 +107,7 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
   return (
     <>
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[80dvh] flex flex-col">
+        <DrawerContent className="h-[80vh] flex flex-col">
           <DrawerHeader className="border-b border-border pb-4 shrink-0">
             <DrawerTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
               <MessageCircle className="w-5 h-5 text-primary" />
@@ -116,7 +116,7 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
           </DrawerHeader>
 
           {/* Scrollable Comments Area */}
-          <div className="flex-1 overflow-y-auto p-4 min-h-0">
+          <div className="flex-1 overflow-y-auto overscroll-contain p-4 min-h-0">
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -236,7 +236,6 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
                     placeholder={editingCommentId ? "Edit your comment..." : "Write a comment..."}
                     value={editingCommentId ? editText : newComment}
                     onChange={(e) => editingCommentId ? setEditText(e.target.value) : setNewComment(e.target.value)}
-                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                     onKeyDown={(e) => { if (e.key === 'Escape' && editingCommentId) handleCancelEdit(); }}
                     disabled={isBusy}
                     className="flex-1 rounded-full border-primary/20 focus:border-primary"
