@@ -13,12 +13,18 @@
 				"sound",
 				"alert"
 			]
+		},
+		"Keyboard": {
+			"resize": "none",
+			"style": "DEFAULT",
+			"resizeOnFullScreen": false
 		}
 	},
 	"packageClassList": [
 		"AppPlugin",
 		"CAPBrowserPlugin",
 		"FilesystemPlugin",
+		"KeyboardPlugin",
 		"LocalNotificationsPlugin",
 		"PushNotificationsPlugin",
 		"SharePlugin",
