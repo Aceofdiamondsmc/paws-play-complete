@@ -13,6 +13,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useProfile } from '@/hooks/useProfileManagement';
+import { CountryCombobox } from '@/components/ui/country-combobox';
+import { detectDefaultCountry, isUSCountry } from '@/lib/countries';
 import { toast } from 'sonner';
 
 interface EditProfileFormProps {
@@ -24,6 +26,7 @@ interface EditProfileFormProps {
     bio?: string | null;
     city?: string | null;
     state?: string | null;
+    country?: string | null;
     avatar_url?: string | null;
     location_public?: boolean;
   } | null;
@@ -37,6 +40,7 @@ export function EditProfileForm({ open, onClose, profile }: EditProfileFormProps
   const [bio, setBio] = useState(profile?.bio || '');
   const [city, setCity] = useState(profile?.city || '');
   const [state, setState] = useState(profile?.state || '');
+  const [country, setCountry] = useState(profile?.country || detectDefaultCountry());
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
   const [locationPublic, setLocationPublic] = useState(profile?.location_public !== false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,6 +56,7 @@ export function EditProfileForm({ open, onClose, profile }: EditProfileFormProps
       setBio(profile.bio || '');
       setCity(profile.city || '');
       setState(profile.state || '');
+      setCountry(profile.country || detectDefaultCountry());
       setAvatarUrl(profile.avatar_url || '');
       setLocationPublic(profile.location_public !== false);
     }
@@ -84,6 +89,7 @@ export function EditProfileForm({ open, onClose, profile }: EditProfileFormProps
         bio: bio.trim() || undefined,
         city: city.trim() || undefined,
         state: state.trim() || undefined,
+        country: country.trim() || undefined,
         location_public: locationPublic
       });
 
@@ -161,24 +167,31 @@ export function EditProfileForm({ open, onClose, profile }: EditProfileFormProps
               />
             </div>
 
+            <div className="col-span-2">
+              <Label htmlFor="country">Country</Label>
+              <div className="mt-1">
+                <CountryCombobox id="country" value={country} onChange={setCountry} />
+              </div>
+            </div>
+
             <div>
               <Label htmlFor="city">City</Label>
               <Input
                 id="city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g., Austin"
+                placeholder={isUSCountry(country) ? 'e.g., Austin' : 'e.g., Fort-de-France'}
                 className="mt-1"
               />
             </div>
 
             <div>
-              <Label htmlFor="state">State</Label>
+              <Label htmlFor="state">{isUSCountry(country) ? 'State' : 'Region / Province'}</Label>
               <Input
                 id="state"
                 value={state}
                 onChange={(e) => setState(e.target.value)}
-                placeholder="e.g., TX"
+                placeholder={isUSCountry(country) ? 'e.g., TX' : 'e.g., Martinique'}
                 className="mt-1"
               />
             </div>

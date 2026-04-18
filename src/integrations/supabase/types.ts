@@ -649,6 +649,7 @@ export type Database = {
           address: string | null
           admin_notes: string | null
           city: string | null
+          country: string | null
           created_at: string | null
           description: string | null
           has_agility_equipment: boolean | null
@@ -673,6 +674,7 @@ export type Database = {
           address?: string | null
           admin_notes?: string | null
           city?: string | null
+          country?: string | null
           created_at?: string | null
           description?: string | null
           has_agility_equipment?: boolean | null
@@ -697,6 +699,7 @@ export type Database = {
           address?: string | null
           admin_notes?: string | null
           city?: string | null
+          country?: string | null
           created_at?: string | null
           description?: string | null
           has_agility_equipment?: boolean | null
@@ -724,6 +727,7 @@ export type Database = {
           added_by: string | null
           address: string | null
           city: string | null
+          country: string | null
           created_at: string | null
           description: string | null
           gemini_summary: string | null
@@ -754,6 +758,7 @@ export type Database = {
           added_by?: string | null
           address?: string | null
           city?: string | null
+          country?: string | null
           created_at?: string | null
           description?: string | null
           gemini_summary?: string | null
@@ -784,6 +789,7 @@ export type Database = {
           added_by?: string | null
           address?: string | null
           city?: string | null
+          country?: string | null
           created_at?: string | null
           description?: string | null
           gemini_summary?: string | null
@@ -1254,6 +1260,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           city: string | null
+          country: string | null
           created_at: string | null
           display_name: string | null
           fcm_token: string | null
@@ -1273,6 +1280,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
+          country?: string | null
           created_at?: string | null
           display_name?: string | null
           fcm_token?: string | null
@@ -1292,6 +1300,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
+          country?: string | null
           created_at?: string | null
           display_name?: string | null
           fcm_token?: string | null
@@ -1318,6 +1327,7 @@ export type Database = {
           business_name: string
           category: string
           city: string
+          country: string | null
           created_at: string | null
           description: string | null
           email: string
@@ -1347,6 +1357,7 @@ export type Database = {
           business_name: string
           category: string
           city: string
+          country?: string | null
           created_at?: string | null
           description?: string | null
           email: string
@@ -1376,6 +1387,7 @@ export type Database = {
           business_name?: string
           category?: string
           city?: string
+          country?: string | null
           created_at?: string | null
           description?: string | null
           email?: string
@@ -1402,6 +1414,7 @@ export type Database = {
       services: {
         Row: {
           category: string
+          country: string | null
           created_at: string
           description: string | null
           distance: string | null
@@ -1432,6 +1445,7 @@ export type Database = {
         }
         Insert: {
           category: string
+          country?: string | null
           created_at?: string
           description?: string | null
           distance?: string | null
@@ -1462,6 +1476,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          country?: string | null
           created_at?: string
           description?: string | null
           distance?: string | null

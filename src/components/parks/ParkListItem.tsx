@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceMiles, openNavigation, getValidCoords, openNavigationByAddress } from '@/lib/navigation-utils';
 import { cn } from '@/lib/utils';
+import { formatLocation } from '@/lib/format-location';
 import type { Park } from '@/types';
 
 interface ParkListItemProps {
@@ -79,11 +80,11 @@ export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite, 
             </span>
           )}
 
-          {/* City/State fallback when no distance */}
-          {park.distance === undefined && (park.city || park.state) && (
+          {/* City/State/Country fallback when no distance */}
+          {park.distance === undefined && (park.city || park.state || (park as any).country) && (
             <span className="flex items-center gap-0.5 text-sm text-muted-foreground">
               <MapPin className="w-3 h-3" />
-              {[park.city, park.state].filter(Boolean).join(', ')}
+              {formatLocation(park.city, park.state, (park as any).country)}
             </span>
           )}
           

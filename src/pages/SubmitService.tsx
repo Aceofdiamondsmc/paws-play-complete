@@ -11,9 +11,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { CountryCombobox } from '@/components/ui/country-combobox';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useCreateSubmission, useCreateCheckout } from '@/hooks/useServiceSubmissions';
+import { detectDefaultCountry, isUSCountry } from '@/lib/countries';
 import { toast } from 'sonner';
 
 const CATEGORIES = [
@@ -73,7 +75,8 @@ const formSchema = z.object({
   description: z.string().max(500).optional(),
   address: z.string().min(5, 'Address is required').max(200),
   city: z.string().min(2, 'City is required').max(100),
-  state: z.string().min(2, 'State is required').max(50),
+  state: z.string().min(1, 'Region is required').max(50),
+  country: z.string().min(2, 'Country is required').max(80),
   phone: z.string().max(20).optional(),
   website: z.string().url('Must be a valid URL').or(z.literal('')).optional(),
   email: z.string().email('Must be a valid email'),
@@ -108,6 +111,7 @@ export default function SubmitService() {
       address: '',
       city: '',
       state: '',
+      country: detectDefaultCountry(),
       phone: '',
       website: '',
       email: user?.email || '',
@@ -135,6 +139,7 @@ export default function SubmitService() {
         address: data.address,
         city: data.city,
         state: data.state,
+        country: data.country,
         phone: data.phone,
         website: data.website,
         email: data.email,
@@ -309,6 +314,20 @@ export default function SubmitService() {
                     )}
                   />
 
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country *</FormLabel>
+                        <FormControl>
+                          <CountryCombobox value={field.value} onChange={field.onChange} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -331,7 +350,7 @@ export default function SubmitService() {
                         <FormItem>
                           <FormLabel>City *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Boston" {...field} />
+                            <Input placeholder={isUSCountry(form.watch('country')) ? 'Boston' : 'Fort-de-France'} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -344,9 +363,9 @@ export default function SubmitService() {
                     name="state"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>State *</FormLabel>
+                        <FormLabel>{isUSCountry(form.watch('country')) ? 'State *' : 'Region / Province *'}</FormLabel>
                         <FormControl>
-                          <Input placeholder="MA" {...field} />
+                          <Input placeholder={isUSCountry(form.watch('country')) ? 'MA' : 'Martinique'} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
