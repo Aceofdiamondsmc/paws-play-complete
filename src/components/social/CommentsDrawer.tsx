@@ -1,5 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, MessageCircle, Pencil, X, Check, ImagePlus } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Keyboard } from '@capacitor/keyboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -32,7 +34,27 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
   const [saving, setSaving] = useState(false);
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   const [fullViewImage, setFullViewImage] = useState<string | null>(null);
+  const [kbHeight, setKbHeight] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // iOS keyboard handling: with KeyboardResize.None, the webview doesn't move
+  // when the keyboard opens. We manually pad the input area so it sits above the keyboard.
+  useEffect(() => {
+    if (!open || !Capacitor.isNativePlatform()) return;
+
+    const showHandle = Keyboard.addListener('keyboardWillShow', (info) => {
+      setKbHeight(info.keyboardHeight);
+    });
+    const hideHandle = Keyboard.addListener('keyboardWillHide', () => {
+      setKbHeight(0);
+    });
+
+    return () => {
+      showHandle.then((h) => h.remove());
+      hideHandle.then((h) => h.remove());
+      setKbHeight(0);
+    };
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,7 +207,10 @@ export default function CommentsDrawer({ postId, open, onOpenChange }: CommentsD
           </div>
 
           {/* Sticky Comment Input */}
-          <div className="p-4 border-t border-border bg-background shrink-0 pb-[env(safe-area-inset-bottom)]">
+          <div
+            className="p-4 border-t border-border bg-background shrink-0 pb-[env(safe-area-inset-bottom)]"
+            style={kbHeight > 0 ? { paddingBottom: kbHeight } : undefined}
+          >
             {user ? (
               <div className="space-y-1">
                 {editingCommentId && (
