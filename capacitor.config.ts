@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import { KeyboardResize, KeyboardStyle } from '@capacitor/keyboard';
 
 const config: CapacitorConfig = {
   appId: 'com.pawsplayrepeat.app',
@@ -11,6 +12,11 @@ const config: CapacitorConfig = {
   plugins: {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
+    },
+    Keyboard: {
+      resize: KeyboardResize.None,
+      style: KeyboardStyle.Default,
+      resizeOnFullScreen: false,
     },
   },
 };
