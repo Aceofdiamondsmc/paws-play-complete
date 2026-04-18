@@ -39,6 +39,7 @@ export interface SubmissionFormData {
   address: string;
   city: string;
   state: string;
+  country?: string;
   phone?: string;
   website?: string;
   email: string;
