@@ -5,22 +5,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { CountryCombobox } from '@/components/ui/country-combobox';
 import { Loader2 } from 'lucide-react';
 import { useParkSuggestions, type ParkSuggestionInput } from '@/hooks/useParkSuggestions';
 import { useToast } from '@/hooks/use-toast';
 import { ConfettiBurst } from '@/components/dates/ConfettiBurst';
+import { detectDefaultCountry, isUSCountry } from '@/lib/countries';
 
 interface SuggestParkModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const initialForm: ParkSuggestionInput = {
+const buildInitialForm = (): ParkSuggestionInput => ({
   name: '',
   address: '',
   city: '',
   state: '',
   zip_code: '',
+  country: detectDefaultCountry(),
   description: '',
   is_fully_fenced: false,
   has_water_station: false,
@@ -29,10 +32,10 @@ const initialForm: ParkSuggestionInput = {
   has_agility_equipment: false,
   has_parking: false,
   has_grass_surface: false,
-};
+});
 
 export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) {
-  const [form, setForm] = useState<ParkSuggestionInput>(initialForm);
+  const [form, setForm] = useState<ParkSuggestionInput>(buildInitialForm);
   const [submitting, setSubmitting] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const { submitSuggestion, refetchMySuggestions } = useParkSuggestions();
@@ -58,7 +61,7 @@ export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) 
       refetchMySuggestions();
       setTimeout(() => {
         setShowConfetti(false);
-        setForm(initialForm);
+        setForm(buildInitialForm());
         onOpenChange(false);
       }, 1200);
     }
@@ -78,6 +81,15 @@ export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) 
           </div>
 
           <div className="grid gap-2">
+            <Label htmlFor="suggest-country">Country</Label>
+            <CountryCombobox
+              id="suggest-country"
+              value={form.country || ''}
+              onChange={(v) => update('country', v)}
+            />
+          </div>
+
+          <div className="grid gap-2">
             <Label htmlFor="suggest-address">Address</Label>
             <Input id="suggest-address" value={form.address} onChange={e => update('address', e.target.value)} placeholder="Street address" />
           </div>
@@ -85,15 +97,15 @@ export function SuggestParkModal({ open, onOpenChange }: SuggestParkModalProps) 
           <div className="grid grid-cols-3 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="suggest-city">City</Label>
-              <Input id="suggest-city" value={form.city} onChange={e => update('city', e.target.value)} placeholder="City" />
+              <Input id="suggest-city" value={form.city} onChange={e => update('city', e.target.value)} placeholder={isUSCountry(form.country) ? 'Las Vegas' : 'Fort-de-France'} />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="suggest-state">State</Label>
-              <Input id="suggest-state" value={form.state} onChange={e => update('state', e.target.value)} placeholder="State" />
+              <Label htmlFor="suggest-state">{isUSCountry(form.country) ? 'State' : 'Region'}</Label>
+              <Input id="suggest-state" value={form.state} onChange={e => update('state', e.target.value)} placeholder={isUSCountry(form.country) ? 'NV' : 'Martinique'} />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="suggest-zip">ZIP Code</Label>
-              <Input id="suggest-zip" value={form.zip_code} onChange={e => update('zip_code', e.target.value)} placeholder="ZIP" maxLength={10} />
+              <Label htmlFor="suggest-zip">{isUSCountry(form.country) ? 'ZIP Code' : 'Postal Code'}</Label>
+              <Input id="suggest-zip" value={form.zip_code} onChange={e => update('zip_code', e.target.value)} placeholder={isUSCountry(form.country) ? 'ZIP' : '97250'} maxLength={10} />
             </div>
           </div>
 
