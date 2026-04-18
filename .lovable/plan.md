@@ -1,30 +1,50 @@
 
-User uploaded two screenshots showing the bug clearly:
-- IMG_0247: drawer opens correctly, header at top, "No comments yet" centered, input at bottom (~85% height). Looks fine.
-- IMG_0246: drawer has scrolled UP so the input bar is now glued to the top of the screen, header is gone, huge empty white space below input, keyboard at bottom. This happens BEFORE focusing input.
+The `h-[80vh]` fix didn't hold on iOS Capacitor. Re-diagnosing from scratch.
 
-Wait — re-reading: "scrolls way up to the top... but after hitting the check this is corrected." So IMG_0246 is the broken state (input pinned to top), and tapping the check button (Send) fixes it.
+### What's actually happening
 
-What's happening: On iOS, when the keyboard opens (focus on the comment input), iOS shifts the visual viewport up. Vaul's drawer has `fixed inset-x-0 bottom-0` — when iOS shrinks the viewport for the keyboard, `bottom: 0` is now above the keyboard, but the drawer's content height (`max-h-[80dvh]`) is computed from the ORIGINAL viewport, so the drawer overflows above the screen. The empty comments list (`flex-1`) takes all the leftover space, pushing the header off-screen and pinning the input near the top.
+On iOS WebKit inside Capacitor:
+- `vh` units are based on the **largest** viewport (no URL bar). When the keyboard opens, the visual viewport shrinks but `vh` does NOT change.
+- A drawer with `fixed bottom-0 h-[80vh]` keeps its 80vh size, but `bottom: 0` is anchored to the **layout viewport** bottom, not the **visual viewport** bottom. The keyboard pushes the visual viewport up, leaving the bottom of the drawer (where the input is) hidden under the keyboard — OR iOS auto-scrolls the entire layout viewport up to reveal the focused input, which shoves the drawer's header off the top of the screen. That's exactly what the screenshot shows: input pinned near top, header gone, white space below = the drawer's lower half is now scrolled below the keyboard out of view.
+- Switching `dvh` → `vh` didn't help because the root cause isn't the height unit — it's that **`position: fixed` on iOS doesn't follow the visual viewport when the keyboard is open**. iOS scrolls the layout viewport to bring the focused field into view, dragging the entire fixed drawer with it.
 
-After hitting Send (Check), state changes (clearing input / submitting / re-render) cause the drawer to recompute → snaps back correctly.
+### Why "tap Send fixes it"
+Tapping Send blurs the input → keyboard dismisses → visual viewport restores → layout viewport scrolls back to 0 → drawer snaps to the correct position.
 
-Root cause: `max-h-[80dvh]` on `DrawerContent`. iOS Capacitor + keyboard + dvh = unstable. The drawer doesn't resize when keyboard appears; instead it overflows and the bottom-anchored sticky input gets pushed to top of visible area.
+### The real fix: use VisualViewport API + Capacitor Keyboard plugin
 
-### Fix
+Two layers of defense:
 
-Edit `src/components/social/CommentsDrawer.tsx`:
+**Layer 1 — Install `@capacitor/keyboard` plugin** and configure it with `resize: "none"` and listen for `keyboardWillShow` to manually pad the drawer's input area by the keyboard height. This is the Capacitor-blessed way and stops iOS's auto-scroll behavior.
 
-1. Change `max-h-[80dvh]` → `h-[85svh]` (small viewport height — iOS treats svh as "smallest" so it stays stable when keyboard opens, OR equivalently use a fixed `h-[80vh]` which doesn't react to keyboard).
-2. Remove the `onFocus scrollIntoView` band-aid — no longer needed.
-3. Add `overscroll-contain` on the comments scroll area so scroll doesn't chain to the page behind.
-4. Use Capacitor Keyboard listener (already installed via plugins? No — not in plugin list). Skip native plugin route; CSS-only fix is enough.
+Setting `KeyboardResize.None` in `capacitor.config.ts` tells iOS NOT to resize/scroll the webview when the keyboard opens. Then we manually add `padding-bottom: {keyboardHeight}px` to the drawer's input area so the input sits just above the keyboard. The drawer's `position: fixed` now stays glued to the bottom of the screen because iOS isn't moving the viewport anymore.
 
-Alternative more robust: use `h-[80vh]` (large viewport height fixed) — drawer keeps its size; iOS will naturally scroll the page so input is visible above keyboard, and since input is at `bottom-0` of the drawer (which is `bottom-0` of viewport), iOS auto-scrolls just enough to reveal it. This is the standard pattern that works on iOS Safari.
+**Layer 2 — In `CommentsDrawer.tsx`**, subscribe to Keyboard `willShow`/`willHide` events, store keyboard height in state, and apply `paddingBottom: keyboardHeight` to the sticky input wrapper. Also revert drawer height to `max-h-[85dvh]` (it's fine again once iOS stops scrolling the viewport).
 
-### Files
-- `src/components/social/CommentsDrawer.tsx` — replace `max-h-[80dvh]` with `h-[80vh]`, remove `onFocus` scrollIntoView handler, add `overscroll-contain` on scroll area.
+### Files to change
 
-No other files. No new deps. Pure CSS / handler cleanup. Web behavior preserved (desktop already works fine — `vh` is stable on desktop).
+1. **`package.json`** (auto via install) — add `@capacitor/keyboard`.
+2. **`capacitor.config.ts`** — add:
+   ```ts
+   plugins: {
+     Keyboard: { resize: KeyboardResize.None, style: KeyboardStyle.Default, resizeOnFullScreen: false }
+   }
+   ```
+3. **`src/components/social/CommentsDrawer.tsx`**:
+   - Import `Keyboard` from `@capacitor/keyboard` and `Capacitor` from `@capacitor/core`.
+   - Add `const [kbHeight, setKbHeight] = useState(0)`.
+   - In `useEffect` (when `open` is true and on native platform): register `keyboardWillShow` → `setKbHeight(info.keyboardHeight)`, `keyboardWillHide` → `setKbHeight(0)`. Cleanup on close.
+   - Apply `style={{ paddingBottom: kbHeight }}` to the sticky input form wrapper.
+   - Restore drawer height to `max-h-[85dvh]`.
+4. **User runs**: `npm install` → `npx cap sync ios` → bump to **1.6 (118)** → Appflow build.
 
-After fix you'll need another iOS build (1.5/117) to test on device.
+### Why this will work
+- `KeyboardResize.None` stops iOS from scrolling/resizing the webview when the keyboard appears — the #1 cause of the bug.
+- Manual padding ensures the input is visible above the keyboard regardless.
+- This is the documented Capacitor pattern for chat/comment UIs and is what apps like WhatsApp/Telegram clones use on Capacitor.
+
+### Risk
+- `KeyboardResize.None` is global — applies to ALL inputs in the app (chat, profile edit, etc.). The ChatView already manages its own keyboard layout with `100dvh` and works fine, so this should be neutral or improving everywhere.
+- Web is unaffected (Keyboard plugin is a no-op on web; the `Capacitor.isNativePlatform()` guard skips listeners).
+
+After approval I'll make these edits in default mode. You'll then need: pull → `npm install` → `npx cap sync ios` → version bump → Appflow build 118 → TestFlight.
