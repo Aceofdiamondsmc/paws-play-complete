@@ -1,17 +1,14 @@
 
-The error is clear: PostgREST can't choose between two overloaded versions of `approve_park_suggestion` — the old single-arg version `(suggestion_id uuid)` and the new two-arg version `(suggestion_id uuid, admin_notes_text text)`. The migration created a NEW function rather than replacing the old one, so both now exist.
+The RPC call in `src/hooks/useParkSuggestions.tsx` (line 110) currently passes only `suggestion_id`. Since the old single-arg function was dropped and the new function has `admin_notes_text` defaulting to NULL, calls already resolve fine — but to make the call explicit and unambiguous (and prevent regressions if signatures change again), update it to pass both arguments.
 
-The client calls `supabase.rpc('approve_park_suggestion', { suggestion_id: id })` with only one arg, which matches both signatures → ambiguity error.
+### Change
 
-## Fix
-
-One small migration: drop the old single-arg version, keep the new one.
-
-```sql
-DROP FUNCTION IF EXISTS public.approve_park_suggestion(uuid);
+**`src/hooks/useParkSuggestions.tsx`** (line 110):
+```ts
+const { error } = await supabase.rpc('approve_park_suggestion', {
+  suggestion_id: id,
+  admin_notes_text: '',
+});
 ```
 
-That's it. The two-arg version already has `DEFAULT NULL` on `admin_notes_text`, so calls with one arg will resolve cleanly to it.
-
-## After deploy
-Refresh, click Approve on the Martinique suggestion — it will go through, copy `country` + `zip_code` into `parks`, and then the geocoder edge function can fill in coords (or admin can paste them manually).
+That's the only file that calls this RPC — no other usages in the codebase. After this, approve flow is fully explicit and the Martinique park can be approved cleanly.
