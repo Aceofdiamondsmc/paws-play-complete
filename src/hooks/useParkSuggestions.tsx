@@ -107,7 +107,7 @@ export function useParkSuggestions() {
   };
 
   const approveSuggestion = async (id: string) => {
-    const { error } = await supabase.rpc('approve_park_suggestion', { suggestion_id: id });
+    const { error } = await supabase.rpc('approve_park_suggestion', { suggestion_id: id, admin_notes_text: '' });
     if (!error) await fetchPendingSuggestions();
     return { error };
   };
