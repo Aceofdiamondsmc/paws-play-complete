@@ -41,6 +41,8 @@ export async function fetchNearbyParks(
       address: row.address,
       city: row.city,
       state: row.state,
+      country: row.country ?? null,
+      zip_code: row.zip_code ?? null,
       description: row.description,
       latitude: row.latitude,
       longitude: row.longitude,
