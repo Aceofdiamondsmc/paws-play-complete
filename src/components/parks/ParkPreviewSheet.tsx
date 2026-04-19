@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceMiles, openNavigation, getValidCoords, openNavigationByAddress } from '@/lib/navigation-utils';
+import { formatLocation } from '@/lib/format-location';
 import { cn } from '@/lib/utils';
 import type { Park } from '@/types';
 
@@ -58,7 +59,7 @@ export function ParkPreviewSheet({ park, onClose }: ParkPreviewSheetProps) {
     if (coords) {
       openNavigation(coords.lat, coords.lng, park.name || 'Dog Park');
     } else {
-      const query = [park.name, park.city, park.state].filter(Boolean).join(' ');
+      const query = [park.name, park.city, park.state, park.country].filter(Boolean).join(' ');
       openNavigationByAddress(query);
     }
   };
@@ -112,10 +113,12 @@ export function ParkPreviewSheet({ park, onClose }: ParkPreviewSheetProps) {
           {park && (
             <div>
               <h2 className="text-xl font-bold">{park.name || 'Dog Park'}</h2>
-              {(park.address || park.city || park.state) && (
+              {(park.address || park.city || park.state || park.country) && (
                 <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                   <MapPin className="w-3.5 h-3.5" />
-                  {park.address || [park.city, park.state].filter(Boolean).join(', ')}
+                  {park.address
+                    ? [park.address, park.country].filter(Boolean).join(', ')
+                    : formatLocation(park.city, park.state, park.country)}
                 </p>
               )}
 

@@ -91,6 +91,8 @@ export function useNearbyParks(): UseNearbyParksReturn {
           address: row.address,
           city: row.city,
           state: row.state,
+          country: (row as any).country ?? null,
+          zip_code: (row as any).zip_code ?? null,
           description: row.description,
           latitude: row.latitude,
           longitude: row.longitude,
