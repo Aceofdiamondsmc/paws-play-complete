@@ -39,12 +39,15 @@ import { useImageUpload } from '@/hooks/useImageUpload';
 import { useParkSuggestions } from '@/hooks/useParkSuggestions';
 import { Plus, Pencil, Trash2, Search, Loader2, MapPin, Star, Upload, X, Check, XCircle } from 'lucide-react';
 import type { Park } from '@/types';
+import { CountryCombobox } from '@/components/ui/country-combobox';
 
 interface ParkFormData {
   name: string;
   address: string;
   city: string;
   state: string;
+  country: string;
+  zip_code: string;
   description: string;
   latitude: number | null;
   longitude: number | null;
@@ -64,6 +67,8 @@ const initialFormData: ParkFormData = {
   address: '',
   city: '',
   state: '',
+  country: '',
+  zip_code: '',
   description: '',
   latitude: null,
   longitude: null,
@@ -121,6 +126,8 @@ export default function AdminParks() {
       address: park.address || '',
       city: park.city || '',
       state: park.state || '',
+      country: park.country || '',
+      zip_code: park.zip_code || '',
       description: park.description || '',
       latitude: park.latitude || null,
       longitude: park.longitude || null,
@@ -155,6 +162,8 @@ export default function AdminParks() {
         address: formData.address || null,
         city: formData.city || null,
         state: formData.state || null,
+        country: formData.country || null,
+        zip_code: formData.zip_code || null,
         description: formData.description || null,
         latitude: formData.latitude,
         longitude: formData.longitude,
@@ -548,6 +557,27 @@ export default function AdminParks() {
                   value={formData.state}
                   onChange={(e) => updateFormField('state', e.target.value)}
                   placeholder="State"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="country">Country</Label>
+                <CountryCombobox
+                  id="country"
+                  value={formData.country}
+                  onChange={(v) => updateFormField('country', v)}
+                  placeholder="Select country (US default)"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="zip_code">ZIP / Postal Code</Label>
+                <Input
+                  id="zip_code"
+                  value={formData.zip_code}
+                  onChange={(e) => updateFormField('zip_code', e.target.value)}
+                  placeholder="e.g., 97223 or 97200"
                 />
               </div>
             </div>

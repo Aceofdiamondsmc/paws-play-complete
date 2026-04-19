@@ -26,8 +26,8 @@ export const ParkListItem = memo(function ParkListItem({ park, isLocalFavorite, 
     if (coords) {
       openNavigation(coords.lat, coords.lng, park.name || 'Dog Park');
     } else {
-      // Use park name + city + state for Google Maps search
-      const query = [park.name, park.city, park.state].filter(Boolean).join(' ');
+      // Use park name + city + state + country for international Google Maps search
+      const query = [park.name, park.city, park.state, park.country].filter(Boolean).join(' ');
       openNavigationByAddress(query);
     }
   };

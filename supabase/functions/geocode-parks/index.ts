@@ -62,11 +62,11 @@ serve(async (req: Request) => {
       throw new Error("MAPBOX_ACCESS_TOKEN not configured");
     }
 
-    // Fetch parks with missing coordinates but valid addresses
+    // Fetch parks with missing coordinates that have ANY locatable info
+    // (address OR name+city/country combo)
     const { data: parks, error: fetchError } = await supabase
       .from("parks")
-      .select("Id, name, address, latitude, longitude, country")
-      .not("address", "is", null)
+      .select("Id, name, address, city, state, latitude, longitude, country")
       .or("latitude.is.null,longitude.is.null");
 
     if (fetchError) {
@@ -81,7 +81,9 @@ serve(async (req: Request) => {
         (typeof lat === 'number' && (isNaN(lat) || !isFinite(lat))) ||
         (typeof lng === 'number' && (isNaN(lng) || !isFinite(lng))) ||
         lat < -90 || lat > 90 || lng < -180 || lng > 180;
-      return isInvalid && p.address;
+      // Need at least an address OR (city AND country) OR (name AND country) to geocode meaningfully
+      const hasLocatable = !!p.address || (!!p.city && !!p.country) || (!!p.name && !!p.country);
+      return isInvalid && hasLocatable;
     });
 
     console.log(`Found ${parksToGeocode.length} parks to geocode`);
@@ -94,11 +96,10 @@ serve(async (req: Request) => {
 
     for (const park of parksToGeocode.slice(0, 50)) {
       try {
-        // Include country in the geocoding query for better international accuracy.
-        // No `country=` filter — Mapbox can resolve any country worldwide.
-        const fullAddress = [park.address, (park as any).country]
-          .filter(Boolean)
-          .join(', ');
+        // Build query: prefer full address, otherwise use name + city + state + country
+        const fullAddress = park.address
+          ? [park.address, (park as any).country].filter(Boolean).join(', ')
+          : [park.name, park.city, park.state, (park as any).country].filter(Boolean).join(', ');
         const query = encodeURIComponent(fullAddress);
         const response = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${MAPBOX_TOKEN}&limit=1`

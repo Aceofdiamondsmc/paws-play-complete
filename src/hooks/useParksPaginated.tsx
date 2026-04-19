@@ -45,6 +45,8 @@ export function useParksPaginated(userLocation?: UserLocation | null) {
       address: row.address,
       city: row.city,
       state: row.state,
+      country: row.country ?? null,
+      zip_code: row.zip_code ?? null,
       description: row.description,
       latitude: hasValidCoords(parsedLat, parsedLng) ? parsedLat : undefined,
       longitude: hasValidCoords(parsedLat, parsedLng) ? parsedLng : undefined,
