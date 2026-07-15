@@ -9,7 +9,7 @@ const navItems = [
   { path: '/social', icon: MessageCircle, label: 'Social' },
   { path: '/services', icon: Scissors, label: 'Services' },
   { path: '/pack', icon: PawPrint, label: 'Pack' },
-  { path: '/shop', icon: ShoppingCart, label: 'Shop' },
+  // { path: '/shop', icon: ShoppingCart, label: 'Shop' }, // Temporarily disabled — store offline
   { path: '/parks', icon: Trees, label: 'Parks' },
   { path: '/me', icon: User, label: 'Me' },
 ];
