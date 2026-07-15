@@ -1,35 +1,23 @@
+## Goal
+Temporarily hide the Shop tab from the app UI while preserving all code so it can be re-enabled later. Save a memory note documenting how to restore it.
 
-## What's wrong
-The Martinique park IS in the parks table (Id 263) with lat/lng — but the **longitude has the wrong sign**:
-- Stored: `lat 14.6109, lng 61.0843` → middle of Indian Ocean
-- Correct: `lat 14.6109, lng -61.0843` → Martinique, Caribbean
+## Changes
 
-That's why the marker doesn't appear on the map near you — it's plotted halfway across the world.
+### 1. `src/components/layout/BottomNav.tsx`
+Remove the Shop entry from the `navItems` array so the icon no longer appears in the bottom navigation. Leave the `ShoppingCart` import in place (or remove it — trivial) and leave every other tab untouched.
 
-Secondary nit: `country` was saved as "Martinique" and `state` as "martinique". Functionally it still loads, but for consistency country should be "France" and state "Martinique".
+### 2. `src/App.tsx`
+Comment out (do not delete) the `/shop` route and its `Shop` import so the page is unreachable via navigation but the code stays intact for quick re-enable.
 
-## Fix (one-step DB update)
+Keep `src/pages/Shop.tsx` untouched.
 
-Run a single UPDATE on parks.Id = 263:
+### 3. Memory
+Save `mem://features/shop-tab-disabled` describing:
+- Shop tab is temporarily hidden (store disabled)
+- To re-enable: uncomment the `/shop` route + import in `src/App.tsx`, and add the Shop entry back to `navItems` in `BottomNav.tsx` (path `/shop`, icon `ShoppingCart`, label `Shop`)
+- Shopify Buy Button config (domain `diamond-lanes-clothing.myshopify.com`, collection `340574437533`) lives in `src/pages/Shop.tsx` and remains intact
 
-```sql
-UPDATE public.parks
-SET longitude = -61.0843,
-    country   = 'France',
-    state     = 'Martinique',
-    city      = 'Fort-de-France'
-WHERE "Id" = 263;
-```
+Add a one-liner to `mem://index.md` Memories section pointing to it.
 
-That's it. After this:
-- The park renders at the correct Caribbean location.
-- "Go" navigation passes "Parc Naturel Régional de la Martinique Fort-de-France Martinique France" to Apple/Google Maps and resolves correctly.
-- The location label shows "Fort-de-France, Martinique, France".
-
-## Why this happened (so we prevent it next time)
-The admin "Add Park" form likely accepted a manually-typed longitude without enforcing sign for Western Hemisphere countries. Not fixing that here (you said no rebuild needed for this) — just flagging that for any France-overseas / Americas park, longitude must be negative.
-
-No edge function re-run needed — geocoder is irrelevant since lat/lng already exist (just wrong). No client code changes.
-
-## After approval
-Refresh Parks tab → the Martinique park appears in the Caribbean on the map, and shows "Fort-de-France, Martinique, France" in the list/preview.
+## Out of scope
+No changes to Shopify config, no file deletions, no other tabs touched.

@@ -19,7 +19,7 @@ import Social from "./pages/Social";
 import Dates from "./pages/Dates";
 import Pack from "./pages/Pack";
 import Me from "./pages/Me";
-import Shop from "./pages/Shop";
+// import Shop from "./pages/Shop"; // Temporarily disabled — store offline
 import Plans from "./pages/Plans";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -139,7 +139,7 @@ const App = () => {
                   <Route path="/dates" element={<Dates />} />
                   <Route path="/pack" element={<Pack />} />
                   <Route path="/me" element={<Me />} />
-                  <Route path="/shop" element={<Shop />} />
+                  {/* <Route path="/shop" element={<Shop />} /> Temporarily disabled — store offline */}
                   <Route path="/plans" element={<Plans />} />
                 </Route>
 
