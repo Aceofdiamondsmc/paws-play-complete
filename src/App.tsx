@@ -139,7 +139,7 @@ const App = () => {
                   <Route path="/dates" element={<Dates />} />
                   <Route path="/pack" element={<Pack />} />
                   <Route path="/me" element={<Me />} />
-                  <Route path="/shop" element={<Shop />} />
+                  {/* <Route path="/shop" element={<Shop />} /> Temporarily disabled — store offline */}
                   <Route path="/plans" element={<Plans />} />
                 </Route>
 
